@@ -1,5 +1,19 @@
 # Scene-RSI V0 — 3D 场景生成基线与独立验证器
 
+## 第一阶段新增：可复现 Benchmark 与 Fixed Meta-Agent 接口
+
+本次在原始 V0 上新增任务生成、独立划分、统计和离线补丁审计。详细接口、隔离边界与运行方法见 [PHASE1.md](PHASE1.md)。**没有实现 Meta-Agent 自修改，也不把场景修复或固定改进器称为 RSI。**
+
+在当前共享服务器上，从本项目目录运行（Python 3.10+，仅标准库、CPU）：
+
+```bash
+SCENE_RSI_PYTHON=/home/xymo/miniforge3/bin/python bash scripts/reproduce.sh ../phase1_run 20261023 4
+```
+
+该命令运行测试、生成每族 4 个任务、评测 dev/val 和原始样例、导出 dev-only 请求包。输出目录必须是新的，源码 Git 工作树须干净；**不会运行保留测试集或调用 Codex 模型**。系统 `/usr/bin/python3` 为 3.8，不满足原项目要求。
+
+`SceneSpec`、几何定义、`SceneVerifier` 及原始测试逐字节保留，`original_contract.json` 保存其 SHA-256。新增 CLI 可运行 `python -m scene_rsi check-integrity` 检查。下面保留 V0 的背景说明；原始测试实测为 **17 项**，下文旧数字已校正。
+
 > **版本定位：这是 Scene-RSI 的实验地基，不是已经实现的 RSI。** 当前不存在 LLM、Meta-Agent、跨代自修改或模型训练。代码专门为后续引入这类机制提供一个可复现、可验证的任务环境。
 
 ## 已实现
@@ -9,7 +23,7 @@
 - `SceneVerifier`：**独立于 Agent** 的硬约束验证器，检查物体存在性、尺寸/边界、非法碰撞、`near_wall`、参考物体朝向下的 `in_front_of`、`keep_clear` 与粗粒度路径可达性。
 - `scene_state.json`：机器可读结果；`evaluation.json`：结构化错误清单。
 - `floorplan.svg`：二维俯视图；`scene.obj` + `scene.mtl`：可以导入 Blender 的**三维长方体代理几何**（不是精细物体模型）。
-- 16 项自动测试，8 个基础场景，以及一个**明确可行但固定基线失败**的挑战样本。
+- 原始 17 项自动测试，8 个基础场景，以及一个**明确可行但固定基线失败**的挑战样本；第一阶段另有新增测试。
 
 ## 快速开始
 
@@ -64,7 +78,7 @@ scene_rsi_v0/
 
 | 验证项 | 结果 |
 |---|---|
-| 自动化测试 | 16 / 16 通过 |
+| 原始自动化测试 | 17 / 17 通过 |
 | 8 个基础样例 | 8 / 8 满足预定义硬约束 |
 | `corner_desk_challenge` | 固定 Agent **未能通过** |
 | 同一个挑战的人工构造合法状态 | 验证器 **通过** |
