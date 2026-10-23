@@ -8,6 +8,8 @@
 
 当前执行边界内未发现 Podman、Docker、bubblewrap、runc/crun、nsjail 等运行时。已有当前用户的 subordinate UID/GID 映射；`unshare --user --map-root-user --mount --net --pid --fork /bin/true` **成功**，所以不能声称内核完全禁止命名空间。
 
+上述成功来自控制器手工检查固定系统空操作。自动预检更保守：要求系统可执行文件及其祖先目录均由 UID 0 持有，而本次可见的 `/`、`/usr`、`/usr/bin` 和系统二进制显示为 UID 65534，因此自动报告为 `not_run / trusted_system_unshare_unavailable`。这是信任检查未满足，不是命名空间创建失败。交付的 `environment-observations.json` 单独保存手工检查结果；没有放宽预检规则或据此启用执行。
+
 但当前可见 cgroup 挂载只读，尚无经验证的资源委派、候选隔离后端、模型凭据代理或真实隔离回归结果。命名空间创建成功不证明文件系统、网络、GPU、凭据、进程组资源和超时清理边界都正确。没有连接用户 systemd bus、安装运行时、修改服务器配置、尝试 Docker 权限或访问 GPU。此结论只针对当前执行边界，不代表管理员无法提供其他执行服务。
 
 `meta-preflight` 保存观察事实和缺项；能力字段永远不被当作授权。即使报告中出现运行时路径，或调用方伪造 `verified=true`，也不会启用执行。当前没有 `--unsafe`、普通子进程降级或可注入的执行回调。
