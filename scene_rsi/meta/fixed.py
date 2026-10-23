@@ -254,14 +254,31 @@ def prepare_request(repo: Path, dataset: Path, out: Path, *,
     for name, data in sorted(payloads.items()):
         _write(out / name, data)
     _write(out / "request.json", _json_bytes(request))
+    # Controller-only provenance registration; never copied into the bundle.
+    from .proposals import register_prepared_request
+    register_prepared_request(repo, out, request)
     return request
+
+
+def _regular_bytes(path: Path, maximum: int = 4 * 1024 * 1024) -> bytes:
+    """Bound controller reads and reject links, pipes, sockets and devices."""
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, "rb") as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode) or before.st_size > maximum:
+            raise ValueError("bundle input must be a bounded regular file")
+        data = stream.read(maximum + 1)
+        after = os.fstat(stream.fileno())
+        if len(data) > maximum or len(data) != before.st_size or before.st_mtime_ns != after.st_mtime_ns:
+            raise ValueError("bundle input exceeded its limit or changed during read")
+        return data
 
 
 def _validate_bundle(bundle: Path) -> dict:
     bundle = Path(bundle)
     if bundle.is_symlink() or (bundle / "request.json").is_symlink():
         raise ValueError("proposal bundle cannot contain symlinks")
-    request = json.loads((bundle / "request.json").read_text(encoding="utf-8"))
+    request = json.loads(_regular_bytes(bundle / "request.json"))
     identity = dict(request)
     request_id = identity.pop("request_id", None)
     if request_id != _sha(_json_bytes(identity)):
@@ -285,22 +302,38 @@ def _validate_bundle(bundle: Path) -> dict:
             continue
         raise ValueError("non-allowlisted file in proposal bundle")
     observed = set()
+    contents = {}
+    total_bytes = 0
     for path in bundle.rglob("*"):
-        if path.is_symlink():
+        mode = path.lstat().st_mode
+        if stat.S_ISLNK(mode):
             raise ValueError("proposal bundle cannot contain symlinks")
-        if path.is_file():
-            observed.add(path.relative_to(bundle).as_posix())
+        if stat.S_ISDIR(mode):
+            continue
+        if not stat.S_ISREG(mode):
+            raise ValueError("proposal bundle cannot contain special files")
+        name = path.relative_to(bundle).as_posix()
+        if name not in expected or len(observed) >= 4096:
+            raise ValueError("proposal bundle contains unexpected or too many files")
+        data = _regular_bytes(path)
+        total_bytes += len(data)
+        if total_bytes > 64 * 1024 * 1024:
+            raise ValueError("proposal bundle exceeds total byte limit")
+        observed.add(name)
+        contents[name] = data
     if observed != expected:
         raise ValueError("proposal bundle files differ from request manifest")
     for name, digest in request["files"].items():
         parts = PurePosixPath(name).parts
         if PurePosixPath(name).is_absolute() or ".." in parts or "\\" in name:
             raise ValueError("unsafe bundle path")
-        if _sha((bundle / name).read_bytes()) != digest:
+        if _sha(contents[name]) != digest:
             raise ValueError(f"bundle content hash mismatch: {name}")
-    if (bundle / "prompt.txt").read_bytes() != PROMPT.encode():
+    if contents["request.json"] != _json_bytes(request):
+        raise ValueError("proposal request bytes changed or are not canonical")
+    if contents["prompt.txt"] != PROMPT.encode():
         raise ValueError("fixed prompt bytes changed")
-    if (bundle / "proposal.schema.json").read_bytes() != _json_bytes(PROPOSAL_SCHEMA):
+    if contents["proposal.schema.json"] != _json_bytes(PROPOSAL_SCHEMA):
         raise ValueError("proposal response schema changed")
     return request
 
@@ -436,7 +469,8 @@ def _bind_audit_root(repo: Path, request_id: str, out: Path) -> None:
             _write(binding, _json_bytes(expected))
 
 
-def record_candidate(repo: Path, bundle: Path, patch: Path, out: Path) -> dict[str, Any]:
+def record_candidate(repo: Path, bundle: Path, patch: Path, out: Path, *,
+                     reserved_candidate_id: str | None = None) -> dict[str, Any]:
     """Archive each attempt, then apply and syntax-check it without executing it.
 
     The append-only-by-API output directory is a TRUSTED controller artifact,
@@ -453,9 +487,23 @@ def record_candidate(repo: Path, bundle: Path, patch: Path, out: Path) -> dict[s
     out.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (out / ".audit.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        candidate_id = "candidate-" + uuid.uuid4().hex
+        candidate_id = reserved_candidate_id or "candidate-" + uuid.uuid4().hex
+        if not re.fullmatch(r"candidate-[0-9a-f]{32}", candidate_id):
+            raise ValueError("invalid reserved candidate ID")
         directory = out / candidate_id
-        directory.mkdir(mode=0o700)
+        reservation = None
+        if reserved_candidate_id is None:
+            directory.mkdir(mode=0o700)
+        else:
+            if directory.is_symlink() or not directory.is_dir():
+                raise ValueError("reserved attempt directory is missing or unsafe")
+            reservation = json.loads(_regular_bytes(directory / "reservation.json"))
+            if (reservation.get("candidate_id") != candidate_id
+                    or reservation.get("source") != "offline_fixture"
+                    or reservation.get("status") != "reserved"
+                    or any((directory / name).exists() for name in
+                           ("record.json", "proposal_record.json", "static_claim.json"))):
+                raise ValueError("proposal reservation is not available for offline static audit")
         record: dict[str, Any] = {
             "record_version": 1, "candidate_id": candidate_id,
             "started_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -479,17 +527,29 @@ def record_candidate(repo: Path, bundle: Path, patch: Path, out: Path) -> dict[s
             _bind_audit_root(repo, request["request_id"], out)
             record["checks"].append({"name": stage, "passed": True})
             stage = "candidate_budget"
-            attempts = 1
-            for prior in out.glob("candidate-*/reservation.json"):
-                prior_record = json.loads(prior.read_text(encoding="utf-8"))
-                attempts += prior_record.get("request_id") == request["request_id"]
+            if reservation is not None:
+                if reservation.get("request_id") != request["request_id"]:
+                    raise ValueError("reserved request identity mismatch")
+                attempts = reservation.get("attempt_index")
+                if type(attempts) is not int or attempts < 1:
+                    raise ValueError("reserved attempt index is invalid")
+                _write(directory / "static_claim.json", _json_bytes({
+                    "request_id": request["request_id"], "candidate_id": candidate_id,
+                    "claimed_at_utc": record["started_at_utc"],
+                }))
+            else:
+                attempts = 1
+                for prior in out.glob("candidate-*/reservation.json"):
+                    prior_record = json.loads(prior.read_text(encoding="utf-8"))
+                    attempts += prior_record.get("request_id") == request["request_id"]
             record["attempt_index"] = attempts
             # Persist reservation before checks, so killed/incomplete attempts
             # cannot recover a consumed slot by omitting their final record.
-            _write(directory / "reservation.json", _json_bytes({
-                "request_id": request["request_id"], "attempt_index": attempts,
-                "candidate_id": candidate_id, "started_at_utc": record["started_at_utc"],
-            }))
+            if reservation is None:
+                _write(directory / "reservation.json", _json_bytes({
+                    "request_id": request["request_id"], "attempt_index": attempts,
+                    "candidate_id": candidate_id, "started_at_utc": record["started_at_utc"],
+                }))
             if attempts > request["config"]["max_candidates"]:
                 raise ValueError("fixed request max_candidates budget exhausted")
             record["checks"].append({"name": stage, "passed": True})

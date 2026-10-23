@@ -11,7 +11,7 @@ from .integrity import require_original_contract
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Scene-RSI phase 1: CPU baseline, benchmark and fixed meta interface")
+    parser = argparse.ArgumentParser(description="Scene-RSI: CPU benchmark and fail-closed fixed meta interfaces")
     commands = parser.add_subparsers(dest="command", required=True)
     generate = commands.add_parser("generate", help="generate and evaluate one scene")
     generate.add_argument("--spec", required=True)
@@ -46,6 +46,19 @@ def main() -> None:
     record.add_argument("--bundle", required=True)
     record.add_argument("--patch", required=True)
     record.add_argument("--out", required=True)
+    preflight = commands.add_parser("meta-preflight", help="collect capability evidence; never authorizes live execution")
+    preflight.add_argument("--namespace-probe", action="store_true", help="run only a trusted unshare /bin/true probe")
+    safe_plan = commands.add_parser("meta-safe-plan", help="validate controller provenance and print offline invocation design")
+    propose = commands.add_parser("meta-propose", help="reserve quota and record refusal: no verified live backend")
+    offline = commands.add_parser("meta-import-offline", help="import a labelled fixture for static audit; never calls a model")
+    for command in (safe_plan, propose, offline):
+        command.add_argument("--repo", default=".")
+        command.add_argument("--bundle", required=True)
+        command.add_argument("--limits", help="JSON ProposalLimits; runtime limits remain unenforced while backend is absent")
+    propose.add_argument("--out", required=True, help="trusted audit root")
+    offline.add_argument("--out", required=True, help="same trusted audit root for this request")
+    offline.add_argument("--proposal", required=True, help="offline JSON fixture with patch and rationale")
+    offline.add_argument("--events", help="optional offline Codex JSONL fixture; never real usage evidence")
     commands.add_parser("check-integrity", help="compare evaluator/schema/original tests against attachment hashes")
     args = parser.parse_args()
 
@@ -53,6 +66,28 @@ def main() -> None:
         require_original_contract()
         if args.command == "check-integrity":
             print(json.dumps(require_original_contract(), indent=2))
+            return
+        if args.command == "meta-preflight":
+            from .meta.capabilities import probe_capabilities
+            print(json.dumps(probe_capabilities(namespace_probe=args.namespace_probe), indent=2))
+            return
+        if args.command in {"meta-safe-plan", "meta-propose", "meta-import-offline"}:
+            from .meta.fixed import _regular_bytes
+            from .meta.proposals import ProposalLimits, safe_plan, request_proposal, ingest_offline_proposal
+            limits = ProposalLimits(**json.loads(_regular_bytes(Path(args.limits), 65536))) if args.limits else None
+            if args.command == "meta-safe-plan":
+                result = safe_plan(Path(args.repo), Path(args.bundle), limits)
+            elif args.command == "meta-propose":
+                result = request_proposal(Path(args.repo), Path(args.bundle), Path(args.out), limits=limits)
+            else:
+                result = ingest_offline_proposal(Path(args.repo), Path(args.bundle), Path(args.proposal),
+                                                Path(args.out), events=Path(args.events) if args.events else None,
+                                                limits=limits)
+            print(json.dumps(result, indent=2))
+            if args.command == "meta-propose":
+                raise SystemExit(3)
+            if args.command == "meta-import-offline" and result["status"] != "accepted_static_only":
+                raise SystemExit(1)
             return
         if args.command == "make-dataset":
             from .benchmark.dataset import build_dataset
@@ -95,7 +130,7 @@ def main() -> None:
             reject_managed_dataset_input(Path(args.spec))
             if args.command == "validate":
                 reject_managed_dataset_input(Path(args.state))
-    except (ValueError, OSError, RuntimeError) as exc:
+    except (ValueError, OSError, RuntimeError, TypeError) as exc:
         parser.exit(2, f"error: {exc}\n")
 
     verifier = SceneVerifier()
