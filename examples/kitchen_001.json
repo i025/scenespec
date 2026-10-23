@@ -1,0 +1,68 @@
+{
+  "scene_id": "kitchen_001",
+  "room": {
+    "width": 5.5,
+    "depth": 4,
+    "height": 3.0
+  },
+  "assets": {
+    "cabinet_01": {
+      "width": 1.5,
+      "depth": 0.65,
+      "height": 1.15
+    },
+    "counter_01": {
+      "width": 1.3,
+      "depth": 0.7,
+      "height": 0.9
+    },
+    "stool_01": {
+      "width": 0.42,
+      "depth": 0.42,
+      "height": 0.6
+    }
+  },
+  "required_objects": [
+    {
+      "id": "counter",
+      "asset": "counter_01"
+    },
+    {
+      "id": "cabinet",
+      "asset": "cabinet_01"
+    },
+    {
+      "id": "stool",
+      "asset": "stool_01"
+    }
+  ],
+  "regions": [
+    {
+      "id": "door",
+      "x": 0.1,
+      "y": 0.15,
+      "width": 0.9,
+      "depth": 0.9
+    }
+  ],
+  "constraints": [
+    {
+      "type": "near_wall",
+      "subject": "counter",
+      "wall": "north",
+      "max_gap": 0.35
+    },
+    {
+      "type": "keep_clear",
+      "region": "door"
+    }
+  ],
+  "access_paths": [
+    {
+      "from_region": "door",
+      "to_object": "counter",
+      "clearance": 0.2,
+      "interaction_distance": 0.75
+    }
+  ]
+}

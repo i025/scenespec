@@ -1,0 +1,68 @@
+{
+  "scene_id": "living_001",
+  "room": {
+    "width": 6,
+    "depth": 5,
+    "height": 3.0
+  },
+  "assets": {
+    "shelf_01": {
+      "width": 0.85,
+      "depth": 0.35,
+      "height": 1.8
+    },
+    "sofa_01": {
+      "width": 1.8,
+      "depth": 0.85,
+      "height": 0.9
+    },
+    "table_01": {
+      "width": 1.2,
+      "depth": 0.8,
+      "height": 0.75
+    }
+  },
+  "required_objects": [
+    {
+      "id": "sofa",
+      "asset": "sofa_01"
+    },
+    {
+      "id": "table",
+      "asset": "table_01"
+    },
+    {
+      "id": "shelf",
+      "asset": "shelf_01"
+    }
+  ],
+  "regions": [
+    {
+      "id": "door",
+      "x": 0.1,
+      "y": 0.15,
+      "width": 0.9,
+      "depth": 0.9
+    }
+  ],
+  "constraints": [
+    {
+      "type": "near_wall",
+      "subject": "sofa",
+      "wall": "west",
+      "max_gap": 0.35
+    },
+    {
+      "type": "keep_clear",
+      "region": "door"
+    }
+  ],
+  "access_paths": [
+    {
+      "from_region": "door",
+      "to_object": "sofa",
+      "clearance": 0.2,
+      "interaction_distance": 0.75
+    }
+  ]
+}

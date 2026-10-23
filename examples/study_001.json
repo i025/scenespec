@@ -1,0 +1,74 @@
+{
+  "scene_id": "study_001",
+  "room": {
+    "width": 4.5,
+    "depth": 4,
+    "height": 3.0
+  },
+  "assets": {
+    "chair_01": {
+      "width": 0.52,
+      "depth": 0.55,
+      "height": 0.92
+    },
+    "desk_01": {
+      "width": 1.35,
+      "depth": 0.65,
+      "height": 0.78
+    },
+    "shelf_01": {
+      "width": 0.85,
+      "depth": 0.35,
+      "height": 1.8
+    }
+  },
+  "required_objects": [
+    {
+      "id": "desk",
+      "asset": "desk_01"
+    },
+    {
+      "id": "chair",
+      "asset": "chair_01"
+    },
+    {
+      "id": "shelf",
+      "asset": "shelf_01"
+    }
+  ],
+  "regions": [
+    {
+      "id": "door",
+      "x": 0.1,
+      "y": 2.6,
+      "width": 0.9,
+      "depth": 0.9
+    }
+  ],
+  "constraints": [
+    {
+      "type": "near_wall",
+      "subject": "desk",
+      "wall": "south",
+      "max_gap": 0.35
+    },
+    {
+      "type": "in_front_of",
+      "subject": "chair",
+      "reference": "desk",
+      "max_gap": 0.4
+    },
+    {
+      "type": "keep_clear",
+      "region": "door"
+    }
+  ],
+  "access_paths": [
+    {
+      "from_region": "door",
+      "to_object": "desk",
+      "clearance": 0.2,
+      "interaction_distance": 0.75
+    }
+  ]
+}

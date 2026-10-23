@@ -1,0 +1,71 @@
+{
+  "scene_id": "corner_desk_challenge",
+  "room": {
+    "width": 4.0,
+    "depth": 4.0,
+    "height": 3.0
+  },
+  "assets": {
+    "desk_01": {
+      "width": 1.0,
+      "depth": 0.5,
+      "height": 0.8
+    },
+    "chair_01": {
+      "width": 0.4,
+      "depth": 0.4,
+      "height": 0.7
+    }
+  },
+  "required_objects": [
+    {
+      "id": "desk",
+      "asset": "desk_01"
+    },
+    {
+      "id": "chair",
+      "asset": "chair_01"
+    }
+  ],
+  "regions": [
+    {
+      "id": "door",
+      "x": 0.1,
+      "y": 1.0,
+      "width": 0.8,
+      "depth": 0.8
+    }
+  ],
+  "constraints": [
+    {
+      "type": "near_wall",
+      "subject": "desk",
+      "wall": "north",
+      "max_gap": 0.2
+    },
+    {
+      "type": "near_wall",
+      "subject": "desk",
+      "wall": "east",
+      "max_gap": 0.2
+    },
+    {
+      "type": "in_front_of",
+      "subject": "chair",
+      "reference": "desk",
+      "max_gap": 0.3
+    },
+    {
+      "type": "keep_clear",
+      "region": "door"
+    }
+  ],
+  "access_paths": [
+    {
+      "from_region": "door",
+      "to_object": "desk",
+      "clearance": 0.2,
+      "interaction_distance": 0.75
+    }
+  ]
+}

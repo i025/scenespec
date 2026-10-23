@@ -1,0 +1,74 @@
+{
+  "scene_id": "meeting_001",
+  "room": {
+    "width": 6.5,
+    "depth": 4.5,
+    "height": 3.0
+  },
+  "assets": {
+    "chair_01": {
+      "width": 0.52,
+      "depth": 0.55,
+      "height": 0.92
+    },
+    "shelf_01": {
+      "width": 0.85,
+      "depth": 0.35,
+      "height": 1.8
+    },
+    "table_01": {
+      "width": 1.2,
+      "depth": 0.8,
+      "height": 0.75
+    }
+  },
+  "required_objects": [
+    {
+      "id": "table",
+      "asset": "table_01"
+    },
+    {
+      "id": "chair",
+      "asset": "chair_01"
+    },
+    {
+      "id": "shelf",
+      "asset": "shelf_01"
+    }
+  ],
+  "regions": [
+    {
+      "id": "door",
+      "x": 0.1,
+      "y": 0.15,
+      "width": 0.85,
+      "depth": 0.9
+    }
+  ],
+  "constraints": [
+    {
+      "type": "near_wall",
+      "subject": "shelf",
+      "wall": "east",
+      "max_gap": 0.35
+    },
+    {
+      "type": "in_front_of",
+      "subject": "chair",
+      "reference": "table",
+      "max_gap": 0.4
+    },
+    {
+      "type": "keep_clear",
+      "region": "door"
+    }
+  ],
+  "access_paths": [
+    {
+      "from_region": "door",
+      "to_object": "table",
+      "clearance": 0.2,
+      "interaction_distance": 0.75
+    }
+  ]
+}

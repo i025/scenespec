@@ -1,0 +1,74 @@
+{
+  "scene_id": "studio_001",
+  "room": {
+    "width": 4.8,
+    "depth": 4.2,
+    "height": 3.0
+  },
+  "assets": {
+    "bed_01": {
+      "width": 2.0,
+      "depth": 1.3,
+      "height": 0.65
+    },
+    "chair_01": {
+      "width": 0.52,
+      "depth": 0.55,
+      "height": 0.92
+    },
+    "desk_01": {
+      "width": 1.35,
+      "depth": 0.65,
+      "height": 0.78
+    }
+  },
+  "required_objects": [
+    {
+      "id": "bed",
+      "asset": "bed_01"
+    },
+    {
+      "id": "desk",
+      "asset": "desk_01"
+    },
+    {
+      "id": "chair",
+      "asset": "chair_01"
+    }
+  ],
+  "regions": [
+    {
+      "id": "door",
+      "x": 0.1,
+      "y": 0.1,
+      "width": 0.85,
+      "depth": 0.9
+    }
+  ],
+  "constraints": [
+    {
+      "type": "near_wall",
+      "subject": "desk",
+      "wall": "north",
+      "max_gap": 0.35
+    },
+    {
+      "type": "in_front_of",
+      "subject": "chair",
+      "reference": "desk",
+      "max_gap": 0.4
+    },
+    {
+      "type": "keep_clear",
+      "region": "door"
+    }
+  ],
+  "access_paths": [
+    {
+      "from_region": "door",
+      "to_object": "desk",
+      "clearance": 0.2,
+      "interaction_distance": 0.75
+    }
+  ]
+}
