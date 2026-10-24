@@ -49,6 +49,10 @@ Budget registered in code: K=1 generator proposal per arm/initial generator;
 one upstream call, <=8192 output tokens, <=180 s wall, same model gpt-6.1-sol.
 Each optimization observes 8 common dev maps and one chosen 16-map probe;
 each candidate is evaluated on those 24 dev maps and 24 private val maps.
+Each suite is fixed by its seed and a map pool of four times its requested count;
+the controller takes the first requested number of existentially feasible maps
+per condition. This prepares a fair benchmark, identically for both arms; it
+does not filter/retry generator outputs or show feasibility witnesses to policies.
 No rejection sampling; one scene output per map. Selection requires all outputs
 valid, physics replay of solved tasks, and strictly higher val solvability.
 
