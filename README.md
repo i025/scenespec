@@ -2,6 +2,8 @@
 
 ## Phase 2 当前状态
 
+Phase 2B 的候选执行器接口、独立评分和离线验证见 [PHASE2B.md](PHASE2B.md)。当前未发现可验收的隔离服务，候选执行继续 fail-closed；没有真实动态对照结果。
+
 本分支只交付 **P2A 安全设计与离线测试**。现有环境缺少已验证的隔离后端、资源委派与模型凭据代理；真实 Codex 调用和候选执行继续 fail-closed。没有新的候选 dev/val 成绩或 RSI 证据。接口、能力探测、预算登记和可复现命令见 [PHASE2.md](PHASE2.md)。Phase 1 基线仍为 `f116002`，其原工作树与协议保留。
 
 ## 第一阶段新增：可复现 Benchmark 与 Fixed Meta-Agent 接口
