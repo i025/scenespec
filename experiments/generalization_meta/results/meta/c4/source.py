@@ -1,0 +1,149 @@
+"""Construct layouts from clear straight, elbow, and dogleg corridors."""
+from collections import deque
+
+
+def layout(packet):
+    width, depth = packet['width'], packet['depth']
+    sample = packet['sample']
+    obstacles = sample[:-3]
+    blocked = {tuple(p) for p in obstacles}
+    free = [(x, y) for y in range(depth) for x in range(width)
+            if (x, y) not in blocked]
+    available = set(free)
+    directions = ((1, 0), (0, 1), (-1, 0), (0, -1))
+
+    # Every source coordinate, including its position in the sample, matters.
+    seed = width * 131 + depth * 17
+    for i, p in enumerate(sample):
+        seed = (seed * 257 + (i + 1) * (p[0] + 11 * p[1] + 1)) % 2147483647
+
+    def preference(p, salt):
+        value = seed + 1009 * p[0] + 9176 * p[1] + salt * 65537
+        value = (value * 1103515245 + 12345) % 2147483647
+        return value
+
+    rays = {}
+    for p in free:
+        for d, (dx, dy) in enumerate(directions):
+            cells = []
+            q = (p[0] + dx, p[1] + dy)
+            while q in available:
+                cells.append(q)
+                q = (q[0] + dx, q[1] + dy)
+            rays[p, d] = cells
+
+    # A turn is usable when the pusher can walk around its outside corner.
+    # This is a static local clearance test, independent of any agent state.
+    elbows = {}
+    for p in free:
+        for incoming, (dx, dy) in enumerate(directions):
+            for outgoing in ((incoming + 1) % 4, (incoming + 3) % 4):
+                ex, ey = directions[outgoing]
+                elbows[p, incoming, outgoing] = (
+                    (p[0] - ex, p[1] - ey) in available
+                    and (p[0] - dx - ex, p[1] - dy - ey) in available
+                )
+
+    target = min(width + depth - 3, 4 + seed % 6)
+    preferred_bends = 1 + (seed // 7) % 2
+    best_key = None
+    best = None
+
+    def consider(start, end, support, pushes, bends):
+        nonlocal best_key, best
+        distance = abs(start[0] - end[0]) + abs(start[1] - end[1])
+        if distance < 2:
+            return
+        score = (9 * min(distance, target)
+                 - 5 * max(0, distance - target)
+                 - 3 * (pushes - distance)
+                 + (9 if bends == preferred_bends else 3 * bends))
+        key = (score, preference(start, 1) ^ preference(end, 2),
+               preference(support, 3))
+        if best_key is None or key > best_key:
+            best_key = key
+            best = (start, end, support)
+
+    # Enumerate a bounded family of geometric templates, never joint states.
+    # Each template directly supplies the clear cells needed for its pushes.
+    for start in free:
+        for first, (dx, dy) in enumerate(directions):
+            support = (start[0] - dx, start[1] - dy)
+            if support not in available:
+                continue
+            for length1, corner1 in enumerate(rays[start, first], 1):
+                consider(start, corner1, support, length1, 0)
+                for second in ((first + 1) % 4, (first + 3) % 4):
+                    if not elbows[corner1, first, second]:
+                        continue
+                    for length2, corner2 in enumerate(rays[corner1, second], 1):
+                        pushes = length1 + length2
+                        consider(start, corner2, support, pushes, 1)
+                        for third in (first, (first + 2) % 4):
+                            if not elbows[corner2, second, third]:
+                                continue
+                            tail = rays[corner2, third]
+                            count = len(tail)
+                            if not count:
+                                continue
+                            # Keep both a long tail and a sample-dependent tail.
+                            chosen = 1 + ((seed + 13 * corner2[0]
+                                           + 29 * corner2[1] + first) % count)
+                            consider(start, tail[-1], support, pushes + count, 2)
+                            if chosen != count:
+                                consider(start, tail[chosen - 1], support,
+                                         pushes + chosen, 2)
+
+    if best is not None:
+        crate, goal, support = best
+        # Any cell in this component can reach the first pushing position.
+        distances = {support: 0}
+        queue = deque([support])
+        while queue:
+            p = queue.popleft()
+            for dx, dy in directions:
+                q = (p[0] + dx, p[1] + dy)
+                if q in available and q != crate and q not in distances:
+                    distances[q] = distances[p] + 1
+                    queue.append(q)
+        choices = [p for p in distances if p != goal]
+        agent_target = 2 + (seed // 31) % max(3, width + depth - 3)
+        agent = max(choices, key=lambda p: (
+            min(distances[p], agent_target)
+            - 2 * max(0, distances[p] - agent_target),
+            preference(p, 4)))
+    else:
+        # Extremely fragmented boards may have no corridor in this family.
+        # Preserve validity using static component and clearance preferences.
+        components = {}
+        sizes = {}
+        for root in free:
+            if root in components:
+                continue
+            label = len(sizes)
+            queue = deque([root])
+            components[root] = label
+            size = 0
+            while queue:
+                p = queue.popleft()
+                size += 1
+                for dx, dy in directions:
+                    q = (p[0] + dx, p[1] + dy)
+                    if q in available and q not in components:
+                        components[q] = label
+                        queue.append(q)
+            sizes[label] = size
+        pairs = ((c, g) for c in free for g in free
+                 if abs(c[0] - g[0]) + abs(c[1] - g[1]) >= 2)
+        crate, goal = max(pairs, key=lambda pair: (
+            components[pair[0]] == components[pair[1]],
+            sum(bool(rays[pair[0], d]) and bool(rays[pair[0], (d + 2) % 4])
+                for d in range(4)),
+            sizes[components[pair[0]]],
+            preference(pair[0], 5) ^ preference(pair[1], 6)))
+        agent = max((p for p in free if p != crate and p != goal),
+                    key=lambda p: (components[p] == components[crate],
+                                   preference(p, 7)))
+
+    return {'obstacles': obstacles, 'agent': agent,
+            'crate': crate, 'goal': goal}

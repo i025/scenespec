@@ -106,8 +106,9 @@ def selected_score(initial, candidate, dev):
 
 
 class Experiment:
-    def __init__(self, run):
+    def __init__(self, run, replay=None):
         self.run = run
+        self.replay = replay
         self.parent = git(ROOT, 'rev-parse', 'HEAD')
         self.calls = []
 
@@ -117,11 +118,17 @@ class Experiment:
         index = len(self.calls)
         directory = self.run/f'c{index}'
         record = {'label':label, 'slot':index, 'status':'reserved', 'target':target,
-                  'controller_git':self.parent, 'reserved_at_unix':time.time()}
+                  'controller_git':self.parent, 'reserved_at_unix':time.time(),
+                  'mode':'offline_replay' if self.replay else 'live'}
         self.calls.append(record)
         save(self.run/'calls.json', self.calls)
         try:
-            result = propose(directory, self.run, request, index+1, self.parent, prompt, 6)
+            if self.replay:
+                directory.mkdir()
+                result = json.loads((self.replay/f'c{index}'/'output/proposal.json').read_text())
+                save(directory/'replayed_proposal.json', result)
+            else:
+                result = propose(directory, self.run, request, index+1, self.parent, prompt, 6)
             (directory/'source.py').write_text(result['code'])
             (directory/'source.diff').write_text(''.join(difflib.unified_diff(
                 base_source.splitlines(True), result['code'].splitlines(True),
@@ -131,7 +138,7 @@ class Experiment:
         except Exception as error:
             record.update(status='failed', error=type(error).__name__+': '+str(error)[:1000])
             call_file = directory/'model_call.json'
-            if not call_file.exists() or json.loads(call_file.read_text()).get('http_status') != 200:
+            if not self.replay and (not call_file.exists() or json.loads(call_file.read_text()).get('http_status') != 200):
                 raise RuntimeError('stop experiment on unavailable model transport') from error
             return None, record
         finally:
@@ -168,12 +175,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', required=True, type=Path)
     parser.add_argument('--security', required=True, type=Path)
+    parser.add_argument('--replay', type=Path, help='archived results/meta; no Codex or network call')
     args = parser.parse_args()
     acceptance = json.loads((args.security/'acceptance.json').read_text())
     if len(acceptance) != 8 or not all(row['passed'] for row in acceptance):
         raise RuntimeError('live isolation acceptance required')
     args.run.mkdir(parents=True, exist_ok=False)
-    experiment = Experiment(args.run)
+    experiment = Experiment(args.run, args.replay)
     original = (ROOT/'scene_rsi/agent/meta_policy.py').read_text()
     initial = (ROOT/'experiments/first_algorithm/baseline_layout.py').read_text()
     training = experiment.optimize(original, initial, 810000, 'training')
@@ -215,7 +223,9 @@ def main():
          'training':training['report'], 'policy_revision':policy_call,
          'trials':[t['report'] for t in trials], 'MetaImp@1':gains,
          'revised_minus_original':gains['revised']-gains['original'], 'completed':True,
-         'is_complete_rsi_evidence':False, 'setup_model_calls':2, 'heldout_calls_per_arm':2})
+         'is_complete_rsi_evidence':False, 'setup_model_calls':0 if args.replay else 2,
+         'heldout_calls_per_arm':0 if args.replay else 2,
+         'mode':'offline_replay' if args.replay else 'live'})
     print('MetaImp@1', gains, flush=True)
 
 

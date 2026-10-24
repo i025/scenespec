@@ -1,0 +1,195 @@
+"""Construct layouts by reversible pulls with explicit walking access."""
+
+
+def layout(packet):
+    width, depth = packet['width'], packet['depth']
+    sample = packet['sample']
+    obstacles = sample[:-3]
+    blocked = {tuple(p) for p in obstacles}
+    cells = [(x, y) for y in range(depth) for x in range(width)
+             if (x, y) not in blocked]
+    free = set(cells)
+    directions = ((1, 0), (0, 1), (-1, 0), (0, -1))
+
+    salt = width * 131 + depth
+    for i, p in enumerate(sample):
+        salt = (salt * 1664525 + (i + 1) * (p[0] + 11 * p[1] + 1)
+                + 1013904223) & 0xffffffff
+
+    def rank(p, tag=0):
+        z = (salt ^ ((p[0] + width * p[1] + 1) * 2654435761)
+             ^ ((tag + 1) * 2246822519)) & 0xffffffff
+        z = ((z ^ (z >> 16)) * 2246822519) & 0xffffffff
+        return z ^ (z >> 13)
+
+    def add(p, d, scale=1):
+        return (p[0] + scale * d[0], p[1] + scale * d[1])
+
+    def manhattan(a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    adjacent = {p: [add(p, d) for d in directions if add(p, d) in free]
+                for p in cells}
+
+    # Static walking components with one occupied cell removed. These are
+    # reused access checks, not a search over crate/agent configurations.
+    component_cache = {}
+
+    def components(occupied):
+        if occupied in component_cache:
+            return component_cache[occupied]
+        labels = {}
+        label = 0
+        for start in cells:
+            if start == occupied or start in labels:
+                continue
+            labels[start] = label
+            queue = [start]
+            for p in queue:
+                for q in adjacent[p]:
+                    if q != occupied and q not in labels:
+                        labels[q] = label
+                        queue.append(q)
+            label += 1
+        component_cache[occupied] = labels
+        return labels
+
+    def pulls(crate, agent):
+        labels = components(crate)
+        region = labels[agent]
+        result = []
+        for d in directions:
+            near, far = add(crate, d), add(crate, d, 2)
+            if (near in free and far in free
+                    and labels[near] == region):
+                result.append((d, near, far))
+        return result
+
+    # A constant-size local certificate: two reversible pulls whose net
+    # displacement is two. Turning motifs require actual walking access.
+    seed = None
+    seed_key = None
+    for goal in cells:
+        for first_index, first in enumerate(directions):
+            middle = add(goal, first)
+            first_agent = add(goal, first, 2)
+            if middle not in free or first_agent not in free:
+                continue
+            for second_index, second in enumerate(directions):
+                if second == (-first[0], -first[1]):
+                    continue
+                crate = add(middle, second)
+                agent = add(middle, second, 2)
+                if crate not in free or agent not in free:
+                    continue
+                labels = components(middle)
+                if labels[first_agent] != labels[crate]:
+                    continue
+                mobility = len(pulls(crate, agent))
+                tag = first_index * 4 + second_index
+                key = (5 * min(mobility, 3) + len(adjacent[crate])
+                       + 2 * (first != second) + rank(goal, tag) % 8,
+                       rank(crate, tag + 19), rank(goal, tag + 37))
+                if seed_key is None or key > seed_key:
+                    seed_key = key
+                    seed = (goal, middle, crate, agent, first, second)
+
+    if seed is None:
+        # Some allowed obstacle patterns admit no distance-two push task.
+        # Preserve validity and favor an available first push in that case.
+        best_key = None
+        answer = None
+        for crate in cells:
+            for goal in cells:
+                distance = manhattan(crate, goal)
+                if distance < 2:
+                    continue
+                supports = []
+                for d in directions:
+                    target = add(crate, d)
+                    support = add(crate, d, -1)
+                    if (target in free and support in free and support != goal
+                            and manhattan(target, goal) < distance):
+                        supports.append(support)
+                labels = components(crate)
+                choices = supports or [p for p in cells
+                                       if p != crate and p != goal]
+                agent = max(choices, key=lambda p: (
+                    labels[p] == labels[goal], rank(p, 71)))
+                key = (bool(supports), labels[agent] == labels[goal],
+                       distance, len(adjacent[crate]), rank(crate, 73),
+                       rank(goal, 79))
+                if best_key is None or key > best_key:
+                    best_key = key
+                    answer = (agent, crate, goal)
+        agent, crate, goal = answer
+        return {'obstacles': obstacles, 'agent': agent,
+                'crate': crate, 'goal': goal}
+
+    goal, middle, crate, agent, first, previous = seed
+    visited = {goal, middle, crate}
+    turns = int(first != previous)
+    steps = 2
+
+    # Static goal distances reward displacement around walls without using
+    # a crate solver or claiming that construction length is optimal length.
+    distance = {goal: 0}
+    queue = [goal]
+    for p in queue:
+        for q in adjacent[p]:
+            if q not in distance:
+                distance[q] = distance[p] + 1
+                queue.append(q)
+
+    def endpoint_key(c, count, bend_count):
+        return (4 * distance[c] + manhattan(c, goal)
+                + 2 * min(bend_count, 4) + min(count, 12), rank(c, 83))
+
+    best = (crate, agent)
+    best_key = endpoint_key(crate, steps, turns)
+    limit = min(30, 8 + len(cells) // 2 + salt % 7)
+    while steps < limit:
+        options = [move for move in pulls(crate, agent)
+                   if move[1] not in visited]
+        if not options:
+            break
+
+        def move_key(move):
+            d, destination, unused = move
+            onward = sum(add(destination, e) in free
+                         and add(destination, e, 2) in free
+                         and add(destination, e) not in visited
+                         for e in directions)
+            return (3 * min(onward, 2)
+                    + 2 * (d != previous)
+                    + min(distance[destination], 8)
+                    + rank(destination, steps + 101) % 9,
+                    rank(destination, steps + 151))
+
+        direction, crate, agent = max(options, key=move_key)
+        turns += int(direction != previous)
+        previous = direction
+        visited.add(crate)
+        steps += 1
+        if manhattan(crate, goal) >= 2:
+            key = endpoint_key(crate, steps, turns)
+            if key > best_key:
+                best_key = key
+                best = (crate, agent)
+
+    crate, support = best
+    # Relocate only within the certified agent component, adding a varied
+    # approach walk while retaining access to the first forward push.
+    walking = {support: 0}
+    queue = [support]
+    for p in queue:
+        for q in adjacent[p]:
+            if q != crate and q not in walking:
+                walking[q] = walking[p] + 1
+                queue.append(q)
+    choices = [p for p in walking if p != goal]
+    choices.sort(key=lambda p: (walking[p], rank(p, 191)))
+    fraction = 55 + salt % 41
+    agent = choices[(len(choices) - 1) * fraction // 100]
+    return {'obstacles': obstacles, 'agent': agent,
+            'crate': crate, 'goal': goal}

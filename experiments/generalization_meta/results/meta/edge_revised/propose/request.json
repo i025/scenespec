@@ -1,0 +1,1425 @@
+{
+  "phase": "propose",
+  "source": "\"\"\"Heldout fixture: prefer boundary crate placements, keep sampled actors otherwise.\"\"\"\n\n\ndef layout(packet):\n    width, depth, sample = packet['width'], packet['depth'], packet['sample']\n    obstacles = sample[:-3]\n    blocked = {tuple(c) for c in obstacles}\n    free = [(x, y) for y in range(depth) for x in range(width) if (x, y) not in blocked]\n    crate = min(free, key=lambda c:(min(c[0], c[1], width-1-c[0], depth-1-c[1]),\n                                    abs(c[0]-sample[-2][0])+abs(c[1]-sample[-2][1])))\n    goals = [c for c in free if abs(c[0]-crate[0])+abs(c[1]-crate[1]) >= 2]\n    goal = min(goals, key=lambda c:abs(c[0]-sample[-1][0])+abs(c[1]-sample[-1][1]))\n    agent = min((c for c in free if c not in (crate, goal)),\n                key=lambda c:abs(c[0]-sample[-3][0])+abs(c[1]-sample[-3][1]))\n    return {'obstacles':obstacles, 'agent':agent, 'crate':crate, 'goal':goal}\n",
+  "summary": {
+    "tasks": 24,
+    "valid": 24,
+    "solvable": 1,
+    "solvable_rate": 0.041666666666666664,
+    "errors": {
+      "unsolvable": 23
+    },
+    "shortest_actions_mean": 6,
+    "pushes_mean": 2,
+    "action_turns_mean": 3,
+    "push_turns_mean": 0,
+    "first_output_seconds_mean": 0.00047995430456163984,
+    "physics_replays": 1,
+    "fixed_agent_successes": 1,
+    "difficulty_counts": {
+      "2..5": 0,
+      "6..12": 1,
+      "13+": 0
+    },
+    "diversity_by_condition": {
+      "common_open": {
+        "unique_layouts": 4,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.4583333333333333,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8412698412698413,
+        "crate_cell_entropy_bits": 2.0
+      },
+      "common_wall": {
+        "unique_layouts": 4,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.5333333333333333,
+        "mean_pairwise_obstacle_jaccard_distance": 0.5917637917637918,
+        "crate_cell_entropy_bits": 2.0
+      },
+      "probe_large": {
+        "unique_layouts": 8,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.8571428571428571,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8686940388803743,
+        "crate_cell_entropy_bits": 2.75
+      },
+      "probe_small": {
+        "unique_layouts": 8,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.6666666666666666,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8422077922077922,
+        "crate_cell_entropy_bits": 2.1556390622295662
+      }
+    }
+  },
+  "examples": [
+    {
+      "packet": {
+        "width": 4,
+        "depth": 6,
+        "obstacles": 4,
+        "sample": [
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 4,
+        "depth": 6,
+        "obstacles": 4,
+        "sample": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 4,
+        "depth": 6,
+        "obstacles": 4,
+        "sample": [
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 4,
+        "depth": 6,
+        "obstacles": 4,
+        "sample": [
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            1
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 6,
+        "depth": 5,
+        "obstacles": 8,
+        "sample": [
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            0,
+            2
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 6,
+        "depth": 5,
+        "obstacles": 8,
+        "sample": [
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            1
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 6,
+        "depth": 5,
+        "obstacles": 8,
+        "sample": [
+          [
+            1,
+            1
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 6,
+        "depth": 5,
+        "obstacles": 8,
+        "sample": [
+          [
+            3,
+            0
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      },
+      "solvable": true,
+      "valid": true,
+      "error": null,
+      "shortest_actions": 6
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            3,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            3,
+            5
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            3,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            4,
+            4
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            4
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            3,
+            2
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            0,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            0,
+            5
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            4,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            4,
+            5
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            1,
+            0
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            0,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            2,
+            2
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            3
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            3,
+            0
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            3
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            5,
+            3
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            4,
+            5
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            4,
+            6
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            5,
+            4
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    }
+  ]
+}

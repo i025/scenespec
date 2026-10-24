@@ -1,0 +1,76 @@
+[
+  {
+    "label": "training",
+    "slot": 0,
+    "status": "audited",
+    "target": "scene_rsi/agent/world_generator.py",
+    "controller_git": "9b9af0c98b585a6937077f4d150e30a5d01669a7",
+    "reserved_at_unix": 1792867735.7423704,
+    "static_audit": {
+      "passed": true,
+      "scope": "one generator source file; AST is not the execution boundary"
+    },
+    "rationale": "The failures suggest that independent placement often leaves the crate without usable pushing access. This construction anchors a two-push scaffold, then follows one reversible pulling trajectory using only walking connectivity. Reversing that construction establishes solvability whenever a scaffold exists, without a joint-state solver or whole-scene rejection. Turns, exploration, varied displacement, and agent approach walks preserve useful difficulty. Sample-derived ordering provides deterministic variety; obstacles remain exactly sample[:-3]. Fragmented floors without a scaffold receive a geometry-valid fallback. This proposal was reasoned from the supplied feedback and was not executed."
+  },
+  {
+    "label": "meta_revision",
+    "slot": 1,
+    "status": "audited",
+    "target": "scene_rsi/agent/meta_policy.py",
+    "controller_git": "9b9af0c98b585a6937077f4d150e30a5d01669a7",
+    "reserved_at_unix": 1792867861.458242,
+    "static_audit": {
+      "passed": true,
+      "scope": "one generator source file; AST is not the execution boundary"
+    },
+    "rationale": "Selects probes from observed reliability and condition gaps, then chooses up to eight complementary diagnostic examples. Proposal instructions prioritize source-specific invariant repairs, bounded computation, robust fallbacks, and diversity without embedding a generator or treating training results as generalization evidence."
+  },
+  {
+    "label": "edge_original",
+    "slot": 2,
+    "status": "audited",
+    "target": "scene_rsi/agent/world_generator.py",
+    "controller_git": "9b9af0c98b585a6937077f4d150e30a5d01669a7",
+    "reserved_at_unix": 1792867966.0465539,
+    "static_audit": {
+      "passed": true,
+      "scope": "one generator source file; AST is not the execution boundary"
+    },
+    "rationale": "Boundary placement caused most reported failures. This construction instead starts with supported straight or turning push motifs, then extends a single reversible trajectory using pedestrian connectivity checks. Sample-derived ordering varies placements and movement preferences; turns, revisits, and walking distance add difficulty. Obstacles remain unchanged, and every output preserves distinct actors and crate\u2013goal distance. Boards without a usable motif receive a valid geometric fallback. No candidate code was run."
+  },
+  {
+    "label": "edge_revised",
+    "slot": 3,
+    "status": "audited",
+    "target": "scene_rsi/agent/world_generator.py",
+    "controller_git": "9b9af0c98b585a6937077f4d150e30a5d01669a7",
+    "reserved_at_unix": 1792868070.0925903,
+    "static_audit": {
+      "passed": true,
+      "scope": "one generator source file; AST is not the execution boundary"
+    },
+    "rationale": "The original generator deliberately places crates near boundaries without checking pushing access, a plausible cause of its valid-but-unsolvable outputs. This replacement constructs a reversible two-pull certificate, extends it through one bounded reverse walk, and selects a separated endpoint. Every transition checks player connectivity with the crate occupied; final agent relocation preserves that connectivity. Input-dependent choices, longer separations, turns and approach walking provide variety without claiming shortest-path difficulty. Fixed obstacles remain exactly sample[:-3]. Connectivity tables and bounded walks avoid a joint-state solver or scene rejection. A validity-preserving fallback handles geometry without a two-pull certificate; solvability is not claimed there. No candidate code was run, and no improvement measurement is claimed."
+  },
+  {
+    "label": "spread_original",
+    "slot": 4,
+    "status": "failed",
+    "target": "scene_rsi/agent/world_generator.py",
+    "controller_git": "9b9af0c98b585a6937077f4d150e30a5d01669a7",
+    "reserved_at_unix": 1792868198.3219776,
+    "error": "ValueError: no cross-task mutable globals"
+  },
+  {
+    "label": "spread_revised",
+    "slot": 5,
+    "status": "audited",
+    "target": "scene_rsi/agent/world_generator.py",
+    "controller_git": "9b9af0c98b585a6937077f4d150e30a5d01669a7",
+    "reserved_at_unix": 1792868289.5062382,
+    "static_audit": {
+      "passed": true,
+      "scope": "one generator source file; AST is not the execution boundary"
+    },
+    "rationale": "The initial generator chooses a distant goal without checking push access or connectivity around the crate. This plausibly explains valid but unsolvable outputs; the evidence does not establish a single failure mechanism.\n\nThis replacement constructs a two-pull feasibility certificate, then extends one bounded reverse trajectory. Every pull checks both support cells and agent connectivity with the crate occupied. Reversing the trajectory provides legal pushes to the goal. Endpoint selection preserves Manhattan distance >= 2, and agent relocation preserves access to the first push. Ordered sample coordinates control deterministic variation in placement, turns, trajectory length and approach distance.\n\nObstacles remain exactly sample[:-3]. Static component caches use quadratic space in at most 64 free cells; construction is bounded and performs no joint-state search or whole-scene rejection. If no two-pull certificate exists, the fallback preserves validity without claiming solvability. No candidate code was executed, and no improvement rate is claimed."
+  }
+]

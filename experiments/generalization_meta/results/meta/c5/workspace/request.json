@@ -1,0 +1,466 @@
+{
+  "generator_source": "\"\"\"Heldout fixture: open crate neighborhood and distant goal.\"\"\"\n\n\ndef layout(packet):\n    width, depth, sample = packet['width'], packet['depth'], packet['sample']\n    obstacles = sample[:-3]\n    blocked = {tuple(c) for c in obstacles}\n    free = [(x, y) for y in range(depth) for x in range(width) if (x, y) not in blocked]\n    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]\n    crate = max(free, key=lambda c:(sum((c[0]+dx, c[1]+dy) in free for dx, dy in directions),\n                                    -abs(c[0]-sample[-2][0])-abs(c[1]-sample[-2][1])))\n    goal = max(free, key=lambda c:abs(c[0]-crate[0])+abs(c[1]-crate[1]))\n    agent = min((c for c in free if c not in (crate, goal)),\n                key=lambda c:abs(c[0]-sample[-3][0])+abs(c[1]-sample[-3][1]))\n    return {'obstacles':obstacles, 'agent':agent, 'crate':crate, 'goal':goal}\n",
+  "dev_metrics": {
+    "tasks": 24,
+    "valid": 24,
+    "solvable": 12,
+    "solvable_rate": 0.5,
+    "errors": {
+      "unsolvable": 12
+    },
+    "shortest_actions_mean": 16.333333333333332,
+    "pushes_mean": 7.083333333333333,
+    "action_turns_mean": 8.416666666666666,
+    "push_turns_mean": 1.75,
+    "first_output_seconds_mean": 0.0006897234901164969,
+    "physics_replays": 12,
+    "fixed_agent_successes": 5,
+    "difficulty_counts": {
+      "2..5": 0,
+      "6..12": 3,
+      "13+": 9
+    },
+    "diversity_by_condition": {
+      "common_open": {
+        "unique_layouts": 4,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.5416666666666666,
+        "mean_pairwise_obstacle_jaccard_distance": 0.9285714285714286,
+        "crate_cell_entropy_bits": 1.5
+      },
+      "common_wall": {
+        "unique_layouts": 4,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.6333333333333333,
+        "mean_pairwise_obstacle_jaccard_distance": 0.7148407148407148,
+        "crate_cell_entropy_bits": 1.5
+      },
+      "probe_large": {
+        "unique_layouts": 8,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.8392857142857143,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8730128539870285,
+        "crate_cell_entropy_bits": 2.75
+      },
+      "probe_small": {
+        "unique_layouts": 8,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.8666666666666667,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8803030303030304,
+        "crate_cell_entropy_bits": 2.1556390622295662
+      }
+    }
+  },
+  "dev_examples": [
+    {
+      "packet": {
+        "width": 4,
+        "depth": 6,
+        "obstacles": 4,
+        "sample": [
+          [
+            2,
+            3
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            0,
+            5
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 6,
+        "depth": 5,
+        "obstacles": 8,
+        "sample": [
+          [
+            3,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      },
+      "solvable": true,
+      "valid": true,
+      "error": null,
+      "shortest_actions": 10
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            0,
+            4
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "solvable": true,
+      "valid": true,
+      "error": null,
+      "shortest_actions": 15
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 12,
+        "sample": [
+          [
+            3,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            1
+          ]
+        ]
+      },
+      "solvable": true,
+      "valid": true,
+      "error": null,
+      "shortest_actions": 16
+    },
+    {
+      "packet": {
+        "width": 4,
+        "depth": 6,
+        "obstacles": 4,
+        "sample": [
+          [
+            3,
+            0
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "solvable": true,
+      "valid": true,
+      "error": null,
+      "shortest_actions": 10
+    },
+    {
+      "packet": {
+        "width": 4,
+        "depth": 6,
+        "obstacles": 4,
+        "sample": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "solvable": true,
+      "valid": true,
+      "error": null,
+      "shortest_actions": 14
+    },
+    {
+      "packet": {
+        "width": 6,
+        "depth": 5,
+        "obstacles": 8,
+        "sample": [
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            0,
+            2
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    },
+    {
+      "packet": {
+        "width": 5,
+        "depth": 6,
+        "obstacles": 6,
+        "sample": [
+          [
+            4,
+            1
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            2,
+            4
+          ]
+        ]
+      },
+      "solvable": false,
+      "valid": true,
+      "error": "unsolvable",
+      "shortest_actions": null
+    }
+  ],
+  "meta_analysis": "Prioritize the earliest demonstrated bottleneck: contract validity, first-output solvability, then useful difficulty and diversity within runtime. Summary: overall: tasks=24, valid=24, solvable=12, solvable_rate=0.5, shortest_actions_mean=16.33333, pushes_mean=7.08333, action_turns_mean=8.41667, push_turns_mean=1.75, first_output_seconds_mean=0.00069, physics_replays=12, fixed_agent_successes=5, errors=[('unsolvable', 12)], difficulty={'2..5': 0, '6..12': 3, '13+': 9}. Example outcomes: failure:unsolvable=12; success:long=9; success:medium=3. Selected examples cover distinct error classes, successful difficulty bands, dimensions and input density, with matched success/failure strata where available. Input geometry is context, not evidence of generated object positions. Small dev samples support hypotheses, not generalization claims.",
+  "proposal_instruction": "Produce one complete replacement of the supplied INITIAL GENERATOR algorithm. This is a single algorithm-patch opportunity. Inspect its actual source and the trusted task contract before deciding what to change. Use the measurements and selected examples below as diagnostic evidence. Do not patch this meta-policy, controller, solver, physics, validator, evaluation tasks, budgets, or model.\n\nResearch objective: improve transferable first-output validity and solvability per unit computation across unseen initial generators and input conditions, while preserving meaningful task difficulty and output diversity. Do not optimize a handful of displayed boards. Preserve the required API, obstacle/geometry requirements, minimum distances, random-input semantics, allowed imports and execution limits exactly as specified by the trusted contract. Distinguish constraints actually supplied by the task from assumptions suggested by examples.\n\nUse this decision process internally, then return the required complete source:\n1. Trace how the current source converts packet inputs into outputs. Identify the earliest broken invariant that plausibly explains the dominant measured failures. Separate malformed output or exceptions from valid-but-unsolvable scenes. An error label alone does not establish its mechanism. Do not infer crate or agent positions from packet.sample unless the current source actually uses that mapping.\n2. Compare selected failures against successful examples, especially matching dimensions and density. Identify whether the likely mechanism is boundary/deadlock placement, disconnected access, inability to reach a required interaction side, an invalid constructive transition, fragile fallback, or excessive computation. Inspect existing safeguards before adding new machinery. A strong existing construction should receive a targeted repair, rather than wholesale replacement merely because another method is familiar.\n3. Choose one coherent repair with a clear invariant and bounded cost. Where appropriate, construct from a feasible terminal configuration through legal reversible operations, or maintain another local feasibility certificate. Such a certificate must respect the actual physics, required support/access cells and agent connectivity at every transition. Mere geometric proximity or connectivity without the occupied movable object is insufficient. Treat this as an option, not a mandatory algorithm or an assumption about the task's mechanics.\n4. Check initialization, every update, endpoint selection, optional agent relocation and all fallbacks against the same invariant. Do not replace a failed construction with an arbitrary valid-looking configuration and claim guaranteed solvability. Handle cramped and disconnected inputs, empty candidate sets, collisions and boundary checks explicitly. If the allowed input geometry makes a guarantee impossible, preserve validity and make the best bounded contract-compliant attempt without inventing obstacles or relaxing constraints.\n5. Keep computation predictable: reuse static adjacency and cheap connectivity information where helpful, bound walks and retries, and avoid combinatorial candidate enumeration or large per-state caches. Do not introduce a hidden solver, exhaustive joint-state search, external oracle or repeated solver-based rejection. Respect any stricter search restrictions in the task. A feasible constructive route does not prove shortest-path difficulty.\n6. Once reliability is addressed, retain input-dependent variation in geometry, object locations and construction choices. Avoid a universal corridor, a fixed template, seed lists, hardcoded boards, condition-specific patches or a constant short solution. Use bounded diversity in feasible path length, turns and approach navigation when supported by the mechanics. Do not sacrifice reliability to chase noisy difficulty statistics. If reliability is already strong, target the demonstrated quality, diversity or runtime weakness with the smallest justified change.\n7. Audit the final source for contract compliance, invariant preservation, finite loops and worst-case memory. Reason through a failure and a success from the evidence and a generic edge case. If tools are available, perform only permitted checks within the existing budget; do not assume extra evaluations exist. Do not report unrun tests or unseen validation gains.\n\nEvidence is descriptive and limited to development inputs. The selected probe tested the initial generator, not your proposed patch. There is no validation data, frozen chosen implementation, or blind generalization result here. The training trace is evidence that a repair worked on one generator, not a reference implementation to reproduce. Do not embed memorized scenes or seeds. Return the complete generator replacement in the outer controller's required format, not individual scene edits or an experimental plan.\n\nObserved summary: overall: tasks=24, valid=24, solvable=12, solvable_rate=0.5, shortest_actions_mean=16.33333, pushes_mean=7.08333, action_turns_mean=8.41667, push_turns_mean=1.75, first_output_seconds_mean=0.00069, physics_replays=12, fixed_agent_successes=5, errors=[('unsolvable', 12)], difficulty={'2..5': 0, '6..12': 3, '13+': 9}\nExample outcome counts: failure:unsolvable=12; success:long=9; success:medium=3\nSelected example indices (zero-based): [1, 7, 9, 16, 3, 0, 4, 8]\nSelection emphasizes diagnostic coverage; counts above describe all supplied examples, not just the selected subset."
+}

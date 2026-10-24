@@ -1,0 +1,104 @@
+{
+  "actual_codex_cli_invocations": 6,
+  "successful_upstream_model_calls": 6,
+  "total": {
+    "input_tokens": 72959,
+    "output_tokens": 22136,
+    "total_tokens": 95095,
+    "model_wall_seconds": 613.3306607210543,
+    "cli_wall_seconds": 649.6876363095362
+  },
+  "setup_tokens": 32951,
+  "heldout_tokens": {
+    "original": 28987,
+    "revised": 33157
+  },
+  "calls": [
+    {
+      "label": "training",
+      "slot": 0,
+      "static_status": "audited",
+      "error": null,
+      "model": "gpt-6.1-sol",
+      "upstream_calls": 1,
+      "http_status": 200,
+      "input_tokens": 11078,
+      "output_tokens": 4151,
+      "total_tokens": 15229,
+      "model_wall_seconds": 117.61566594801843,
+      "cli_wall_seconds": 123.42799012316391
+    },
+    {
+      "label": "meta_revision",
+      "slot": 1,
+      "static_status": "audited",
+      "error": null,
+      "model": "gpt-6.1-sol",
+      "upstream_calls": 1,
+      "http_status": 200,
+      "input_tokens": 14163,
+      "output_tokens": 3559,
+      "total_tokens": 17722,
+      "model_wall_seconds": 95.73119652504101,
+      "cli_wall_seconds": 102.03754272009246
+    },
+    {
+      "label": "edge_original",
+      "slot": 2,
+      "static_status": "audited",
+      "error": null,
+      "model": "gpt-6.1-sol",
+      "upstream_calls": 1,
+      "http_status": 200,
+      "input_tokens": 11040,
+      "output_tokens": 3244,
+      "total_tokens": 14284,
+      "model_wall_seconds": 93.20610708696768,
+      "cli_wall_seconds": 99.5606431090273
+    },
+    {
+      "label": "edge_revised",
+      "slot": 3,
+      "static_status": "audited",
+      "error": null,
+      "model": "gpt-6.1-sol",
+      "upstream_calls": 1,
+      "http_status": 200,
+      "input_tokens": 12695,
+      "output_tokens": 3987,
+      "total_tokens": 16682,
+      "model_wall_seconds": 117.41178734996356,
+      "cli_wall_seconds": 123.19040518812835
+    },
+    {
+      "label": "spread_original",
+      "slot": 4,
+      "static_status": "failed",
+      "error": "ValueError: no cross-task mutable globals",
+      "model": "gpt-6.1-sol",
+      "upstream_calls": 1,
+      "http_status": 200,
+      "input_tokens": 11267,
+      "output_tokens": 3436,
+      "total_tokens": 14703,
+      "model_wall_seconds": 81.77820906997658,
+      "cli_wall_seconds": 88.08728698105551
+    },
+    {
+      "label": "spread_revised",
+      "slot": 5,
+      "static_status": "audited",
+      "error": null,
+      "model": "gpt-6.1-sol",
+      "upstream_calls": 1,
+      "http_status": 200,
+      "input_tokens": 12716,
+      "output_tokens": 3759,
+      "total_tokens": 16475,
+      "model_wall_seconds": 107.58769474108703,
+      "cli_wall_seconds": 113.38376818806864
+    }
+  ],
+  "usd_cost": null,
+  "usd_reason": "No measured billing amount supplied; token usage reported instead."
+}

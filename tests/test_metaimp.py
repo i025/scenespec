@@ -2,7 +2,10 @@
 import importlib.util
 from pathlib import Path
 import sys
+import json
+import tempfile
 import unittest
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]/'scripts'
 sys.path.insert(0, str(SCRIPTS))
@@ -44,6 +47,32 @@ class MetaImpTests(unittest.TestCase):
         controller.calls = [{}]*6
         with self.assertRaisesRegex(ValueError, 'quota'):
             controller.call('seventh', {}, '', '', '')
+
+    def test_feedback_projection_does_not_export_private_fields(self):
+        row = {'packet':{'width':4}, 'valid':True, 'solvability':'solvable',
+               'reference_steps':7, 'reference_actions':['right'], 'val_task':'private',
+               'feasibility':{'witness':'private'}, 'controller_log':'private'}
+        public = experiment.examples([row])[0]
+        self.assertEqual(set(public), {'packet', 'solvable', 'valid', 'error', 'shortest_actions'})
+        self.assertNotIn('private', str(public))
+
+    def test_offline_replay_never_invokes_model(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archived = root/'archive/c0/output'
+            archived.mkdir(parents=True)
+            source = 'def layout(p): return p\n'
+            (archived/'proposal.json').write_text(json.dumps({'code':source, 'rationale':'fixture'}))
+            controller = object.__new__(experiment.Experiment)
+            controller.run = root/'replay'
+            controller.run.mkdir()
+            controller.replay = root/'archive'
+            controller.parent = 'test'
+            controller.calls = []
+            with patch('run_metaimp.propose', side_effect=AssertionError('live model in replay')):
+                code, record = controller.call('fixture', {}, '', '', 'scene_rsi/agent/meta_policy.py')
+            self.assertEqual(code, source)
+            self.assertEqual(record['mode'], 'offline_replay')
 
 
 if __name__ == '__main__':

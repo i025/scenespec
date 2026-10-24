@@ -1,0 +1,208 @@
+--- a/scene_rsi/agent/world_generator.py
++++ b/scene_rsi/agent/world_generator.py
+@@ -1,15 +1,194 @@
+-"""Heldout fixture: prefer boundary crate placements, keep sampled actors otherwise."""
++"""Construct layouts using locally certified reverse pushes."""
+ 
+ 
+ def layout(packet):
+-    width, depth, sample = packet['width'], packet['depth'], packet['sample']
++    w, h = packet['width'], packet['depth']
++    sample = packet['sample']
+     obstacles = sample[:-3]
+-    blocked = {tuple(c) for c in obstacles}
+-    free = [(x, y) for y in range(depth) for x in range(width) if (x, y) not in blocked]
+-    crate = min(free, key=lambda c:(min(c[0], c[1], width-1-c[0], depth-1-c[1]),
+-                                    abs(c[0]-sample[-2][0])+abs(c[1]-sample[-2][1])))
+-    goals = [c for c in free if abs(c[0]-crate[0])+abs(c[1]-crate[1]) >= 2]
+-    goal = min(goals, key=lambda c:abs(c[0]-sample[-1][0])+abs(c[1]-sample[-1][1]))
+-    agent = min((c for c in free if c not in (crate, goal)),
+-                key=lambda c:abs(c[0]-sample[-3][0])+abs(c[1]-sample[-3][1]))
+-    return {'obstacles':obstacles, 'agent':agent, 'crate':crate, 'goal':goal}
++    blocked = {tuple(p) for p in obstacles}
++    cells = [y * w + x for y in range(h) for x in range(w)
++             if (x, y) not in blocked]
++    available = set(cells)
++    size = w * h
++    directions = ((1, 0), (0, 1), (-1, 0), (0, -1))
++
++    seed = 2166136261
++    for i, p in enumerate(sample):
++        seed = ((seed ^ ((p[0] + 1) * 131 + (p[1] + 1) * 977
++                          + i * 8191)) * 16777619) & 0xffffffff
++    seed ^= w * 65537 + h * 104729
++
++    def noise(value):
++        z = (seed ^ (value * 2654435761)) & 0xffffffff
++        z ^= z >> 16
++        z = (z * 2246822519) & 0xffffffff
++        z ^= z >> 13
++        z = (z * 3266489917) & 0xffffffff
++        z ^= z >> 16
++        return z / 4294967296.0
++
++    def manhattan(a, b):
++        return abs(a % w - b % w) + abs(a // w - b // w)
++
++    neighbors = {}
++    adjacent = {}
++    for c in cells:
++        x, y = c % w, c // w
++        row = []
++        for dx, dy in directions:
++            xx, yy = x + dx, y + dy
++            t = yy * w + xx
++            row.append(t if 0 <= xx < w and 0 <= yy < h
++                       and t in available else -1)
++        neighbors[c] = row
++        adjacent[c] = [t for t in row if t != -1]
++
++    # Walking connectivity with each possible crate cell occupied.
++    # These are ordinary floor components, not joint-state search.
++    components = {}
++    for occupied in cells:
++        labels = [-1] * size
++        component = 0
++        for start in cells:
++            if start == occupied or labels[start] != -1:
++                continue
++            labels[start] = component
++            queue = [start]
++            for u in queue:
++                for v in adjacent[u]:
++                    if v != occupied and labels[v] == -1:
++                        labels[v] = component
++                        queue.append(v)
++            component += 1
++        components[occupied] = labels
++
++    pulls = {}
++    for c in cells:
++        moves = []
++        for direction, target in enumerate(neighbors[c]):
++            if target == -1:
++                continue
++            escape = neighbors[target][direction]
++            if escape != -1:
++                moves.append((target, escape, direction))
++        pulls[c] = moves
++
++    def options(c, a):
++        labels = components[c]
++        label = labels[a]
++        return [move for move in pulls[c] if labels[move[0]] == label]
++
++    # Initialize with a two-pull certificate. Each second stance must be
++    # reachable while the crate occupies the intermediate cell.
++    initial = None
++    initial_score = -float('inf')
++    for goal in cells:
++        for middle, first_agent, first_direction in pulls[goal]:
++            for crate, agent, direction in options(middle, first_agent):
++                if manhattan(crate, goal) < 2:
++                    continue
++                mobility = len(options(crate, agent))
++                score = (1.6 * mobility + 0.35 * len(adjacent[crate])
++                         + 1.1 * (direction != first_direction)
++                         + 4.0 * noise(goal * 4099 + crate * 67 + agent))
++                if score > initial_score:
++                    initial_score = score
++                    initial = (goal, crate, agent, direction)
++
++    def distances(start, occupied=-1):
++        result = [-1] * size
++        result[start] = 0
++        queue = [start]
++        for u in queue:
++            for v in adjacent[u]:
++                if v != occupied and result[v] == -1:
++                    result[v] = result[u] + 1
++                    queue.append(v)
++        return result
++
++    if initial is not None:
++        goal, crate, agent, previous_direction = initial
++        goal_distances = distances(goal)
++        visits = [0] * size
++        visits[crate] = 1
++        best = (crate, agent)
++        best_score = -float('inf')
++        limit = min(224, 4 * len(cells) + 16)
++
++        # One bounded constructive walk. Every pull can be undone by a
++        # push after reversing the corresponding ordinary walking segment.
++        for step in range(limit + 1):
++            separation = manhattan(crate, goal)
++            if separation >= 2:
++                score = (3.0 * goal_distances[crate] + 0.7 * separation
++                         + 0.3 * len(adjacent[crate])
++                         + 3.0 * noise(goal * 8191 + crate * 131))
++                if score > best_score:
++                    best_score = score
++                    best = (crate, agent)
++            if step == limit:
++                break
++            moves = options(crate, agent)
++            if not moves:
++                break
++            chosen = None
++            chosen_score = -float('inf')
++            for target, escape, direction in moves:
++                onward = len(options(target, escape))
++                score = (8.0 / (1 + visits[target]) + 0.9 * onward
++                         + 0.6 * (direction != previous_direction)
++                         + 0.25 * goal_distances[target]
++                         + 2.0 * noise((step + 1) * 65537
++                                       + target * 257 + direction))
++                if score > chosen_score:
++                    chosen_score = score
++                    chosen = (target, escape, direction)
++            crate, agent, previous_direction = chosen
++            visits[crate] += 1
++
++        crate, support = best
++        approach = distances(support, crate)
++        # Relocate only inside the certified player's walking component.
++        agent = max((c for c in cells if c != crate and c != goal
++                     and approach[c] >= 0),
++                    key=lambda c: approach[c] + 2.0 * noise(c * 313 + crate))
++    else:
++        # Some fixed obstacle sets admit no two-push displacement at all.
++        # Preserve validity and favor accessible, useful local interaction.
++        best_key = None
++        best = None
++        for crate in cells:
++            possible_agents = []
++            for direction, destination in enumerate(neighbors[crate]):
++                support = neighbors[crate][(direction + 2) % 4]
++                if destination != -1 and support != -1:
++                    possible_agents.append((support, destination))
++            connected = distances(crate)
++            for goal in cells:
++                separation = manhattan(crate, goal)
++                if separation < 2:
++                    continue
++                supports = [(a, destination) for a, destination in possible_agents
++                            if a != goal]
++                if supports:
++                    agent, destination = max(
++                        supports,
++                        key=lambda pair: (separation - manhattan(pair[1], goal),
++                                          noise(pair[0] * 67 + goal)))
++                    progress = separation - manhattan(destination, goal)
++                else:
++                    agent = max((a for a in cells if a != crate and a != goal),
++                                key=lambda a: noise(a * 67 + crate))
++                    progress = -2
++                key = (connected[goal] >= 0, bool(supports), progress,
++                       separation, noise(crate * 4099 + goal * 67 + agent))
++                if best_key is None or key > best_key:
++                    best_key = key
++                    best = (agent, crate, goal)
++        agent, crate, goal = best
++
++    def xy(c):
++        return (c % w, c // w)
++
++    return {'obstacles': obstacles, 'agent': xy(agent),
++            'crate': xy(crate), 'goal': xy(goal)}

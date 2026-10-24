@@ -1,5 +1,9 @@
 # Scene-RSI V0 — 3D 场景生成基线与独立验证器
 
+## 独立泛化与最小 MetaImp@1
+
+冻结 `b83b104` 算法，新地图中有 150 张可行、42 张不可行；原始/冻结算法首次可解数为 25/150 与 150/150，没有可解性拒绝采样。另完成一次真实 Codex 元策略程序修订和两个保留初始生成器的配对实验：MetaImp@1 为 0.50/0.8125，但差异全部来自原策略一次保守静态审计拒绝，尚不能证明更强的算法改进能力或完整 RSI。176 项测试、384 条离线重放一致、12 张 A100/Blender 实际渲染及全部六次调用记录见 [研究记录](experiments/generalization_meta/README.md)。
+
 ## 第一次真实 Codex 算法改进
 
 从 `19bb4db` 完成 3 次真实模型提案，2 个候选通过受限评估、1 个静态拒绝；自动选择候选 1。关闭 `require_solvable` 后 dev 从 26/96、val 从 19/96 均提升至 96/96；同障碍地图的一次输出检查也通过。收益伴随更多计算、较短路线和位置多样性变化，不是 RSI。完整审计、成本、复现命令及 18 张 A100/Blender 对照图见 [实验记录](experiments/first_algorithm/README.md)。旧生成器继续作为基线，选定算法使用受限入口生成。
@@ -21,7 +25,9 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3.11 -m scene_rsi.world serve
 
 浏览器打开 `http://127.0.0.1:8765`；远程服务器需要 SSH 端口转发。操作、实验对照、CPU 渲染导出和限制见 [WORLD.md](WORLD.md)。旧静态基准与 Phase 2 接口保留。
 
-## Phase 2 当前状态
+## Phase 2 早期交付记录
+
+以下为早期通用候选执行接口的状态。后来的自动算法与元策略实验复用经过验收的单进程 Apptainer + seccomp 窄接口，见上方研究记录；没有开放任意项目代码或控制器自修改。
 
 Phase 2B 的候选执行器接口、独立评分和离线验证见 [PHASE2B.md](PHASE2B.md)。当前未发现可验收的隔离服务，候选执行继续 fail-closed；没有真实动态对照结果。
 
