@@ -1,0 +1,1447 @@
+{
+  "baseline_commit": "34d2300",
+  "controller_git": {
+    "commit": "dfd9bb0bb85c1d4de51cd153eb8005f094c40614",
+    "dirty": false,
+    "status": [],
+    "available": true
+  },
+  "samples_per_condition": 32,
+  "conditions": {
+    "dev": [
+      [
+        6,
+        6,
+        6
+      ],
+      [
+        7,
+        5,
+        8
+      ],
+      [
+        5,
+        7,
+        5
+      ]
+    ],
+    "val": [
+      [
+        4,
+        4,
+        3
+      ],
+      [
+        6,
+        8,
+        10
+      ],
+      [
+        8,
+        6,
+        12
+      ]
+    ]
+  },
+  "seed_starts": {
+    "dev": 2000,
+    "val": 90000
+  },
+  "groups": [
+    {
+      "split": "dev",
+      "condition": {
+        "width": 6,
+        "depth": 6,
+        "obstacles": 6,
+        "avoid_corners": false,
+        "require_solvable": false
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 9,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.28125,
+        "solvable_given_valid": 0.28125,
+        "physics_reference_successes": 9,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 6,
+        "fixed_agent_success_per_request": 0.1875,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 23,
+          "success": 6,
+          "agent_insufficient": 3
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 36,
+        "accepted_per_sample_attempt": 0.8888888888888888,
+        "rejected_attempts": 4,
+        "rejection_causes": {
+          "minimum_distance": 4,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 1.125,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 9,
+          "mean": 15,
+          "median": 16,
+          "min": 4,
+          "max": 22
+        },
+        "reference_pushes_given_solvable": {
+          "count": 9,
+          "mean": 4.555555555555555,
+          "median": 4,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 9,
+          "mean": 1.3333333333333333,
+          "median": 0,
+          "min": 0,
+          "max": 4
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 155.25,
+          "median": 110.0,
+          "min": 4,
+          "max": 740
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.000231716716371011,
+          "median": 0.00022216152865439653,
+          "min": 0.0002049640752375126,
+          "max": 0.00033987686038017273
+        },
+        "generation_cpu_seconds_total": 0.007418607000000327,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 0.5403551163617522
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.905706256109482,
+        "crate_cell_entropy_bits": 4.265319531114783
+      }
+    },
+    {
+      "split": "dev",
+      "condition": {
+        "width": 6,
+        "depth": 6,
+        "obstacles": 6,
+        "avoid_corners": false,
+        "require_solvable": true
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 32,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 32,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 25,
+        "fixed_agent_success_per_request": 0.78125,
+        "fixed_agent_outcomes": {
+          "success": 25,
+          "agent_insufficient": 7
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 127,
+        "accepted_per_sample_attempt": 0.25196850393700787,
+        "rejected_attempts": 95,
+        "rejection_causes": {
+          "minimum_distance": 13,
+          "corner_option": 0,
+          "unsolvable": 82,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 3.96875,
+          "median": 3.0,
+          "min": 1,
+          "max": 16
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 32,
+          "mean": 12.125,
+          "median": 10.0,
+          "min": 3,
+          "max": 24
+        },
+        "reference_pushes_given_solvable": {
+          "count": 32,
+          "mean": 4.0625,
+          "median": 4.0,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 32,
+          "mean": 0.5,
+          "median": 0.0,
+          "min": 0,
+          "max": 4
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 267.59375,
+          "median": 245.5,
+          "min": 10,
+          "max": 621
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.004760417679790407,
+          "median": 0.003753518918529153,
+          "min": 0.0005077710375189781,
+          "max": 0.02071692398749292
+        },
+        "generation_cpu_seconds_total": 0.15223471600000005,
+        "filter_search_seconds_total": 0.133068960160017,
+        "assessment_wall_seconds_total": 0.938345103058964
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.9034824046920821,
+        "crate_cell_entropy_bits": 3.5306390622295662
+      }
+    },
+    {
+      "split": "dev",
+      "condition": {
+        "width": 7,
+        "depth": 5,
+        "obstacles": 8,
+        "avoid_corners": false,
+        "require_solvable": false
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 4,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.125,
+        "solvable_given_valid": 0.125,
+        "physics_reference_successes": 4,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 4,
+        "fixed_agent_success_per_request": 0.125,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 28,
+          "success": 4
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 34,
+        "accepted_per_sample_attempt": 0.9411764705882353,
+        "rejected_attempts": 2,
+        "rejection_causes": {
+          "minimum_distance": 2,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 1.0625,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 4,
+          "mean": 8.25,
+          "median": 8.0,
+          "min": 5,
+          "max": 12
+        },
+        "reference_pushes_given_solvable": {
+          "count": 4,
+          "mean": 3.25,
+          "median": 3.0,
+          "min": 3,
+          "max": 4
+        },
+        "push_detour_given_solvable": {
+          "count": 4,
+          "mean": 0,
+          "median": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 87.09375,
+          "median": 26.0,
+          "min": 11,
+          "max": 363
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.0002475716537446715,
+          "median": 0.00023596244864165783,
+          "min": 0.00022561289370059967,
+          "max": 0.000474108150228858
+        },
+        "generation_cpu_seconds_total": 0.007926500000000836,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 0.37458684761077166
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8579835487093552,
+        "crate_cell_entropy_bits": 4.179229296672174
+      }
+    },
+    {
+      "split": "dev",
+      "condition": {
+        "width": 7,
+        "depth": 5,
+        "obstacles": 8,
+        "avoid_corners": false,
+        "require_solvable": true
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 32,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 32,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 22,
+        "fixed_agent_success_per_request": 0.6875,
+        "fixed_agent_outcomes": {
+          "success": 22,
+          "agent_insufficient": 10
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 167,
+        "accepted_per_sample_attempt": 0.19161676646706588,
+        "rejected_attempts": 135,
+        "rejection_causes": {
+          "minimum_distance": 19,
+          "corner_option": 0,
+          "unsolvable": 116,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 5.21875,
+          "median": 4.0,
+          "min": 1,
+          "max": 22
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 32,
+          "mean": 11.4375,
+          "median": 11.0,
+          "min": 5,
+          "max": 22
+        },
+        "reference_pushes_given_solvable": {
+          "count": 32,
+          "mean": 3.5625,
+          "median": 3.5,
+          "min": 2,
+          "max": 7
+        },
+        "push_detour_given_solvable": {
+          "count": 32,
+          "mean": 0.625,
+          "median": 0.0,
+          "min": 0,
+          "max": 4
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 162.28125,
+          "median": 124.0,
+          "min": 26,
+          "max": 478
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.005200622836127877,
+          "median": 0.0040436480194330215,
+          "min": 0.0007670479826629162,
+          "max": 0.029231589986011386
+        },
+        "generation_cpu_seconds_total": 0.16629462799999928,
+        "filter_search_seconds_total": 0.13936070585623384,
+        "assessment_wall_seconds_total": 0.9253171063028276
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8653270116979794,
+        "crate_cell_entropy_bits": 3.6167292966721747
+      }
+    },
+    {
+      "split": "dev",
+      "condition": {
+        "width": 5,
+        "depth": 7,
+        "obstacles": 5,
+        "avoid_corners": false,
+        "require_solvable": false
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 13,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.40625,
+        "solvable_given_valid": 0.40625,
+        "physics_reference_successes": 13,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 9,
+        "fixed_agent_success_per_request": 0.28125,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 19,
+          "agent_insufficient": 4,
+          "success": 9
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 35,
+        "accepted_per_sample_attempt": 0.9142857142857143,
+        "rejected_attempts": 3,
+        "rejection_causes": {
+          "minimum_distance": 3,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 1.09375,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 13,
+          "mean": 10.23076923076923,
+          "median": 11,
+          "min": 5,
+          "max": 16
+        },
+        "reference_pushes_given_solvable": {
+          "count": 13,
+          "mean": 3.6923076923076925,
+          "median": 3,
+          "min": 2,
+          "max": 6
+        },
+        "push_detour_given_solvable": {
+          "count": 13,
+          "mean": 0.3076923076923077,
+          "median": 0,
+          "min": 0,
+          "max": 2
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 186.03125,
+          "median": 145.0,
+          "min": 28,
+          "max": 569
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.00021639834449160844,
+          "median": 0.0002104043960571289,
+          "min": 0.00019591697491705418,
+          "max": 0.0002828901633620262
+        },
+        "generation_cpu_seconds_total": 0.006922301000002573,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 0.5268025419209152
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.9144505248335894,
+        "crate_cell_entropy_bits": 3.8667292966721747
+      }
+    },
+    {
+      "split": "dev",
+      "condition": {
+        "width": 5,
+        "depth": 7,
+        "obstacles": 5,
+        "avoid_corners": false,
+        "require_solvable": true
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 32,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 32,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 27,
+        "fixed_agent_success_per_request": 0.84375,
+        "fixed_agent_outcomes": {
+          "success": 27,
+          "agent_insufficient": 5
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 94,
+        "accepted_per_sample_attempt": 0.3404255319148936,
+        "rejected_attempts": 62,
+        "rejection_causes": {
+          "minimum_distance": 11,
+          "corner_option": 0,
+          "unsolvable": 51,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 2.9375,
+          "median": 2.0,
+          "min": 1,
+          "max": 9
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 32,
+          "mean": 11.4375,
+          "median": 11.0,
+          "min": 5,
+          "max": 29
+        },
+        "reference_pushes_given_solvable": {
+          "count": 32,
+          "mean": 3.96875,
+          "median": 3.0,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 32,
+          "mean": 0.25,
+          "median": 0.0,
+          "min": 0,
+          "max": 4
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 273.65625,
+          "median": 264.5,
+          "min": 41,
+          "max": 569
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.0031604021205566823,
+          "median": 0.002476575900800526,
+          "min": 0.00044114701449871063,
+          "max": 0.009322841186076403
+        },
+        "generation_cpu_seconds_total": 0.10107827699999739,
+        "filter_search_seconds_total": 0.08677939279004931,
+        "assessment_wall_seconds_total": 0.8832558745052665
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.9124743983614951,
+        "crate_cell_entropy_bits": 3.5664280318460246
+      }
+    },
+    {
+      "split": "val",
+      "condition": {
+        "width": 4,
+        "depth": 4,
+        "obstacles": 3,
+        "avoid_corners": false,
+        "require_solvable": false
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 4,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.125,
+        "solvable_given_valid": 0.125,
+        "physics_reference_successes": 4,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 3,
+        "fixed_agent_success_per_request": 0.09375,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 28,
+          "agent_insufficient": 1,
+          "success": 3
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 42,
+        "accepted_per_sample_attempt": 0.7619047619047619,
+        "rejected_attempts": 10,
+        "rejection_causes": {
+          "minimum_distance": 10,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 1.3125,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 4,
+          "mean": 7.75,
+          "median": 7.5,
+          "min": 4,
+          "max": 12
+        },
+        "reference_pushes_given_solvable": {
+          "count": 4,
+          "mean": 2.75,
+          "median": 2.5,
+          "min": 2,
+          "max": 4
+        },
+        "push_detour_given_solvable": {
+          "count": 4,
+          "mean": 0.5,
+          "median": 0.0,
+          "min": 0,
+          "max": 2
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 23.71875,
+          "median": 12.0,
+          "min": 1,
+          "max": 125
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.00018544479098636657,
+          "median": 0.00017902057152241468,
+          "min": 0.00017210212536156178,
+          "max": 0.00028886180371046066
+        },
+        "generation_cpu_seconds_total": 0.005937179000003567,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 0.21447450807318091
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.9375,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8671370967741936,
+        "crate_cell_entropy_bits": 3.5542292966721747
+      }
+    },
+    {
+      "split": "val",
+      "condition": {
+        "width": 4,
+        "depth": 4,
+        "obstacles": 3,
+        "avoid_corners": false,
+        "require_solvable": true
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 32,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 32,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 25,
+        "fixed_agent_success_per_request": 0.78125,
+        "fixed_agent_outcomes": {
+          "success": 25,
+          "agent_insufficient": 7
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 336,
+        "accepted_per_sample_attempt": 0.09523809523809523,
+        "rejected_attempts": 304,
+        "rejection_causes": {
+          "minimum_distance": 64,
+          "corner_option": 0,
+          "unsolvable": 240,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 10.5,
+          "median": 8.0,
+          "min": 1,
+          "max": 42
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 32,
+          "mean": 7.1875,
+          "median": 6.5,
+          "min": 2,
+          "max": 16
+        },
+        "reference_pushes_given_solvable": {
+          "count": 32,
+          "mean": 2.59375,
+          "median": 2.0,
+          "min": 2,
+          "max": 4
+        },
+        "push_detour_given_solvable": {
+          "count": 32,
+          "mean": 0.125,
+          "median": 0.0,
+          "min": 0,
+          "max": 2
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 50.875,
+          "median": 33.0,
+          "min": 6,
+          "max": 130
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.0023795435918145813,
+          "median": 0.001835329458117485,
+          "min": 0.00027385284192860126,
+          "max": 0.007724344963207841
+        },
+        "generation_cpu_seconds_total": 0.07608617499999859,
+        "filter_search_seconds_total": 0.04294211603701115,
+        "assessment_wall_seconds_total": 0.5011851305607706
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8764112903225807,
+        "crate_cell_entropy_bits": 2.732372067573547
+      }
+    },
+    {
+      "split": "val",
+      "condition": {
+        "width": 6,
+        "depth": 8,
+        "obstacles": 10,
+        "avoid_corners": false,
+        "require_solvable": false
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 10,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.3125,
+        "solvable_given_valid": 0.3125,
+        "physics_reference_successes": 10,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 4,
+        "fixed_agent_success_per_request": 0.125,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 22,
+          "agent_insufficient": 6,
+          "success": 4
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 36,
+        "accepted_per_sample_attempt": 0.8888888888888888,
+        "rejected_attempts": 4,
+        "rejection_causes": {
+          "minimum_distance": 4,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 1.125,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 10,
+          "mean": 18.5,
+          "median": 18.5,
+          "min": 5,
+          "max": 30
+        },
+        "reference_pushes_given_solvable": {
+          "count": 10,
+          "mean": 5.7,
+          "median": 6.0,
+          "min": 3,
+          "max": 8
+        },
+        "push_detour_given_solvable": {
+          "count": 10,
+          "mean": 0.8,
+          "median": 0.0,
+          "min": 0,
+          "max": 2
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 367.65625,
+          "median": 221.5,
+          "min": 36,
+          "max": 1243
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.00026980826805811375,
+          "median": 0.00026125996373593807,
+          "min": 0.00024890596978366375,
+          "max": 0.000450704013928771
+        },
+        "generation_cpu_seconds_total": 0.008631406999999314,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 0.7967825394589454
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.874716464825885,
+        "crate_cell_entropy_bits": 4.5625
+      }
+    },
+    {
+      "split": "val",
+      "condition": {
+        "width": 6,
+        "depth": 8,
+        "obstacles": 10,
+        "avoid_corners": false,
+        "require_solvable": true
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 32,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 32,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 18,
+        "fixed_agent_success_per_request": 0.5625,
+        "fixed_agent_outcomes": {
+          "agent_insufficient": 14,
+          "success": 18
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 113,
+        "accepted_per_sample_attempt": 0.2831858407079646,
+        "rejected_attempts": 81,
+        "rejection_causes": {
+          "minimum_distance": 12,
+          "corner_option": 0,
+          "unsolvable": 69,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 3.53125,
+          "median": 3.0,
+          "min": 1,
+          "max": 10
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 32,
+          "mean": 15.125,
+          "median": 12.5,
+          "min": 4,
+          "max": 30
+        },
+        "reference_pushes_given_solvable": {
+          "count": 32,
+          "mean": 5.1875,
+          "median": 5.0,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 32,
+          "mean": 0.75,
+          "median": 0.0,
+          "min": 0,
+          "max": 6
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 415.3125,
+          "median": 361.5,
+          "min": 54,
+          "max": 1141
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.00916912940738257,
+          "median": 0.006987319560721517,
+          "min": 0.0009327779989689589,
+          "max": 0.028096322901546955
+        },
+        "generation_cpu_seconds_total": 0.2931811749999973,
+        "filter_search_seconds_total": 0.27179487235844135,
+        "assessment_wall_seconds_total": 1.3097091224044561
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.9791666666666666,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8742984071104389,
+        "crate_cell_entropy_bits": 4.101409765557392
+      }
+    },
+    {
+      "split": "val",
+      "condition": {
+        "width": 8,
+        "depth": 6,
+        "obstacles": 12,
+        "avoid_corners": false,
+        "require_solvable": false
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 5,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.15625,
+        "solvable_given_valid": 0.15625,
+        "physics_reference_successes": 5,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 2,
+        "fixed_agent_success_per_request": 0.0625,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 27,
+          "agent_insufficient": 3,
+          "success": 2
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 33,
+        "accepted_per_sample_attempt": 0.9696969696969697,
+        "rejected_attempts": 1,
+        "rejection_causes": {
+          "minimum_distance": 1,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 1.03125,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 5,
+          "mean": 14.4,
+          "median": 19,
+          "min": 4,
+          "max": 22
+        },
+        "reference_pushes_given_solvable": {
+          "count": 5,
+          "mean": 4.4,
+          "median": 4,
+          "min": 2,
+          "max": 8
+        },
+        "push_detour_given_solvable": {
+          "count": 5,
+          "mean": 0.4,
+          "median": 0,
+          "min": 0,
+          "max": 2
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 139.53125,
+          "median": 35.0,
+          "min": 1,
+          "max": 792
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.00028681164258159697,
+          "median": 0.0002799744252115488,
+          "min": 0.0002705380320549011,
+          "max": 0.0003441551234573126
+        },
+        "generation_cpu_seconds_total": 0.009182656000001899,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 0.5215918505564332
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 0.9791666666666666,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8448584600700437,
+        "crate_cell_entropy_bits": 4.601409765557392
+      }
+    },
+    {
+      "split": "val",
+      "condition": {
+        "width": 8,
+        "depth": 6,
+        "obstacles": 12,
+        "avoid_corners": false,
+        "require_solvable": true
+      },
+      "metrics": {
+        "requests": 32,
+        "generated": 32,
+        "valid": 32,
+        "solvable": 32,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 32,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 19,
+        "fixed_agent_success_per_request": 0.59375,
+        "fixed_agent_outcomes": {
+          "agent_insufficient": 13,
+          "success": 19
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 173,
+        "accepted_per_sample_attempt": 0.18497109826589594,
+        "rejected_attempts": 141,
+        "rejection_causes": {
+          "minimum_distance": 9,
+          "corner_option": 0,
+          "unsolvable": 132,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 32,
+          "mean": 5.40625,
+          "median": 4.0,
+          "min": 1,
+          "max": 18
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 32,
+          "mean": 13.75,
+          "median": 11.0,
+          "min": 3,
+          "max": 39
+        },
+        "reference_pushes_given_solvable": {
+          "count": 32,
+          "mean": 4.59375,
+          "median": 4.0,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 32,
+          "mean": 0.75,
+          "median": 0.0,
+          "min": 0,
+          "max": 4
+        },
+        "oracle_search_states": {
+          "count": 32,
+          "mean": 355.53125,
+          "median": 321.0,
+          "min": 11,
+          "max": 964
+        },
+        "generation_wall_seconds": {
+          "count": 32,
+          "mean": 0.012325299830990843,
+          "median": 0.009842003579251468,
+          "min": 0.0005465841386467218,
+          "max": 0.036322538973763585
+        },
+        "generation_cpu_seconds_total": 0.39405711599999727,
+        "filter_search_seconds_total": 0.3576410736422986,
+        "assessment_wall_seconds_total": 1.3601960595697165
+      },
+      "diversity": {
+        "unique_layouts": 32,
+        "unique_fraction": 1.0,
+        "obstacle_cell_coverage": 1.0,
+        "mean_pairwise_obstacle_jaccard_distance": 0.8489186154742671,
+        "crate_cell_entropy_bits": 3.8667292966721747
+      }
+    }
+  ],
+  "aggregates": {
+    "dev": {
+      "unfiltered": {
+        "requests": 96,
+        "generated": 96,
+        "valid": 96,
+        "solvable": 26,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.2708333333333333,
+        "solvable_given_valid": 0.2708333333333333,
+        "physics_reference_successes": 26,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 19,
+        "fixed_agent_success_per_request": 0.19791666666666666,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 70,
+          "success": 19,
+          "agent_insufficient": 7
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 105,
+        "accepted_per_sample_attempt": 0.9142857142857143,
+        "rejected_attempts": 9,
+        "rejection_causes": {
+          "minimum_distance": 9,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 96,
+          "mean": 1.09375,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 26,
+          "mean": 11.576923076923077,
+          "median": 11.0,
+          "min": 4,
+          "max": 22
+        },
+        "reference_pushes_given_solvable": {
+          "count": 26,
+          "mean": 3.923076923076923,
+          "median": 3.0,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 26,
+          "mean": 0.6153846153846154,
+          "median": 0.0,
+          "min": 0,
+          "max": 4
+        },
+        "oracle_search_states": {
+          "count": 96,
+          "mean": 142.79166666666666,
+          "median": 71.5,
+          "min": 4,
+          "max": 740
+        },
+        "generation_wall_seconds": {
+          "count": 96,
+          "mean": 0.00023189557153576365,
+          "median": 0.00022655993234366179,
+          "min": 0.00019591697491705418,
+          "max": 0.000474108150228858
+        },
+        "generation_cpu_seconds_total": 0.022267408000003736,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 1.441744505893439
+      },
+      "filtered": {
+        "requests": 96,
+        "generated": 96,
+        "valid": 96,
+        "solvable": 96,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 96,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 74,
+        "fixed_agent_success_per_request": 0.7708333333333334,
+        "fixed_agent_outcomes": {
+          "success": 74,
+          "agent_insufficient": 22
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 388,
+        "accepted_per_sample_attempt": 0.24742268041237114,
+        "rejected_attempts": 292,
+        "rejection_causes": {
+          "minimum_distance": 43,
+          "corner_option": 0,
+          "unsolvable": 249,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 96,
+          "mean": 4.041666666666667,
+          "median": 3.0,
+          "min": 1,
+          "max": 22
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 96,
+          "mean": 11.666666666666666,
+          "median": 11.0,
+          "min": 3,
+          "max": 29
+        },
+        "reference_pushes_given_solvable": {
+          "count": 96,
+          "mean": 3.8645833333333335,
+          "median": 4.0,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 96,
+          "mean": 0.4583333333333333,
+          "median": 0.0,
+          "min": 0,
+          "max": 4
+        },
+        "oracle_search_states": {
+          "count": 96,
+          "mean": 234.51041666666666,
+          "median": 213.5,
+          "min": 10,
+          "max": 621
+        },
+        "generation_wall_seconds": {
+          "count": 96,
+          "mean": 0.004373814212158322,
+          "median": 0.003544917912222445,
+          "min": 0.00044114701449871063,
+          "max": 0.029231589986011386
+        },
+        "generation_cpu_seconds_total": 0.4196076209999967,
+        "filter_search_seconds_total": 0.35920905880630016,
+        "assessment_wall_seconds_total": 2.746918083867058
+      }
+    },
+    "val": {
+      "unfiltered": {
+        "requests": 96,
+        "generated": 96,
+        "valid": 96,
+        "solvable": 19,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 0.19791666666666666,
+        "solvable_given_valid": 0.19791666666666666,
+        "physics_reference_successes": 19,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 9,
+        "fixed_agent_success_per_request": 0.09375,
+        "fixed_agent_outcomes": {
+          "scene_unsolvable": 77,
+          "agent_insufficient": 10,
+          "success": 9
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 111,
+        "accepted_per_sample_attempt": 0.8648648648648649,
+        "rejected_attempts": 15,
+        "rejection_causes": {
+          "minimum_distance": 15,
+          "corner_option": 0,
+          "unsolvable": 0,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 96,
+          "mean": 1.15625,
+          "median": 1.0,
+          "min": 1,
+          "max": 2
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 19,
+          "mean": 15.157894736842104,
+          "median": 13,
+          "min": 4,
+          "max": 30
+        },
+        "reference_pushes_given_solvable": {
+          "count": 19,
+          "mean": 4.7368421052631575,
+          "median": 4,
+          "min": 2,
+          "max": 8
+        },
+        "push_detour_given_solvable": {
+          "count": 19,
+          "mean": 0.631578947368421,
+          "median": 0,
+          "min": 0,
+          "max": 2
+        },
+        "oracle_search_states": {
+          "count": 96,
+          "mean": 176.96875,
+          "median": 36.0,
+          "min": 1,
+          "max": 1243
+        },
+        "generation_wall_seconds": {
+          "count": 96,
+          "mean": 0.00024735490054202575,
+          "median": 0.00026174052618443966,
+          "min": 0.00017210212536156178,
+          "max": 0.000450704013928771
+        },
+        "generation_cpu_seconds_total": 0.02375124200000478,
+        "filter_search_seconds_total": 0,
+        "assessment_wall_seconds_total": 1.5328488980885595
+      },
+      "filtered": {
+        "requests": 96,
+        "generated": 96,
+        "valid": 96,
+        "solvable": 96,
+        "generation_valid_rate": 1.0,
+        "solvable_per_request": 1.0,
+        "solvable_given_valid": 1.0,
+        "physics_reference_successes": 96,
+        "solvability_unknown": 0,
+        "fixed_agent_successes": 62,
+        "fixed_agent_success_per_request": 0.6458333333333334,
+        "fixed_agent_outcomes": {
+          "success": 62,
+          "agent_insufficient": 34
+        },
+        "fixed_agent_collisions": 0,
+        "fixed_agent_timeouts": 0,
+        "sample_attempts": 622,
+        "accepted_per_sample_attempt": 0.15434083601286175,
+        "rejected_attempts": 526,
+        "rejection_causes": {
+          "minimum_distance": 85,
+          "corner_option": 0,
+          "unsolvable": 441,
+          "unknown": 0
+        },
+        "attempts_per_request": {
+          "count": 96,
+          "mean": 6.479166666666667,
+          "median": 4.0,
+          "min": 1,
+          "max": 42
+        },
+        "shortest_action_steps_given_solvable": {
+          "count": 96,
+          "mean": 12.020833333333334,
+          "median": 10.0,
+          "min": 2,
+          "max": 39
+        },
+        "reference_pushes_given_solvable": {
+          "count": 96,
+          "mean": 4.125,
+          "median": 3.0,
+          "min": 2,
+          "max": 10
+        },
+        "push_detour_given_solvable": {
+          "count": 96,
+          "mean": 0.5416666666666666,
+          "median": 0.0,
+          "min": 0,
+          "max": 6
+        },
+        "oracle_search_states": {
+          "count": 96,
+          "mean": 273.90625,
+          "median": 124.0,
+          "min": 6,
+          "max": 1141
+        },
+        "generation_wall_seconds": {
+          "count": 96,
+          "mean": 0.007957990943395998,
+          "median": 0.004990597488358617,
+          "min": 0.00027385284192860126,
+          "max": 0.036322538973763585
+        },
+        "generation_cpu_seconds_total": 0.7633244659999932,
+        "filter_search_seconds_total": 0.6723780620377511,
+        "assessment_wall_seconds_total": 3.1710903125349432
+      }
+    }
+  },
+  "selection": {
+    "status": "not_run",
+    "selected": null,
+    "maximum_candidates": 3,
+    "model_calls": 0,
+    "candidate_executions": 0,
+    "model_tokens": null,
+    "model_cost": null
+  },
+  "scope": "existing trusted generator only; filtering is not an algorithm modification"
+}

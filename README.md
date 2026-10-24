@@ -1,5 +1,9 @@
 # Scene-RSI V0 — 3D 场景生成基线与独立验证器
 
+## 自动算法改进：当前阻塞与基线测量
+
+在 `34d2300` 上实测原生成器开关可解性筛选的 384 次请求，记录拒绝次数、多样性、难度、CPU 成本和实际 PyBullet 参考重放。完整测试 158/158 通过。已有 Apptainer 的资源限制启动失败，本轮没有调用 Codex 提案、执行候选或声称算法提升；结果与继续实验所需能力见 [实验记录](experiments/generator_baseline/README.md)。
+
 ## Blender 真实 Mesh 与三视图导出
 
 新增固定资产库与可选 Blender 导出器：保留现有任务和独立评价，生成 `.blend`、`.glb` 及三个固定相机图像。已用现有 Blender 4.2.0 和 A100 实际渲染三个自动生成场景；CPU 回退也已实测。接口、复现命令、结果与限制见 [RENDERING.md](RENDERING.md)，实际文件在 [examples/rendered](examples/rendered)。

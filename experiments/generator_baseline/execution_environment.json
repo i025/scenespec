@@ -1,0 +1,48 @@
+{
+  "runtime": "/srv/lab-disks/disk2/users/xymo/projects/BlenderWorld/runtime/apptainer/bin/apptainer",
+  "runtime_release": "1.5.4-1.el8",
+  "image": "/srv/lab-disks/disk2/users/xymo/projects/BlenderWorld/runtime/harbor-images/blenderworld-agent.sif",
+  "payload": [
+    "/bin/true"
+  ],
+  "payload_kind": "trusted resource-configuration check, not candidate or isolation acceptance",
+  "requested_options": [
+    "--userns",
+    "--containall",
+    "--no-home",
+    "--no-mount",
+    "hostfs,bind-paths,cwd",
+    "--net",
+    "--network",
+    "none",
+    "--cpus",
+    "1",
+    "--memory",
+    "512M",
+    "--pids-limit",
+    "8"
+  ],
+  "exit_code": 255,
+  "stderr": "INFO:    Terminating squashfuse_ll after timeout\nINFO:    Timeouts can be caused by a running background process\nFATAL:   container creation failed: while applying cgroups config: cannot use cgroups - system is not configured for cgroups v2 in unified mode\n",
+  "uid": 1005,
+  "cgroup_hierarchy": "hybrid v1/v2",
+  "v2_controllers": [],
+  "v1_cpu_memory_pids_directories_owner": "root, mode 0755",
+  "boundaries": {
+    "resources": "failed before payload start",
+    "mounts": "not_verified",
+    "network": "not_verified",
+    "credentials": "not_verified",
+    "processes": "not_verified",
+    "devices": "not_verified"
+  },
+  "candidate_execution_allowed": false,
+  "candidate_processes_started": 0,
+  "ordinary_subprocess_fallback_used": false,
+  "needed": [
+    "A site-provided restricted CPU execution service, or unified cgroup v2 with delegated CPU/memory/PID controllers.",
+    "Then validate private mounts, network denial, PID/device/credential isolation and complete cleanup.",
+    "The Codex proposal process separately needs a minimal dev-only filesystem and a restricted credential-free model route."
+  ],
+  "documentation": "https://apptainer.org/docs/user/latest/cgroups.html"
+}
