@@ -157,6 +157,10 @@ def main():
         candidates.append(record)
         save(directory/'record.json',record)
         print('candidate',index,record['status'],flush=True)
+        call_file=directory/'model_call.json'
+        if not args.replay and record['status']=='failed' and (not call_file.exists() or
+                json.loads(call_file.read_text()).get('http_status')!=200):
+            raise RuntimeError('proposal transport unavailable; stop without further candidate calls')
     # Val is evaluated only after all proposal calls have ended. Never enters a request.
     for record in candidates:
         if record['status']!='evaluated_dev':
@@ -175,7 +179,7 @@ def main():
     report={'baseline':baseline,'candidates':candidates,'selected':selected['index'] if selected else None,
             'selection_rule':'valid dev/val, strictly higher val solvability, unique fraction >= .9, physics replay; then val/dev solvability and difficulty',
             'require_solvable':False,'meta_agent_changed':False,'is_rsi':False,'model_calls':sum(
-                json.loads(p.read_text()).get('upstream_calls',0) for p in (run/'attempts').glob('*/model_call.json'))}
+                int(json.loads(p.read_text()).get('http_status')==200) for p in (run/'attempts').glob('*/model_call.json'))}
     save(run/'summary.json',report)
     if selected:
         chosen=run/'attempts'/f'candidate_{selected["index"]}'/'payload/layout.py'

@@ -18,6 +18,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
+import urllib.error
 
 MODEL = 'gpt-6.1-sol'  # Existing local Codex configuration, fixed for all attempts.
 
@@ -53,12 +55,15 @@ def serve(socket_path, auth_path, audit):
             Path(audit).write_text(json.dumps(record, indent=2)+'\n')
             started = time.perf_counter()
             try:
-                remote = http.client.HTTPSConnection('chatgpt.com', timeout=150, context=ssl.create_default_context())
                 headers = {'Content-Type':'application/json', 'Authorization':'Bearer '+auth['access_token'],
                            'ChatGPT-Account-ID':auth['account_id'], 'OpenAI-Beta':'responses=experimental',
                            'originator':'codex_cli_rs', 'User-Agent':'codex_cli_rs/0.163.0'}
-                remote.request('POST','/backend-api/codex/responses',json.dumps(body).encode(),headers)
-                response = remote.getresponse()
+                request=urllib.request.Request('https://chatgpt.com/backend-api/codex/responses',
+                                               json.dumps(body).encode(),headers)
+                try:
+                    response=urllib.request.urlopen(request,timeout=150)
+                except urllib.error.HTTPError as error:
+                    response=error
                 record.update(http_status=response.status)
                 self.send_response(response.status)
                 self.send_header('Content-Type',response.getheader('Content-Type','text/event-stream'))
@@ -78,7 +83,7 @@ def serve(socket_path, auth_path, audit):
                             if item.get('type') == 'response.completed':
                                 record['usage'] = item['response'].get('usage')
                                 record['returned_model'] = item['response'].get('model')
-                remote.close()
+                response.close()
                 record['status'] = 'completed' if response.status==200 else 'http_error'
             except Exception as error:
                 record.update(status='failed', error=type(error).__name__)
