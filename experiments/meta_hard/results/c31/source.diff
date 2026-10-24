@@ -1,0 +1,230 @@
+--- a/indoor_generator.py
++++ b/indoor_generator.py
+@@ -7,12 +7,13 @@
+     fixed = list(packet['fixed'])
+     required = {o['id']: o['asset'] for o in spec['required_objects']}
+     regions = {r['id']: r for r in spec.get('regions', [])}
+-    constraints = spec.get('constraints', [])
+-    relations = [c for c in constraints if c['type'] == 'in_front_of']
++    relations = []
+     walls = {}
+     clear = []
+-    for c in constraints:
+-        if c['type'] == 'near_wall':
++    for c in spec.get('constraints', []):
++        if c['type'] == 'in_front_of':
++            relations.append(c)
++        elif c['type'] == 'near_wall':
+             walls.setdefault(c['subject'], []).append(c)
+         elif c['type'] == 'keep_clear':
+             r = regions[c['region']]
+@@ -81,7 +82,7 @@
+     poses, rects, masks = [], [], []
+     for name in names:
+         pp, rr, mm, seen = [], [], [], set()
+-        unary_relations = [c for c in relations if (c['subject'] == name and c['reference'] in fixed_by_id) or (c['reference'] == name and c['subject'] in fixed_by_id)]
++        unary = [c for c in relations if (c['subject'] == name and c['reference'] in fixed_by_id) or (c['reference'] == name and c['subject'] in fixed_by_id)]
+         candidates = sorted(packet['domains'].get(name, []), key=lambda o: (o['x'], o['y'], o['yaw_deg']))
+         for o in candidates:
+             if o['id'] != name or o['asset'] != required[name]:
+@@ -99,7 +100,7 @@
+                     break
+             if not good:
+                 continue
+-            for c in unary_relations:
++            for c in unary:
+                 if c['subject'] == name:
+                     other, other_r = fixed_by_id[c['reference']]
+                     good = front(c, o, other, r, other_r)
+@@ -126,6 +127,7 @@
+     n = len(names)
+     domains = [(1 << len(p)) - 1 for p in poses]
+     compat = [[None for j in range(n)] for i in range(n)]
++    neighbors = [[] for i in range(n)]
+     degrees = [0] * n
+     for i in range(n):
+         for j in range(i + 1, n):
+@@ -135,10 +137,12 @@
+                 degrees[j] += 1
+             ij = [0] * len(poses[i])
+             ji = [0] * len(poses[j])
++            unrestricted = True
+             for a, ra in enumerate(rects[i]):
+                 support = 0
+                 for b, rb in enumerate(rects[j]):
+                     if overlap(ra, rb):
++                        unrestricted = False
+                         continue
+                     good = True
+                     for c in rel:
+@@ -151,11 +155,16 @@
+                     if good:
+                         support |= 1 << b
+                         ji[b] |= 1 << a
++                    else:
++                        unrestricted = False
+                 ij[a] = support
+-            compat[i][j], compat[j][i] = ij, ji
++            if not unrestricted:
++                compat[i][j], compat[j][i] = ij, ji
++                neighbors[i].append(j)
++                neighbors[j].append(i)
+ 
+     work = [0, 0]
+-    limits = (500000, 90000)
++    limits = (650000, 90000)
+ 
+     def exhausted():
+         return work[0] >= limits[0] or work[1] >= limits[1]
+@@ -169,21 +178,24 @@
+             dj = ds[j]
+             if not dj:
+                 return False
+-            for i in range(n):
+-                if i == j:
+-                    continue
+-                old, new = ds[i], 0
+-                options = old
+-                table = compat[i][j]
+-                work[0] += old.bit_count()
+-                if work[0] >= limits[0]:
+-                    return False
+-                while options:
+-                    bit = options & -options
+-                    options -= bit
+-                    if table[bit.bit_length() - 1] & dj:
+-                        new |= bit
+-                if not new:
++            singleton = not dj & (dj - 1)
++            a = dj.bit_length() - 1
++            for i in neighbors[j]:
++                old = ds[i]
++                if singleton:
++                    work[0] += 1
++                    new = old & compat[j][i][a]
++                else:
++                    new = 0
++                    options = old
++                    table = compat[i][j]
++                    work[0] += old.bit_count()
++                    while options:
++                        bit = options & -options
++                        options -= bit
++                        if table[bit.bit_length() - 1] & dj:
++                            new |= bit
++                if not new or exhausted():
+                     return False
+                 if old != new:
+                     ds[i] = new
+@@ -318,10 +330,55 @@
+ 
+     state = [0, 300, 0, None, -1]
+     failed = set()
++    cuts = []
++    cut_paths = set()
++
++    def path_hits(path):
++        result = []
++        for i in range(n):
++            hit = 0
++            for a, m in enumerate(masks[i]):
++                if m & path:
++                    hit |= 1 << a
++            if hit:
++                result.append((i, hit))
++        return result
++
++    def enforce_cuts(ds):
++        while True:
++            changed = set()
++            for cut in cuts:
++                sole = -1
++                active = 0
++                satisfied = False
++                for i, hit in cut:
++                    d = ds[i]
++                    possible = d & hit
++                    if possible:
++                        if possible == d:
++                            satisfied = True
++                            break
++                        if sole >= 0:
++                            sole = -2
++                            break
++                        sole, active = i, possible
++                if satisfied or sole == -2:
++                    continue
++                if sole < 0:
++                    return False
++                if ds[sole] != active:
++                    ds[sole] = active
++                    changed.add(sole)
++            if not changed:
++                return True
++            if not propagate(ds, changed):
++                return False
+ 
+     def search(ds):
+         state[0] += 1
+         if state[0] > state[1] or exhausted():
++            return False
++        if cuts and not enforce_cuts(ds):
+             return False
+         key = tuple(ds)
+         if key in failed:
+@@ -358,23 +415,22 @@
+                 return False
+             hits = []
+             if distance < state[2]:
+-                for i in undecided:
+-                    hit = 0
+-                    options = ds[i]
+-                    while options:
+-                        bit = options & -options
+-                        options -= bit
+-                        if masks[i][bit.bit_length() - 1] & path:
+-                            hit |= bit
+-                    if hit:
+-                        hits.append((i, hit))
++                all_hits = path_hits(path)
++                if path not in cut_paths and len(cuts) < 64:
++                    cut_paths.add(path)
++                    cuts.append(all_hits)
++                for i, hit in all_hits:
++                    if ds[i] & (ds[i] - 1):
++                        active = hit & ds[i]
++                        if active:
++                            hits.append((i, active))
+                 if not hits:
+                     failed.add(key)
+                     return False
+                 if len(hits) == 1 and hits[0][1] != ds[hits[0][0]]:
+                     i, hit = hits[0]
+                     ds[i] = hit
+-                    if not propagate(ds, [i]):
++                    if not propagate(ds, [i]) or not enforce_cuts(ds):
+                         failed.add(key)
+                         return False
+                     continue
+@@ -403,7 +459,7 @@
+             return False
+ 
+         choices = universal if universal else undecided
+-        i = min(choices, key=lambda j: (ds[j].bit_count(), -degrees[j]))
++        i = min(choices, key=lambda j: (ds[j].bit_count(), -degrees[j], -len(neighbors[j])))
+         ranked = []
+         options = ds[i]
+         while options:
+@@ -413,7 +469,11 @@
+             d, unused_path = walk(blocked | masks[i][a])
+             if d < 0:
+                 continue
+-            support = sum((compat[i][j][a] & ds[j]).bit_count() for j in undecided if j != i)
++            support = 0
++            for j in undecided:
++                if j != i:
++                    table = compat[i][j]
++                    support += ds[j].bit_count() if table is None else (table[a] & ds[j]).bit_count()
+             rank = -d if distance < state[2] else d
+             ranked.append((rank, -support, a))
+         ranked.sort()

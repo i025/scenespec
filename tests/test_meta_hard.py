@@ -3,6 +3,9 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 import unittest
+import tempfile
+import json
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
 import run_meta_hard as experiment
@@ -23,6 +26,15 @@ class HardMetaTests(unittest.TestCase):
                 self.assertTrue(result['success'])
                 self.assertTrue(result['physical_valid'])
                 self.assertGreaterEqual(result['shortest_actions'], case['packet']['minimum_steps'])
+
+    def test_shortest_witness_routes_match_serpentine_geometry(self):
+        expected = {'dev':(22, 26, 35), 'selection':(25, 29, 36), 'test':(23, 30, 39)}
+        for split, lengths in expected.items():
+            for tier, length in enumerate(lengths):
+                case, witness = make_case(split, tier, 0)
+                spec = SceneSpec.from_dict(case['packet']['spec'])
+                path = navigation(spec, witness, case['packet']['start'], case['packet']['goal'])
+                self.assertEqual(len(path), length)
 
     def test_fixed_object_cannot_be_moved_even_to_another_free_pose(self):
         state = self.witness.to_dict()
@@ -85,6 +97,17 @@ class HardMetaTests(unittest.TestCase):
         feedback = experiment.feedback([{'packet':{'public':1}}], [row])[0]
         self.assertNotIn('private', str(feedback))
         self.assertEqual(feedback['error'], 'path_too_short')
+
+    def test_failed_proposal_replays_without_model_or_missing_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root/'archive'
+            run = root/'replay'
+            archive.mkdir(); run.mkdir()
+            (archive/'calls.json').write_text(json.dumps([{'slot':0, 'status':'generation_failed', 'error':'budget'}]))
+            with patch('run_meta_hard.propose', side_effect=AssertionError('live model in replay')):
+                result = experiment.fetch({'slot':0}, run, 'test', archive)
+            self.assertEqual(result, {'error':'budget'})
 
 
 if __name__ == '__main__':

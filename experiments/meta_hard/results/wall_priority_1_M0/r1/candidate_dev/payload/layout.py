@@ -1,0 +1,338 @@
+import math
+
+def layout(packet):
+    spec = packet['spec']
+    assets = spec['assets']
+    width, depth = packet['width'], packet['depth']
+    fixed = list(packet['fixed'])
+    required = {o['id']: o['asset'] for o in spec['required_objects']}
+    regions = {r['id']: r for r in spec.get('regions', [])}
+    constraints = spec.get('constraints', [])
+    relations = [c for c in constraints if c['type'] == 'in_front_of']
+    walls = {}
+    clear_regions = []
+    for c in constraints:
+        if c['type'] == 'near_wall':
+            walls.setdefault(c['subject'], []).append(c)
+        elif c['type'] == 'keep_clear':
+            z = regions[c['region']]
+            clear_regions.append((z['x'], z['y'], z['x'] + z['width'], z['y'] + z['depth']))
+
+    def rectangle(o):
+        a = assets[o['asset']]
+        w, d = a['width'], a['depth']
+        if o['yaw_deg'] % 180:
+            w, d = d, w
+        return (o['x'] - w / 2, o['y'] - d / 2, o['x'] + w / 2, o['y'] + d / 2)
+
+    def overlap(a, b):
+        return min(a[2], b[2]) - max(a[0], b[0]) > 1e-8 and min(a[3], b[3]) - max(a[1], b[1]) > 1e-8
+
+    def front(c, subject, reference, a, b):
+        fx, fy = ((0, 1), (-1, 0), (0, -1), (1, 0))[(reference['yaw_deg'] % 360) // 90]
+        dx, dy = subject['x'] - reference['x'], subject['y'] - reference['y']
+        along = (abs(fx) * (a[2] - a[0] + b[2] - b[0]) + abs(fy) * (a[3] - a[1] + b[3] - b[1])) / 2
+        lateral = (abs(fy) * (a[2] - a[0] + b[2] - b[0]) + abs(fx) * (a[3] - a[1] + b[3] - b[1])) / 2
+        gap = dx * fx + dy * fy - along
+        return -1e-8 <= gap <= c['max_gap'] + 1e-8 and abs(dx * fy - dy * fx) <= lateral + 1e-8
+
+    fixed_rects = [rectangle(o) for o in fixed]
+    fixed_by_id = {o['id']: (o, r) for o, r in zip(fixed, fixed_rects)}
+    reference_ids = {c['reference'] for c in relations}
+    names = [o['id'] for o in spec['required_objects'] if o['id'] not in fixed_by_id]
+    poses, rects = [], []
+    for name in names:
+        pp, rr, seen = [], [], set()
+        for o in packet['domains'].get(name, []):
+            if o['id'] != name or o['asset'] != required[name]:
+                continue
+            r = rectangle(o)
+            if r[0] < -1e-8 or r[1] < -1e-8 or r[2] > width + 1e-8 or r[3] > depth + 1e-8:
+                continue
+            if any(overlap(r, z) for z in clear_regions) or any(overlap(r, z) for z in fixed_rects):
+                continue
+            valid = True
+            for c in walls.get(name, []):
+                gap = {'west': r[0], 'south': r[1], 'east': width - r[2], 'north': depth - r[3]}[c['wall']]
+                if not -1e-8 <= gap <= c['max_gap'] + 1e-8:
+                    valid = False
+                    break
+            if not valid:
+                continue
+            for c in relations:
+                if c['subject'] == name and c['reference'] in fixed_by_id:
+                    other, other_r = fixed_by_id[c['reference']]
+                    if not front(c, o, other, r, other_r):
+                        valid = False
+                        break
+                elif c['reference'] == name and c['subject'] in fixed_by_id:
+                    other, other_r = fixed_by_id[c['subject']]
+                    if not front(c, other, o, other_r, r):
+                        valid = False
+                        break
+            if valid:
+                key = (r, o['yaw_deg'] % 360 if name in reference_ids else 0)
+                if key not in seen:
+                    seen.add(key)
+                    pp.append(o)
+                    rr.append(r)
+        poses.append(pp)
+        rects.append(rr)
+
+    def grid(w, h):
+        full = (1 << (w * h)) - 1
+        left = sum(1 << (y * w) for y in range(h))
+        right = left << (w - 1)
+        return (w, h, full, full ^ left, full ^ right)
+
+    def expand(bits, g):
+        w, h, full, noleft, noright = g
+        return (((bits & noright) << 1) | ((bits & noleft) >> 1) | (bits << w) | (bits >> w)) & full
+
+    def mask_rect(r, clearance, scale, w, h):
+        lo_x, lo_y = r[0] - clearance, r[1] - clearance
+        hi_x, hi_y = r[2] + clearance, r[3] + clearance
+        xs = [x for x in range(max(0, int(math.floor(lo_x * scale - .5))), min(w, int(math.ceil(hi_x * scale - .5)) + 1)) if lo_x < (x + .5) / scale < hi_x]
+        ys = [y for y in range(max(0, int(math.floor(lo_y * scale - .5))), min(h, int(math.ceil(hi_y * scale - .5)) + 1)) if lo_y < (y + .5) / scale < hi_y]
+        row = sum(1 << x for x in xs)
+        return sum(row << (y * w) for y in ys)
+
+    w, h = int(width), int(depth)
+    navigation = grid(w, h)
+    start = 1 << (packet['start'][1] * w + packet['start'][0])
+    goal = 1 << (packet['goal'][1] * w + packet['goal'][0])
+    endpoints = start | goal
+    minimum = packet['minimum_steps']
+    fixed_mask = 0
+    for r in fixed_rects:
+        fixed_mask |= mask_rect(r, .15, 1, w, h)
+    masks = [[mask_rect(r, .15, 1, w, h) for r in rr] for rr in rects]
+    n = len(names)
+    domains = []
+    for i in range(n):
+        domains.append(sum(1 << k for k, m in enumerate(masks[i]) if not m & endpoints))
+    compat = [[None for j in range(n)] for i in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            ij = [0] * len(poses[i])
+            ji = [0] * len(poses[j])
+            rel = [c for c in relations if {c['subject'], c['reference']} == {names[i], names[j]}]
+            for a, ra in enumerate(rects[i]):
+                for b, rb in enumerate(rects[j]):
+                    if overlap(ra, rb):
+                        continue
+                    good = True
+                    for c in rel:
+                        if c['subject'] == names[i]:
+                            good = front(c, poses[i][a], poses[j][b], ra, rb)
+                        else:
+                            good = front(c, poses[j][b], poses[i][a], rb, ra)
+                        if not good:
+                            break
+                    if good:
+                        ij[a] |= 1 << b
+                        ji[b] |= 1 << a
+            compat[i][j], compat[j][i] = ij, ji
+
+    def propagate(ds, changed):
+        queue = list(changed)
+        pending = set(queue)
+        while queue:
+            j = queue.pop()
+            pending.discard(j)
+            if not ds[j]:
+                return False
+            for i in range(n):
+                if i == j:
+                    continue
+                old, new = ds[i], 0
+                options = old
+                table = compat[i][j]
+                while options:
+                    bit = options & -options
+                    options -= bit
+                    if table[bit.bit_length() - 1] & ds[j]:
+                        new |= bit
+                if not new:
+                    return False
+                if new != old:
+                    ds[i] = new
+                    if i not in pending:
+                        pending.add(i)
+                        queue.append(i)
+        return True
+
+    nav_cache = {}
+    def walk(blocked):
+        cached = nav_cache.get(blocked)
+        if cached is not None:
+            return cached
+        if blocked & endpoints:
+            return (-1, 0)
+        free = navigation[2] ^ blocked
+        reached, wave, layers = start, start, [start]
+        while not wave & goal:
+            wave = expand(wave, navigation) & free & ~reached
+            if not wave:
+                result = (-1, 0)
+                break
+            reached |= wave
+            layers.append(wave)
+        else:
+            distance = len(layers) - 1
+            at, path = goal, goal
+            for k in range(distance - 1, -1, -1):
+                choices = expand(at, navigation) & layers[k]
+                at = choices & -choices
+                path |= at
+            result = (distance, path)
+        if len(nav_cache) < 24000:
+            nav_cache[blocked] = result
+        return result
+
+    accesses = spec.get('access_paths', [])
+    access_data = []
+    if accesses:
+        scale = 10
+        fw, fh = int(width * scale), int(depth * scale)
+        fine = grid(fw, fh)
+        coordinates = [((x + .5) / scale, (y + .5) / scale) for y in range(fh) for x in range(fw)]
+        all_choices = dict(fixed_by_id)
+        for i, name in enumerate(names):
+            all_choices[name] = None
+        for access in accesses:
+            clearance = access.get('clearance', .15)
+            base = 0
+            for r in fixed_rects:
+                base |= mask_rect(r, clearance, scale, fw, fh)
+            boundary = 0
+            for k, (x, y) in enumerate(coordinates):
+                if x < clearance or y < clearance or x > width - clearance or y > depth - clearance:
+                    boundary |= 1 << k
+            base |= boundary
+            blocks = [[mask_rect(r, clearance, scale, fw, fh) for r in rr] for rr in rects]
+            region = regions[access['from_region']]
+            seeds = 0
+            for k, (x, y) in enumerate(coordinates):
+                if region['x'] <= x <= region['x'] + region['width'] and region['y'] <= y <= region['y'] + region['depth']:
+                    seeds |= 1 << k
+            target = access['to_object']
+            target_rects = [fixed_by_id[target][1]] if target in fixed_by_id else rects[names.index(target)]
+            targets = []
+            distance = access.get('interaction_distance', .8)
+            for r in target_rects:
+                bits = 0
+                for k, (x, y) in enumerate(coordinates):
+                    dx = max(r[0] - x, 0, x - r[2])
+                    dy = max(r[1] - y, 0, y - r[3])
+                    if dx * dx + dy * dy <= (max(0, distance - .025)) ** 2:
+                        bits |= 1 << k
+                targets.append(bits)
+            target_index = -1 if target in fixed_by_id else names.index(target)
+            access_data.append((base, blocks, seeds, targets, target_index))
+
+    def accessible(selection):
+        for base, blocks, seeds, targets, target_index in access_data:
+            blocked = base
+            for i, a in enumerate(selection):
+                blocked |= blocks[i][a]
+            free = fine[2] ^ blocked
+            wave = seeds & free
+            reached = wave
+            target = targets[0 if target_index < 0 else selection[target_index]] & free
+            while wave and not wave & target:
+                wave = expand(wave, fine) & free & ~reached
+                reached |= wave
+            if not wave & target:
+                return False
+        return True
+
+    status = [0, None, None, -1]
+    failed = set()
+    def search(ds):
+        status[0] += 1
+        if status[0] > 28000:
+            return False
+        key = tuple(ds)
+        if key in failed:
+            return False
+        path = 0
+        while True:
+            blocked = fixed_mask
+            for i, options in enumerate(ds):
+                forced = navigation[2]
+                while options:
+                    bit = options & -options
+                    options -= bit
+                    forced &= masks[i][bit.bit_length() - 1]
+                blocked |= forced
+            distance, path = walk(blocked)
+            if distance < 0:
+                failed.add(key)
+                return False
+            if distance >= minimum:
+                break
+            blockers = []
+            for i, options in enumerate(ds):
+                hit = 0
+                while options:
+                    bit = options & -options
+                    options -= bit
+                    if masks[i][bit.bit_length() - 1] & path:
+                        hit |= bit
+                if hit:
+                    blockers.append((i, hit))
+            if not blockers:
+                failed.add(key)
+                return False
+            if len(blockers) != 1:
+                break
+            i, hit = blockers[0]
+            ds[i] &= hit
+            if not propagate(ds, [i]):
+                failed.add(key)
+                return False
+        undecided = [i for i in range(n) if ds[i] & (ds[i] - 1)]
+        if not undecided:
+            selection = [d.bit_length() - 1 for d in ds]
+            if distance > status[3]:
+                status[2], status[3] = selection, distance
+            if distance >= minimum and accessible(selection):
+                status[1] = selection
+                return True
+            failed.add(key)
+            return False
+        i = min(undecided, key=lambda j: (ds[j].bit_count(), -sum(1 for c in relations if names[j] in (c['subject'], c['reference']))))
+        values = []
+        options = ds[i]
+        while options:
+            bit = options & -options
+            options -= bit
+            a = bit.bit_length() - 1
+            hit = (masks[i][a] & path).bit_count() if distance < minimum else 0
+            support = sum((compat[i][j][a] & ds[j]).bit_count() for j in undecided if j != i)
+            values.append((-hit, -support, a))
+        values.sort()
+        for _, _, a in values:
+            child = ds[:]
+            child[i] = 1 << a
+            if propagate(child, [i]) and search(child):
+                return True
+            if status[0] > 28000:
+                break
+        failed.add(key)
+        return False
+
+    if not fixed_mask & endpoints and all(domains) and propagate(domains, range(n)):
+        search(domains)
+    selection = status[1] if status[1] is not None else status[2]
+    objects = list(fixed)
+    if selection is not None:
+        objects.extend(poses[i][a] for i, a in enumerate(selection))
+    else:
+        for i, name in enumerate(names):
+            if poses[i]:
+                objects.append(poses[i][0])
+            else:
+                objects.append(packet['domains'][name][0])
+    return {'scene_id': spec['scene_id'], 'objects': objects}

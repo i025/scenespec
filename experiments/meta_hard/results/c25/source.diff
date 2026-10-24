@@ -1,0 +1,487 @@
+--- a/indoor_generator.py
++++ b/indoor_generator.py
+@@ -15,6 +15,9 @@
+     eps = 1e-8
+     budget = [0, 0, 0]
+ 
++    def exhausted():
++        return budget[0] > 2800000 or budget[1] > 480000 or budget[2] > 45000
++
+     def rectangle(o):
+         a = assets[o['asset']]
+         w, d = a['width'], a['depth']
+@@ -27,53 +30,50 @@
+         return (min(a[2], b[2]) - max(a[0], b[0]) > eps and
+                 min(a[3], b[3]) - max(a[1], b[1]) > eps)
+ 
+-    def front(subject, sr, reference, rr, gap_limit):
+-        yaw = reference['yaw_deg'] % 360
+-        fx, fy = ((0, 1), (-1, 0), (0, -1), (1, 0))[int(yaw // 90)]
+-        dx = subject['x'] - reference['x']
+-        dy = subject['y'] - reference['y']
++    def front(subject, sr, reference, rr, limit):
++        fx, fy = ((0, 1), (-1, 0), (0, -1), (1, 0))[int(reference['yaw_deg'] % 360 // 90)]
++        dx, dy = subject['x'] - reference['x'], subject['y'] - reference['y']
+         hx = (sr[2] - sr[0] + rr[2] - rr[0]) / 2
+         hy = (sr[3] - sr[1] + rr[3] - rr[1]) / 2
+         gap = dx * fx + dy * fy - abs(fx) * hx - abs(fy) * hy
+-        lateral = abs(dx * fy - dy * fx)
+-        return (-eps <= gap <= gap_limit + eps and
+-                lateral <= abs(fy) * hx + abs(fx) * hy + eps)
++        return (-eps <= gap <= limit + eps and
++                abs(dx * fy - dy * fx) <= abs(fy) * hx + abs(fx) * hy + eps)
+ 
+     clear_regions = []
++    walls = {}
++    self_front = set()
+     for c in constraints:
+         if c['type'] == 'keep_clear':
+             r = regions[c['region']]
+-            clear_regions.append((r['x'], r['y'], r['x'] + r['width'],
+-                                  r['y'] + r['depth']))
++            clear_regions.append((r['x'], r['y'], r['x'] + r['width'], r['y'] + r['depth']))
++        elif c['type'] == 'near_wall':
++            walls.setdefault(c['subject'], []).append((c['wall'], c['max_gap']))
++        elif c['type'] == 'in_front_of' and c['subject'] == c['reference']:
++            self_front.add(c['subject'])
+ 
+     def unary(o, r):
+         if r[0] < -eps or r[1] < -eps or r[2] > width + eps or r[3] > depth + eps:
+             return False
+-        if any(overlaps(r, z) for z in clear_regions):
++        if o['id'] in self_front or any(overlaps(r, z) for z in clear_regions):
+             return False
+-        for c in constraints:
+-            if c.get('subject') != o['id']:
+-                continue
+-            if c['type'] == 'near_wall':
+-                gap = {'west': r[0], 'east': width - r[2],
+-                       'south': r[1], 'north': depth - r[3]}[c['wall']]
+-                if not -eps <= gap <= c['max_gap'] + eps:
+-                    return False
+-            elif c['type'] == 'in_front_of' and c['reference'] == o['id']:
+-                if not front(o, r, o, r, c['max_gap']):
+-                    return False
++        for wall, limit in walls.get(o['id'], []):
++            gap = {'west': r[0], 'east': width - r[2],
++                   'south': r[1], 'north': depth - r[3]}[wall]
++            if not -eps <= gap <= limit + eps:
++                return False
+         return True
+ 
+     def grid(w, h):
+-        all_bits = (1 << (w * h)) - 1
++        full = (1 << (w * h)) - 1
+         left = sum(1 << (y * w) for y in range(h))
+         right = left << (w - 1)
+-        return (w, h, all_bits, all_bits ^ left, all_bits ^ right)
++        return (w, h, full, full ^ left, full ^ right)
+ 
+     nav = grid(int(width), int(depth))
+     start = int(packet['start'][1]) * nav[0] + int(packet['start'][0])
+     goal = int(packet['goal'][1]) * nav[0] + int(packet['goal'][0])
+     start_bit, goal_bit = 1 << start, 1 << goal
++    endpoints = start_bit | goal_bit
+ 
+     def blocked_mask(r, g, scale, clearance):
+         w, h = g[0], g[1]
+@@ -82,46 +82,55 @@
+         xhi = min(w - 1, int(math.ceil((r[2] + clearance) / scale - 0.5)))
+         ylo = max(0, int(math.floor((r[1] - clearance) / scale - 0.5)))
+         yhi = min(h - 1, int(math.ceil((r[3] + clearance) / scale - 0.5)))
++        row = 0
++        for x in range(xlo, xhi + 1):
++            if r[0] - clearance < (x + 0.5) * scale < r[2] + clearance:
++                row |= 1 << x
+         for y in range(ylo, yhi + 1):
+-            py = (y + 0.5) * scale
+-            if not r[1] - clearance < py < r[3] + clearance:
+-                continue
+-            for x in range(xlo, xhi + 1):
+-                px = (x + 0.5) * scale
+-                if r[0] - clearance < px < r[2] + clearance:
+-                    result |= 1 << (y * w + x)
++            if r[1] - clearance < (y + 0.5) * scale < r[3] + clearance:
++                result |= row << (y * w)
+         return result
+ 
+     def neighbors(bits, g):
+         return (((bits & g[4]) << 1) | ((bits & g[3]) >> 1) |
+                 (bits << g[0]) | (bits >> g[0])) & g[2]
+ 
++    walk_cache = {}
++
+     def walk(blocked, want_path=False):
+-        if blocked & (start_bit | goal_bit):
++        if blocked & endpoints:
+             return -1, 0
+-        free = nav[2] ^ blocked
++        cached = walk_cache.get(blocked)
++        if cached is not None and (not want_path or cached[1] or cached[0] < 0):
++            return cached
++        free = nav[2] & ~blocked
+         wave = start_bit
+         seen = wave
+         layers = []
+         distance = 0
++        result = (-1, 0)
+         while wave:
+             budget[1] += 1
+             if want_path:
+                 layers.append(wave)
+             if wave & goal_bit:
+-                if not want_path:
+-                    return distance, 0
+-                cell = goal_bit
+-                path = cell
+-                for layer in reversed(layers[:-1]):
+-                    choices = neighbors(cell, nav) & layer
+-                    cell = choices & -choices
+-                    path |= cell
+-                return distance, path
++                path = 0
++                if want_path:
++                    cell = goal_bit
++                    path = cell
++                    for layer in reversed(layers[:-1]):
++                        choices = neighbors(cell, nav) & layer
++                        cell = choices & -choices
++                        path |= cell
++                result = (distance, path)
++                break
+             wave = neighbors(wave, nav) & free & ~seen
+             seen |= wave
+             distance += 1
+-        return -1, 0
++        if len(walk_cache) >= 8192:
++            walk_cache.clear()
++        walk_cache[blocked] = result
++        return result
+ 
+     names = [o['id'] for o in fixed] + [o['id'] for o in required]
+     index = {name: i for i, name in enumerate(names)}
+@@ -140,7 +149,7 @@
+             duplicates.add(key)
+             r = rectangle(o)
+             m = blocked_mask(r, nav, 1.0, 0.15)
+-            if unary(o, r) and not m & (start_bit | goal_bit):
++            if unary(o, r) and not m & endpoints:
+                 records.append((o, r, m))
+         records.sort(key=lambda v: (v[0]['x'], v[0]['y'], v[0]['yaw_deg']))
+         poses.append([v[0] for v in records])
+@@ -152,9 +161,9 @@
+     for c in constraints:
+         if c['type'] == 'in_front_of' and c['subject'] != c['reference']:
+             i, j = index[c['subject']], index[c['reference']]
+-            key = (min(i, j), max(i, j))
+-            relations.setdefault(key, []).append((i, j, c['max_gap']))
++            relations.setdefault((min(i, j), max(i, j)), []).append((i, c['max_gap']))
+     support = [[None for j in range(n)] for i in range(n)]
++    links = [[] for i in range(n)]
+     for i in range(n):
+         for j in range(i + 1, n):
+             si = [0] * len(poses[i])
+@@ -167,7 +176,7 @@
+                     if overlaps(ra, rb):
+                         continue
+                     good = True
+-                    for subject, reference, limit in rels:
++                    for subject, limit in rels:
+                         if subject == i:
+                             good = front(oa, ra, ob, rb, limit)
+                         else:
+@@ -178,16 +187,26 @@
+                         si[a] |= 1 << b
+                         sj[b] |= 1 << a
+             support[i][j], support[j][i] = si, sj
+-
+-    def propagate(domains, queue):
+-        queue = deque(queue)
++            if any(s != initial[j] for s in si) or any(s != initial[i] for s in sj):
++                links[i].append(j)
++                links[j].append(i)
++
++    def propagate(domains, changed):
++        queue = deque()
++        pending = set()
++        for j in changed:
++            for i in links[j]:
++                key = i * n + j
++                if key not in pending:
++                    pending.add(key)
++                    queue.append((i, j))
+         while queue:
+             i, j = queue.popleft()
++            pending.remove(i * n + j)
+             old = domains[i]
+             values = old
+             new = 0
+-            sup = support[i][j]
+-            other = domains[j]
++            sup, other = support[i][j], domains[j]
+             while values:
+                 budget[0] += 1
+                 bit = values & -values
+@@ -198,7 +217,12 @@
+                 if not new:
+                     return False
+                 domains[i] = new
+-                queue.extend((k, i) for k in range(n) if k != i and k != j)
++                for k in links[i]:
++                    if k != j:
++                        key = k * n + i
++                        if key not in pending:
++                            pending.add(key)
++                            queue.append((k, i))
+             if budget[0] > 2800000:
+                 return False
+         return True
+@@ -206,14 +230,16 @@
+     fine = grid(int(math.ceil(width * 4)), int(math.ceil(depth * 4)))
+     fine_valid = 0
+     points = []
+-    for y in range(fine[1]):
+-        for x in range(fine[0]):
+-            px, py = (x + 0.5) / 4, (y + 0.5) / 4
+-            bit = 1 << (y * fine[0] + x)
+-            if px < width and py < depth:
+-                fine_valid |= bit
+-                points.append((px, py, bit))
++    if accesses:
++        for y in range(fine[1]):
++            for x in range(fine[0]):
++                px, py = (x + 0.5) / 4, (y + 0.5) / 4
++                bit = 1 << (y * fine[0] + x)
++                if px < width and py < depth:
++                    fine_valid |= bit
++                    points.append((px, py, bit))
+     access_cache = {}
++    target_cache = {}
+     source_masks = {}
+     for access in accesses:
+         rid = access['from_region']
+@@ -224,53 +250,78 @@
+                    r['y'] <= y <= r['y'] + r['depth'])
+ 
+     def accessible(choice):
++        reached_cache = {}
+         for access in accesses:
+             clearance = access.get('clearance', 0.15)
+-            blocked = 0
+-            for i, a in enumerate(choice):
+-                key = (i, a, clearance)
+-                if key not in access_cache:
+-                    access_cache[key] = blocked_mask(rects[i][a], fine, 0.25, clearance)
+-                blocked |= access_cache[key]
+-            free = fine_valid & ~blocked
+-            reached = source_masks[access['from_region']] & free
+-            if not reached:
+-                return False
++            rid = access['from_region']
++            reach_key = (rid, clearance)
++            if reach_key in reached_cache:
++                reached = reached_cache[reach_key]
++            else:
++                blocked = 0
++                for i, a in enumerate(choice):
++                    key = (i, a, clearance)
++                    if key not in access_cache:
++                        access_cache[key] = blocked_mask(rects[i][a], fine, 0.25, clearance)
++                    blocked |= access_cache[key]
++                free = fine_valid & ~blocked
++                reached = source_masks[rid] & free
++                if not reached:
++                    return False
++                wave = reached
++                while wave:
++                    wave = neighbors(wave, fine) & free & ~reached
++                    reached |= wave
++                reached_cache[reach_key] = reached
+             i = index[access['to_object']]
+-            r = rects[i][choice[i]]
++            a = choice[i]
+             limit = access.get('interaction_distance', 0.8)
+-            target = 0
+-            for x, y, bit in points:
+-                dx = max(r[0] - x, 0, x - r[2])
+-                dy = max(r[1] - y, 0, y - r[3])
+-                if dx * dx + dy * dy <= limit * limit + eps:
+-                    target |= bit
+-            wave = reached
+-            while wave and not reached & target:
+-                wave = neighbors(wave, fine) & free & ~reached
+-                reached |= wave
+-            if not reached & target:
++            key = (i, a, limit)
++            if key not in target_cache:
++                r = rects[i][a]
++                target = 0
++                for x, y, bit in points:
++                    dx = max(r[0] - x, 0, x - r[2])
++                    dy = max(r[1] - y, 0, y - r[3])
++                    if dx * dx + dy * dy <= limit * limit + eps:
++                        target |= bit
++                target_cache[key] = target
++            if not reached & target_cache[key]:
+                 return False
+         return True
+ 
++    intersections = [{} for i in range(n)]
++
++    def mandatory_mask(domains):
++        mandatory = 0
++        for i, d in enumerate(domains):
++            cache = intersections[i]
++            intersection = cache.get(d)
++            if intersection is None:
++                intersection = nav[2]
++                values = d
++                while values and intersection:
++                    bit = values & -values
++                    values -= bit
++                    intersection &= masks[i][bit.bit_length() - 1]
++                if len(cache) >= 1024:
++                    cache.clear()
++                cache[d] = intersection
++            mandatory |= intersection
++        return mandatory
++
+     best = [None, -1]
+-
+-    def search(domains, target, level):
++    failed = set()
++
++    def search(domains, target):
+         budget[2] += 1
+-        if budget[2] > 45000 or budget[0] > 2800000 or budget[1] > 480000:
++        if exhausted():
+             return None
+-        mandatory = 0
+-        options = []
+-        for i, d in enumerate(domains):
+-            values = d
+-            intersection = nav[2]
+-            while values:
+-                bit = values & -values
+-                values -= bit
+-                intersection &= masks[i][bit.bit_length() - 1]
+-            mandatory |= intersection
+-            if d & (d - 1):
+-                options.append(i)
++        state = tuple(domains)
++        if state in failed:
++            return None
++        mandatory = mandatory_mask(domains)
++        options = [i for i, d in enumerate(domains) if d & (d - 1)]
+         distance, path = walk(mandatory, bool(options) and target > 0)
+         if distance < 0:
+             return None
+@@ -285,6 +336,7 @@
+                     return choice
+             return None
+         hits = {}
++        full_hits = []
+         if distance < target:
+             for i in options:
+                 values = domains[i]
+@@ -296,49 +348,81 @@
+                         hit |= bit
+                 if hit:
+                     hits[i] = hit
++                    if hit == domains[i]:
++                        full_hits.append(i)
+             if not hits:
++                if len(failed) < 16000:
++                    failed.add(state)
+                 return None
+             if len(hits) == 1:
+                 i = next(iter(hits))
+                 if hits[i] != domains[i]:
+                     new = domains[:]
+                     new[i] = hits[i]
+-                    if propagate(new, ((j, i) for j in range(n) if j != i)):
+-                        return search(new, target, level)
++                    if propagate(new, [i]):
++                        return search(new, target)
+                     return None
+-        i = min(options, key=lambda j: (domains[j].bit_count(),
+-                    0 if j in hits else 1,
+-                    -sum((support[j][k][a] & domains[k]).bit_count() == 1
+-                         for a in range(len(poses[j])) if domains[j] & (1 << a)
+-                         for k in options if k != j)))
++            elif not full_hits:
++                # Every completion must block this particular short path.
++                # Split a domain into path-hitting and path-avoiding poses,
++                # retaining groups of equivalent choices until necessary.
++                i = min(hits, key=lambda j: (
++                    hits[j].bit_count(),
++                    -len(links[j]),
++                    domains[j].bit_count()))
++                for subset in (hits[i], domains[i] & ~hits[i]):
++                    new = domains[:]
++                    new[i] = subset
++                    if propagate(new, [i]):
++                        result = search(new, target)
++                        if result is not None:
++                            return result
++                    if exhausted():
++                        return None
++                if len(failed) < 16000:
++                    failed.add(state)
++                return None
++        candidates = full_hits if full_hits else options
++        i = min(candidates, key=lambda j: (
++            domains[j].bit_count(),
++            0 if j in hits else 1,
++            -sum(1 for k in links[j] if domains[k] & (domains[k] - 1))))
+         ranked = []
+         values = domains[i]
++        for_unused = 0
+         while values:
+             bit = values & -values
+             values -= bit
+             a = bit.bit_length() - 1
+             d, unused = walk(mandatory | masks[i][a])
+             if d >= 0:
+-                ranked.append((d, (masks[i][a] & path).bit_count(),
+-                               -sum((support[i][j][a] & domains[j]).bit_count()
+-                                    for j in options if j != i), bit))
++                flexibility = sum((support[i][j][a] & domains[j]).bit_count()
++                                  for j in links[i] if domains[j] & (domains[j] - 1))
++                ranked.append((d, (masks[i][a] & path).bit_count(), flexibility, bit))
++            if exhausted():
++                return None
+         ranked.sort(reverse=True)
+-        for distance_score, path_score, restriction_score, bit in ranked:
++        for distance_score, path_score, flexibility, bit in ranked:
+             new = domains[:]
+             new[i] = bit
+-            if propagate(new, ((j, i) for j in range(n) if j != i)):
+-                result = search(new, target, level + 1)
++            if propagate(new, [i]):
++                result = search(new, target)
+                 if result is not None:
+                     return result
+-            if budget[0] > 2800000 or budget[1] > 480000 or budget[2] > 45000:
+-                break
++            if exhausted():
++                return None
++        if len(failed) < 16000:
++            failed.add(state)
+         return None
+ 
+     choice = None
+-    if all(initial) and propagate(initial, ((i, j) for i in range(n) for j in range(n) if i != j)):
+-        choice = search(initial[:], 0, 0)
+-        if choice is None or best[1] < minimum:
+-            improved = search(initial[:], minimum, 0)
++    if all(initial) and propagate(initial, range(n)):
++        # Establish a checked fallback before spending the remaining budget
++        # on the hard shortest-distance requirement.
++        choice = search(initial[:], 0)
++        failed.clear()
++        if best[1] < minimum and not exhausted():
++            improved = search(initial[:], minimum)
+             if improved is not None:
+                 choice = improved
+         if best[0] is not None:

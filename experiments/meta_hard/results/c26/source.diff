@@ -1,0 +1,372 @@
+--- a/indoor_generator.py
++++ b/indoor_generator.py
+@@ -8,7 +8,7 @@
+     width, depth = packet['width'], packet['depth']
+     fixed = list(packet['fixed'])
+     required = {o['id']: o['asset'] for o in spec['required_objects']}
+-    fixed_ids = {o['id'] for o in fixed}
++    fixed_map = {o['id']: o for o in fixed}
+     constraints = spec.get('constraints', [])
+     regions = {r['id']: r for r in spec.get('regions', [])}
+     eps = 1e-8
+@@ -27,26 +27,21 @@
+         a, b = rectangle(subject), rectangle(reference)
+         fx, fy = ((0, 1), (-1, 0), (0, -1), (1, 0))[(reference['yaw_deg'] % 360)//90]
+         dx, dy = subject['x']-reference['x'], subject['y']-reference['y']
+-        h = (abs(fx)*(a[2]-a[0]+b[2]-b[0])+abs(fy)*(a[3]-a[1]+b[3]-b[1]))/2
+-        lateral = (abs(fy)*(a[2]-a[0]+b[2]-b[0])+abs(fx)*(a[3]-a[1]+b[3]-b[1]))/2
+-        gap = dx*fx+dy*fy-h
+-        return -eps <= gap <= c['max_gap']+eps and abs(dx*fy-dy*fx) <= lateral+eps
+-
+-    keep = []
+-    walls = {}
+-    relations = []
+-    references = set()
++        sx = (a[2]-a[0]+b[2]-b[0])/2
++        sy = (a[3]-a[1]+b[3]-b[1])/2
++        gap = dx*fx+dy*fy-abs(fx)*sx-abs(fy)*sy
++        return -eps <= gap <= c['max_gap']+eps and abs(dx*fy-dy*fx) <= abs(fy)*sx+abs(fx)*sy+eps
++
++    keep, walls, relations, references = [], {}, [], set()
+     for c in constraints:
+-        t = c['type']
+-        if t == 'keep_clear':
++        if c['type'] == 'keep_clear':
+             r = regions[c['region']]
+             keep.append((r['x'], r['y'], r['x']+r['width'], r['y']+r['depth']))
+-        elif t == 'near_wall':
++        elif c['type'] == 'near_wall':
+             walls.setdefault(c['subject'], []).append(c)
+-        elif t == 'in_front_of':
++        elif c['type'] == 'in_front_of':
+             relations.append(c)
+             references.add(c['reference'])
+-    fixed_map = {o['id']: o for o in fixed}
+     fixed_rects = [rectangle(o) for o in fixed]
+ 
+     def unary(o):
+@@ -68,17 +63,6 @@
+                     return False
+         return True
+ 
+-    gw, gh = int(width), int(depth)
+-    cells = gw*gh
+-    full = (1 << cells)-1
+-    left = sum(1 << (y*gw) for y in range(gh))
+-    right = left << (gw-1)
+-    start = int(packet['start'][0])+gw*int(packet['start'][1])
+-    goal = int(packet['goal'][0])+gw*int(packet['goal'][1])
+-    sb, gb = 1 << start, 1 << goal
+-    endpoints = sb | gb
+-    minimum = packet['minimum_steps']
+-
+     def blocked_cells(r, clearance, nx, ny, step):
+         mask = 0
+         x0 = max(0, int(math.floor((r[0]-clearance)/step-0.5))+1)
+@@ -91,10 +75,24 @@
+                 mask |= row << (y*nx)
+         return mask
+ 
++    gw, gh = int(width), int(depth)
++    full = (1 << (gw*gh))-1
++    left = sum(1 << (y*gw) for y in range(gh))
++    right = left << (gw-1)
++    sb = 1 << (int(packet['start'][0])+gw*int(packet['start'][1]))
++    gb = 1 << (int(packet['goal'][0])+gw*int(packet['goal'][1]))
++    endpoints = sb | gb
++    minimum = packet['minimum_steps']
++
+     def adjacent(bits):
+         return (((bits << 1) & ~left) | ((bits >> 1) & ~right) | (bits << gw) | (bits >> gw)) & full
+ 
++    nav_cache = {}
++
+     def navigation(blocked):
++        cached = nav_cache.get(blocked)
++        if cached is not None:
++            return cached
+         if blocked & endpoints:
+             return -1, 0
+         available = full & ~blocked
+@@ -105,18 +103,23 @@
+             seen |= frontier
+             levels.append(frontier)
+         if not frontier:
+-            return -1, 0
+-        position, path = gb, gb
+-        for level in reversed(levels[:-1]):
+-            choices = adjacent(position) & level
+-            position = choices & -choices
+-            path |= position
+-        return len(levels)-1, path
++            result = (-1, 0)
++        else:
++            position, path = gb, gb
++            for level in reversed(levels[:-1]):
++                choices = adjacent(position) & level
++                position = choices & -choices
++                path |= position
++            result = (len(levels)-1, path)
++        if len(nav_cache) >= 2048:
++            nav_cache.clear()
++        nav_cache[blocked] = result
++        return result
+ 
+     fixed_blocked = 0
+     for r in fixed_rects:
+         fixed_blocked |= blocked_cells(r, 0.15, gw, gh, 1.0)
+-    names = [o['id'] for o in spec['required_objects'] if o['id'] not in fixed_ids]
++    names = [o['id'] for o in spec['required_objects'] if o['id'] not in fixed_map]
+     poses, rects, masks = [], [], []
+     for name in names:
+         ps, rs, ms, seen = [], [], [], set()
+@@ -140,15 +143,21 @@
+     n = len(names)
+     index = {name: i for i, name in enumerate(names)}
+     pair_relations = {}
++    degree = [0]*n
+     for c in relations:
++        if c['subject'] in index:
++            degree[index[c['subject']]] += 1
++        if c['reference'] in index:
++            degree[index[c['reference']]] += 1
+         if c['subject'] in index and c['reference'] in index:
+             i, j = index[c['subject']], index[c['reference']]
+             pair_relations.setdefault((min(i, j), max(i, j)), []).append(c)
++    domains = [(1 << len(ps))-1 for ps in poses]
+     compatibility = [[None for j in range(n)] for i in range(n)]
++    neighbors = [[] for i in range(n)]
+     for i in range(n):
+         for j in range(i+1, n):
+-            ij = [0]*len(poses[i])
+-            ji = [0]*len(poses[j])
++            ij, ji = [0]*len(poses[i]), [0]*len(poses[j])
+             rels = pair_relations.get((i, j), [])
+             for a, ra in enumerate(rects[i]):
+                 for b, rb in enumerate(rects[j]):
+@@ -165,7 +174,10 @@
+                     if good:
+                         ij[a] |= 1 << b
+                         ji[b] |= 1 << a
+-            compatibility[i][j], compatibility[j][i] = ij, ji
++            if any(s != domains[j] for s in ij):
++                compatibility[i][j], compatibility[j][i] = ij, ji
++                neighbors[i].append(j)
++                neighbors[j].append(i)
+ 
+     def propagate(ds, changed):
+         queue = deque(changed)
+@@ -175,11 +187,8 @@
+             pending.discard(j)
+             if not ds[j]:
+                 return False
+-            for i in range(n):
+-                if i == j:
+-                    continue
+-                old, new = ds[i], 0
+-                bits = old
++            for i in neighbors[j]:
++                old, new, bits = ds[i], 0, ds[i]
+                 supports = compatibility[i][j]
+                 while bits:
+                     bit = bits & -bits
+@@ -204,26 +213,25 @@
+     for rule in spec.get('access_paths', []):
+         clearance = rule.get('clearance', 0.15)
+         region = regions[rule['from_region']]
+-        source_mask, wall_mask = 0, 0
++        sources, static = 0, 0
+         for y in range(ay):
+             py = (y+0.5)*step
+             for x in range(ax):
+                 px = (x+0.5)*step
+                 bit = 1 << (y*ax+x)
+                 if px < clearance or py < clearance or px > width-clearance or py > depth-clearance:
+-                    wall_mask |= bit
++                    static |= bit
+                 if region['x'] <= px <= region['x']+region['width'] and region['y'] <= py <= region['y']+region['depth']:
+-                    source_mask |= bit
+-        static_mask = wall_mask
++                    sources |= bit
+         for r in fixed_rects:
+-            static_mask |= blocked_cells(r, clearance, ax, ay, step)
++            static |= blocked_cells(r, clearance, ax, ay, step)
+         amasks = [[blocked_cells(r, clearance, ax, ay, step) for r in rr] for rr in rects]
+-        targets = []
+         target_name = rule['to_object']
+         target_rects = [rectangle(fixed_map[target_name])] if target_name in fixed_map else rects[index[target_name]]
+         distance = rule.get('interaction_distance', 0.8)
++        targets = []
+         for r in target_rects:
+-            target_mask = 0
++            target = 0
+             for y in range(ay):
+                 py = (y+0.5)*step
+                 dy = max(r[1]-py, 0, py-r[3])
+@@ -231,13 +239,13 @@
+                     px = (x+0.5)*step
+                     dx = max(r[0]-px, 0, px-r[2])
+                     if dx*dx+dy*dy <= distance*distance+eps:
+-                        target_mask |= 1 << (y*ax+x)
+-            targets.append(target_mask)
+-        access.append((static_mask, source_mask, amasks, target_name, targets))
++                        target |= 1 << (y*ax+x)
++            targets.append(target)
++        access.append((static, sources, amasks, target_name, targets))
+ 
+     def accessible(choice):
+-        for static_mask, sources, amasks, target_name, targets in access:
+-            blocked = static_mask
++        for static, sources, amasks, target_name, targets in access:
++            blocked = static
+             for i, v in enumerate(choice):
+                 blocked |= amasks[i][v]
+             available = afull & ~blocked
+@@ -251,19 +259,18 @@
+                 return False
+         return True
+ 
++    learned, learned_paths = [], set()
+     state = {'nodes': 0, 'best': None, 'score': -1, 'answer': None}
+-    learned = []
+-    learned_paths = set()
+ 
+     def path_clause(path):
+-        result = []
++        clause = []
+         for mm in masks:
+             hits = 0
+             for v, mask in enumerate(mm):
+                 if mask & path:
+                     hits |= 1 << v
+-            result.append(hits)
+-        return result
++            clause.append(hits)
++        return clause
+ 
+     def enforce_clause(ds, clause):
+         support = -1
+@@ -280,20 +287,19 @@
+         ds[support] &= clause[support]
+         return True, support
+ 
+-    def search(ds, changed):
++    def search(ds, changed, strict, limit):
+         state['nodes'] += 1
+-        if state['nodes'] > 24000:
+-            return False
+-        if not propagate(ds, changed):
++        if state['nodes'] > limit or not propagate(ds, changed):
+             return False
+         while True:
+             changes = []
+-            for clause in learned:
+-                good, variable = enforce_clause(ds, clause)
+-                if not good:
+-                    return False
+-                if variable >= 0:
+-                    changes.append(variable)
++            if strict:
++                for clause in learned:
++                    good, variable = enforce_clause(ds, clause)
++                    if not good:
++                        return False
++                    if variable >= 0:
++                        changes.append(variable)
+             if changes:
+                 if not propagate(ds, changes):
+                     return False
+@@ -309,8 +315,22 @@
+             distance, path = navigation(blocked)
+             if distance < 0:
+                 return False
+-            if distance < minimum:
++            remaining = [i for i in range(n) if ds[i] & (ds[i]-1)]
++            if not remaining:
++                choice = [bits.bit_length()-1 for bits in ds]
++                if accessible(choice):
++                    if distance > state['score']:
++                        state['best'], state['score'] = choice, distance
++                    if distance >= minimum:
++                        state['answer'] = choice
++                        return True
++                    if not strict:
++                        return True
++            if strict and distance < minimum:
+                 clause = path_clause(path)
++                if path not in learned_paths and len(learned) < 96:
++                    learned_paths.add(path)
++                    learned.append(clause)
+                 good, variable = enforce_clause(ds, clause)
+                 if not good:
+                     return False
+@@ -319,49 +339,44 @@
+                         return False
+                     continue
+             break
+-        remaining = [i for i in range(n) if ds[i] & (ds[i]-1)]
+         if not remaining:
+-            choice = [bits.bit_length()-1 for bits in ds]
+-            if accessible(choice):
+-                if distance > state['score']:
+-                    state['best'], state['score'] = choice, distance
+-                if distance >= minimum:
+-                    state['answer'] = choice
+-                    return True
+-            if distance < minimum and len(learned) < 96 and path not in learned_paths:
+-                learned_paths.add(path)
+-                learned.append(path_clause(path))
+             return False
+-        variable = min(remaining, key=lambda i: (ds[i].bit_count(), -sum(1 for c in relations if c['subject'] == names[i] or c['reference'] == names[i])))
++        variable = min(remaining, key=lambda i: (ds[i].bit_count(), -degree[i], -len(neighbors[i])))
+         values = []
+         bits = ds[variable]
+         while bits:
+             bit = bits & -bits
+             bits -= bit
+             v = bit.bit_length()-1
+-            flexibility = sum((compatibility[variable][j][v] & ds[j]).bit_count() for j in remaining if j != variable)
++            flexibility = 0
++            for j in neighbors[variable]:
++                if ds[j] & (ds[j]-1):
++                    flexibility += (compatibility[variable][j][v] & ds[j]).bit_count()
+             gain = (masks[variable][v] & path).bit_count()
+-            values.append((-gain, -flexibility, rects[variable][v], poses[variable][v]['yaw_deg'], bit))
++            values.append((-gain if strict else 0, -flexibility, rects[variable][v], poses[variable][v]['yaw_deg'], bit))
+         values.sort()
+         for value in values:
+             child = ds[:]
+             child[variable] = value[-1]
+-            if search(child, [variable]):
++            if search(child, [variable], strict, limit):
+                 return True
+-            if state['nodes'] >= 24000:
++            if state['nodes'] >= limit:
+                 break
+         return False
+ 
+-    domains = [(1 << len(ps))-1 for ps in poses]
+     if all(domains):
+-        search(domains, list(range(n)))
++        search(domains[:], list(range(n)), True, 24000)
++        if state['answer'] is None and state['best'] is None:
++            state['nodes'] = 0
++            search(domains[:], list(range(n)), False, 2000)
+     choice = state['answer'] if state['answer'] is not None else state['best']
+-    if choice is None:
+-        choice = [0 for ps in poses]
+     objects = fixed[:]
+-    for i, v in enumerate(choice):
+-        if poses[i]:
+-            objects.append(poses[i][v])
+-        elif packet['domains'].get(names[i]):
+-            objects.append(packet['domains'][names[i]][0])
++    if choice is not None:
++        objects.extend(poses[i][v] for i, v in enumerate(choice))
++    else:
++        for i, name in enumerate(names):
++            if poses[i]:
++                objects.append(poses[i][0])
++            elif packet['domains'].get(name):
++                objects.append(packet['domains'][name][0])
+     return {'scene_id': spec['scene_id'], 'objects': objects}

@@ -1,0 +1,2034 @@
+{
+  "generator_source": "import math\n\ndef layout(packet):\n    spec = packet['spec']\n    assets = spec['assets']\n    width, depth = packet['width'], packet['depth']\n    fixed = list(packet['fixed'])\n    fixed_by_id = {o['id']: o for o in fixed}\n    required = {o['id']: o['asset'] for o in spec['required_objects']}\n    names = [o['id'] for o in spec['required_objects'] if o['id'] not in fixed_by_id]\n    constraints = spec.get('constraints', [])\n    regions = {r['id']: r for r in spec.get('regions', [])}\n    access = spec.get('access_paths', [])\n    minimum = packet['minimum_steps']\n    eps = 1e-8\n\n    def rectangle(o):\n        a = assets[o['asset']]\n        w, d = a['width'], a['depth']\n        if o['yaw_deg'] % 180:\n            w, d = d, w\n        return (o['x'] - w / 2, o['y'] - d / 2,\n                o['x'] + w / 2, o['y'] + d / 2)\n\n    def overlaps(a, b):\n        return (min(a[2], b[2]) - max(a[0], b[0]) > eps and\n                min(a[3], b[3]) - max(a[1], b[1]) > eps)\n\n    def front(subject, reference, limit):\n        sr, rr = rectangle(subject), rectangle(reference)\n        direction = reference['yaw_deg'] % 360\n        fx, fy = {0: (0, 1), 90: (-1, 0),\n                  180: (0, -1), 270: (1, 0)}[direction]\n        dx = subject['x'] - reference['x']\n        dy = subject['y'] - reference['y']\n        hx = (sr[2] - sr[0] + rr[2] - rr[0]) / 2\n        hy = (sr[3] - sr[1] + rr[3] - rr[1]) / 2\n        gap = dx * fx + dy * fy - abs(fx) * hx - abs(fy) * hy\n        lateral = abs(dx * fy - dy * fx)\n        return (-eps <= gap <= limit + eps and\n                lateral <= abs(fy) * hx + abs(fx) * hy + eps)\n\n    clear_regions = []\n    for c in constraints:\n        if c['type'] == 'keep_clear':\n            r = regions[c['region']]\n            clear_regions.append((r['x'], r['y'], r['x'] + r['width'],\n                                  r['y'] + r['depth']))\n    relations = [c for c in constraints if c['type'] == 'in_front_of']\n    reference_ids = {c['reference'] for c in relations}\n    fixed_rects = [rectangle(o) for o in fixed]\n\n    def unary(o):\n        r = rectangle(o)\n        if r[0] < -eps or r[1] < -eps or r[2] > width + eps or r[3] > depth + eps:\n            return False\n        if any(overlaps(r, q) for q in clear_regions):\n            return False\n        if any(overlaps(r, q) for q in fixed_rects):\n            return False\n        for c in constraints:\n            if c['type'] == 'near_wall' and c['subject'] == o['id']:\n                gap = {'west': r[0], 'south': r[1],\n                       'east': width - r[2], 'north': depth - r[3]}[c['wall']]\n                if gap < -eps or gap > c['max_gap'] + eps:\n                    return False\n        for c in relations:\n            if c['subject'] == o['id'] and c['reference'] in fixed_by_id:\n                if not front(o, fixed_by_id[c['reference']], c['max_gap']):\n                    return False\n            if c['reference'] == o['id'] and c['subject'] in fixed_by_id:\n                if not front(fixed_by_id[c['subject']], o, c['max_gap']):\n                    return False\n            if c['subject'] == o['id'] and c['reference'] == o['id']:\n                if not front(o, o, c['max_gap']):\n                    return False\n        return True\n\n    gw, gh = int(width), int(depth)\n    cell_count = gw * gh\n    all_cells = (1 << cell_count) - 1\n    left_edge = sum(1 << (y * gw) for y in range(gh))\n    right_edge = left_edge << (gw - 1)\n    not_left, not_right = all_cells ^ left_edge, all_cells ^ right_edge\n    start = packet['start'][1] * gw + packet['start'][0]\n    goal = packet['goal'][1] * gw + packet['goal'][0]\n    start_bit, goal_bit = 1 << start, 1 << goal\n    endpoints = start_bit | goal_bit\n\n    def grid_mask(r, clearance, w, h, step):\n        x0 = max(0, int(math.floor((r[0] - clearance) / step - 0.5)) + 1)\n        x1 = min(w - 1, int(math.ceil((r[2] + clearance) / step - 0.5)) - 1)\n        y0 = max(0, int(math.floor((r[1] - clearance) / step - 0.5)) + 1)\n        y1 = min(h - 1, int(math.ceil((r[3] + clearance) / step - 0.5)) - 1)\n        if x1 < x0 or y1 < y0:\n            return 0\n        row = ((1 << (x1 - x0 + 1)) - 1) << x0\n        result = 0\n        for y in range(y0, y1 + 1):\n            result |= row << (y * w)\n        return result\n\n    fixed_mask = 0\n    for r in fixed_rects:\n        fixed_mask |= grid_mask(r, 0.15, gw, gh, 1.0)\n\n    poses, rects, blocks = [], [], []\n    for name in names:\n        values, boxes, masks = [], [], []\n        seen = set()\n        for o in packet['domains'][name]:\n            if o['id'] != name or o['asset'] != required[name] or not unary(o):\n                continue\n            r = rectangle(o)\n            mask = grid_mask(r, 0.15, gw, gh, 1.0)\n            if mask & endpoints:\n                continue\n            key = (r, o['yaw_deg'] % 360 if name in reference_ids else 0)\n            if key in seen:\n                continue\n            seen.add(key)\n            values.append(o)\n            boxes.append(r)\n            masks.append(mask)\n        poses.append(values)\n        rects.append(boxes)\n        blocks.append(masks)\n    n = len(names)\n    index = {name: i for i, name in enumerate(names)}\n    sizes = [len(v) for v in poses]\n    domains = [(1 << k) - 1 for k in sizes]\n    compatibility = [[None for j in range(n)] for i in range(n)]\n    neighbors = [[] for i in range(n)]\n    for i in range(n):\n        for j in range(i + 1, n):\n            related = [c for c in relations\n                       if {c['subject'], c['reference']} == {names[i], names[j]}]\n            ij = [0] * sizes[i]\n            ji = [0] * sizes[j]\n            restrictive = False\n            for a, o in enumerate(poses[i]):\n                for b, q in enumerate(poses[j]):\n                    good = not overlaps(rects[i][a], rects[j][b])\n                    if good:\n                        for c in related:\n                            subject, reference = (o, q) if c['subject'] == names[i] else (q, o)\n                            if not front(subject, reference, c['max_gap']):\n                                good = False\n                                break\n                    if good:\n                        ij[a] |= 1 << b\n                        ji[b] |= 1 << a\n                    else:\n                        restrictive = True\n            if restrictive:\n                compatibility[i][j] = ij\n                compatibility[j][i] = ji\n                neighbors[i].append(j)\n                neighbors[j].append(i)\n\n    def propagate(ds, changed):\n        queue = list(changed)\n        head = 0\n        queued = set(queue)\n        while head < len(queue):\n            j = queue[head]\n            head += 1\n            queued.discard(j)\n            dj = ds[j]\n            if not dj:\n                return False\n            for i in neighbors[j]:\n                old = ds[i]\n                rest, new = old, 0\n                table = compatibility[i][j]\n                while rest:\n                    bit = rest & -rest\n                    rest -= bit\n                    a = bit.bit_length() - 1\n                    if table[a] & dj:\n                        new |= bit\n                if new != old:\n                    if not new:\n                        return False\n                    ds[i] = new\n                    if i not in queued:\n                        queued.add(i)\n                        queue.append(i)\n        return True\n\n    distance_cache = {}\n\n    def distance(blocked):\n        if blocked in distance_cache:\n            return distance_cache[blocked]\n        if blocked & endpoints:\n            return -1\n        free = all_cells & ~blocked\n        wave, visited, steps = start_bit, start_bit, 0\n        while wave and not (wave & goal_bit):\n            wave = (((wave & not_right) << 1) | ((wave & not_left) >> 1) |\n                    (wave << gw) | (wave >> gw)) & free & ~visited\n            visited |= wave\n            steps += 1\n        result = steps if wave else -1\n        if len(distance_cache) < 18000:\n            distance_cache[blocked] = result\n        return result\n\n    envelope_cache = [{} for i in range(n)]\n\n    def envelope(i, ds):\n        cache = envelope_cache[i]\n        if ds in cache:\n            return cache[ds]\n        rest, certain, possible = ds, all_cells, 0\n        while rest:\n            bit = rest & -rest\n            rest -= bit\n            mask = blocks[i][bit.bit_length() - 1]\n            certain &= mask\n            possible |= mask\n        result = (certain, possible)\n        if len(cache) < 2500:\n            cache[ds] = result\n        return result\n\n    fine_step = 0.1\n    fw, fh = int(math.ceil(width / fine_step)), int(math.ceil(depth / fine_step))\n    fine_all = (1 << (fw * fh)) - 1\n    fine_left = sum(1 << (y * fw) for y in range(fh))\n    fine_not_left = fine_all ^ fine_left\n    fine_not_right = fine_all ^ (fine_left << (fw - 1))\n    fine_masks = {}\n    target_masks = {}\n    region_masks = {}\n\n    def fine_block(r, clearance):\n        key = (r, clearance)\n        if key not in fine_masks:\n            fine_masks[key] = grid_mask(r, clearance, fw, fh, fine_step)\n        return fine_masks[key]\n\n    def region_mask(name):\n        if name not in region_masks:\n            r = regions[name]\n            mask = 0\n            for y in range(fh):\n                cy = (y + 0.5) * fine_step\n                if not r['y'] - eps <= cy <= r['y'] + r['depth'] + eps:\n                    continue\n                for x in range(fw):\n                    cx = (x + 0.5) * fine_step\n                    if r['x'] - eps <= cx <= r['x'] + r['width'] + eps:\n                        mask |= 1 << (y * fw + x)\n            region_masks[name] = mask\n        return region_masks[name]\n\n    def target_mask(r, reach):\n        key = (r, reach)\n        if key in target_masks:\n            return target_masks[key]\n        mask = 0\n        for y in range(fh):\n            cy = (y + 0.5) * fine_step\n            dy = max(r[1] - cy, 0.0, cy - r[3])\n            if dy > reach + eps:\n                continue\n            reach_x = math.sqrt(max(0.0, reach * reach - dy * dy))\n            low = max(0, int(math.ceil((r[0] - reach_x) / fine_step - 0.5 - eps)))\n            high = min(fw - 1, int(math.floor((r[2] + reach_x) / fine_step - 0.5 + eps)))\n            if high >= low:\n                mask |= (((1 << (high - low + 1)) - 1) << low) << (y * fw)\n        target_masks[key] = mask\n        return mask\n\n    def accessible(chosen):\n        if not access:\n            return True\n        objects = dict(fixed_by_id)\n        selected_rects = list(fixed_rects)\n        for i, a in enumerate(chosen):\n            objects[names[i]] = poses[i][a]\n            selected_rects.append(rects[i][a])\n        occupancy = {}\n        for path in access:\n            clearance = path.get('clearance', 0.15)\n            if clearance not in occupancy:\n                blocked = 0\n                for r in selected_rects:\n                    blocked |= fine_block(r, clearance)\n                occupancy[clearance] = blocked\n            free = fine_all & ~occupancy[clearance]\n            wave = region_mask(path['from_region']) & free\n            target = target_mask(rectangle(objects[path['to_object']]),\n                                 path.get('interaction_distance', 0.8)) & free\n            if not wave or not target:\n                return False\n            visited = wave\n            while wave and not (wave & target):\n                wave = (((wave & fine_not_right) << 1) |\n                        ((wave & fine_not_left) >> 1) |\n                        (wave << fw) | (wave >> fw)) & free & ~visited\n                visited |= wave\n            if not wave:\n                return False\n        return True\n\n    def chosen_values(ds):\n        return [d.bit_length() - 1 for d in ds]\n\n    def output(chosen):\n        objects = list(fixed)\n        objects.extend(poses[i][a] for i, a in enumerate(chosen))\n        return {'scene_id': spec['scene_id'], 'objects': objects}\n\n    def first_completion(ds, budget):\n        budget[0] -= 1\n        if budget[0] < 0:\n            return None\n        remaining = [i for i in range(n) if ds[i] & (ds[i] - 1)]\n        if not remaining:\n            return chosen_values(ds)\n        i = min(remaining, key=lambda k: (ds[k].bit_count(), -len(neighbors[k])))\n        rest = ds[i]\n        while rest:\n            bit = rest & -rest\n            rest -= bit\n            child = list(ds)\n            child[i] = bit\n            if propagate(child, [i]):\n                result = first_completion(child, budget)\n                if result is not None:\n                    return result\n        return None\n\n    if any(not d for d in domains) or not propagate(domains, range(n)):\n        return {'scene_id': spec['scene_id'], 'objects': fixed + [\n            packet['domains'][name][0] for name in names]}\n    baseline = first_completion(list(domains), [3000])\n    best = [baseline, -1, False]\n    if baseline is not None:\n        blocked = fixed_mask\n        for i, a in enumerate(baseline):\n            blocked |= blocks[i][a]\n        d = distance(blocked)\n        ok = d >= 0 and accessible(baseline)\n        best[:] = [baseline, d, ok]\n        if ok and d >= minimum:\n            return output(baseline)\n\n    dead = set()\n    visits = [0]\n\n    def search(ds):\n        visits[0] += 1\n        if visits[0] > 65000:\n            return None\n        key = tuple(ds)\n        if key in dead:\n            return None\n        certain, possible = fixed_mask, fixed_mask\n        remaining = []\n        for i, d in enumerate(ds):\n            a, b = envelope(i, d)\n            certain |= a\n            possible |= b\n            if d & (d - 1):\n                remaining.append(i)\n        lower = distance(certain)\n        if lower < 0:\n            return None\n        if not remaining:\n            chosen = chosen_values(ds)\n            if accessible(chosen):\n                if not best[2] or lower > best[1]:\n                    best[:] = [chosen, lower, True]\n                if lower >= minimum:\n                    return chosen\n            return None\n        if best[2] and len(remaining) <= 3:\n            upper = distance(possible)\n            if 0 <= upper < minimum:\n                return None\n        i = min(remaining, key=lambda k: (ds[k].bit_count(),\n                    -sum(1 for j in neighbors[k] if ds[j] & (ds[j] - 1)),\n                    -len(neighbors[k])))\n        candidates = []\n        rest = ds[i]\n        while rest:\n            bit = rest & -rest\n            rest -= bit\n            a = bit.bit_length() - 1\n            d = distance(certain | blocks[i][a])\n            if d < 0:\n                continue\n            support = sum((compatibility[i][j][a] & ds[j]).bit_count()\n                          for j in neighbors[i])\n            score = (d >= minimum, -abs(d - minimum), support)\n            candidates.append((score, bit))\n        candidates.sort(reverse=True)\n        for score, bit in candidates:\n            child = list(ds)\n            child[i] = bit\n            if propagate(child, [i]):\n                result = search(child)\n                if result is not None:\n                    return result\n            if visits[0] > 65000:\n                return None\n        if len(dead) < 16000:\n            dead.add(key)\n        return None\n\n    result = search(list(domains))\n    if result is not None:\n        return output(result)\n    if best[0] is not None:\n        return output(best[0])\n    fallback = first_completion(list(domains), [12000])\n    if fallback is not None:\n        return output(fallback)\n    return {'scene_id': spec['scene_id'], 'objects': fixed + [poses[i][0] for i in range(n)]}\n",
+  "dev_metrics": {
+    "tasks": 12,
+    "valid": 12,
+    "solvable": 12,
+    "solvable_rate": 1.0,
+    "errors": {},
+    "shortest_actions_mean": 25.666666666666668,
+    "action_turns_mean": 6,
+    "first_output_seconds_mean": 0.15306954879391318,
+    "physics_checks": 12,
+    "physics_passes": 12,
+    "by_tier": {
+      "easy": {
+        "tasks": 4,
+        "successes": 4
+      },
+      "hard": {
+        "tasks": 4,
+        "successes": 4
+      },
+      "medium": {
+        "tasks": 4,
+        "successes": 4
+      }
+    }
+  },
+  "dev_examples": [
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 1,
+        "spec": {
+          "scene_id": "dev_0_0",
+          "room": {
+            "width": 7,
+            "depth": 8,
+            "height": 3
+          },
+          "required_objects": [
+            {
+              "id": "item_0",
+              "asset": "chair"
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet"
+            },
+            {
+              "id": "item_5",
+              "asset": "desk"
+            },
+            {
+              "id": "item_6",
+              "asset": "partition"
+            },
+            {
+              "id": "item_1",
+              "asset": "partition"
+            },
+            {
+              "id": "item_3",
+              "asset": "partition"
+            },
+            {
+              "id": "item_2",
+              "asset": "partition"
+            }
+          ],
+          "assets": {
+            "partition": {
+              "width": 0.8,
+              "depth": 2.8,
+              "height": 1.4
+            },
+            "desk": {
+              "width": 1.8,
+              "depth": 0.8,
+              "height": 0.75
+            },
+            "chair": {
+              "width": 0.8,
+              "depth": 0.8,
+              "height": 0.9
+            },
+            "cabinet": {
+              "width": 1.8,
+              "depth": 0.8,
+              "height": 1.8
+            },
+            "column": {
+              "width": 0.8,
+              "depth": 0.8,
+              "height": 2.4
+            }
+          },
+          "regions": [
+            {
+              "id": "entry",
+              "x": 6,
+              "y": 7,
+              "width": 1,
+              "depth": 1
+            },
+            {
+              "id": "destination",
+              "x": 1,
+              "y": 2,
+              "width": 1,
+              "depth": 1
+            }
+          ],
+          "constraints": [
+            {
+              "type": "near_wall",
+              "subject": "item_5",
+              "reference": "",
+              "wall": "south",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_5",
+              "reference": "",
+              "wall": "west",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_4",
+              "reference": "",
+              "wall": "south",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_4",
+              "reference": "",
+              "wall": "east",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "in_front_of",
+              "subject": "item_0",
+              "reference": "item_5",
+              "wall": "",
+              "region": "",
+              "max_gap": 0.25
+            },
+            {
+              "type": "keep_clear",
+              "subject": "",
+              "reference": "",
+              "wall": "",
+              "region": "entry",
+              "max_gap": 0.4
+            },
+            {
+              "type": "keep_clear",
+              "subject": "",
+              "reference": "",
+              "wall": "",
+              "region": "destination",
+              "max_gap": 0.4
+            }
+          ],
+          "access_paths": [
+            {
+              "from_region": "entry",
+              "to_object": "item_5",
+              "clearance": 0.15,
+              "interaction_distance": 0.8
+            }
+          ]
+        },
+        "fixed": [
+          {
+            "id": "item_5",
+            "asset": "desk",
+            "x": 1,
+            "y": 0.5,
+            "yaw_deg": 0
+          }
+        ],
+        "domains": {
+          "item_0": [
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 0.5,
+              "y": 2.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 4.5,
+              "y": 4.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 1.5,
+              "y": 1.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 4.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 2.5,
+              "y": 2.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 4.5,
+              "y": 4.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 3.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 4.5,
+              "y": 7.5,
+              "yaw_deg": 270
+            }
+          ],
+          "item_4": [
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 2.5,
+              "y": 5.0,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 3.5,
+              "y": 5.0,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 6,
+              "y": 1.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 6,
+              "y": 0.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 3.0,
+              "y": 6.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 2.0,
+              "y": 4.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 6.0,
+              "y": 6.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_4",
+              "asset": "cabinet",
+              "x": 3.0,
+              "y": 3.5,
+              "yaw_deg": 180
+            }
+          ],
+          "item_6": [
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 5.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 3.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 7.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 6.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 2.5,
+              "yaw_deg": 270
+            }
+          ],
+          "item_3": [
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 3.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 0.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 3.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 5.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 6.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            }
+          ],
+          "item_1": [
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 6.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 0.5,
+              "y": 2.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 1.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 4.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 2.5,
+              "yaw_deg": 90
+            }
+          ],
+          "item_2": [
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 7.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 7.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 4.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 6.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 7.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 4.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 4.5,
+              "yaw_deg": 90
+            }
+          ]
+        },
+        "start": [
+          6,
+          7
+        ],
+        "goal": [
+          1,
+          2
+        ],
+        "minimum_steps": 14
+      },
+      "solvable": true,
+      "valid": true,
+      "error": "",
+      "shortest_actions": 16,
+      "generated_scene": {
+        "scene_id": "dev_0_0",
+        "objects": [
+          {
+            "id": "item_5",
+            "asset": "desk",
+            "x": 1,
+            "y": 0.5,
+            "yaw_deg": 0
+          },
+          {
+            "id": "item_0",
+            "asset": "chair",
+            "x": 1.5,
+            "y": 1.5,
+            "yaw_deg": 180
+          },
+          {
+            "id": "item_4",
+            "asset": "cabinet",
+            "x": 6,
+            "y": 0.5,
+            "yaw_deg": 180
+          },
+          {
+            "id": "item_6",
+            "asset": "partition",
+            "x": 5.5,
+            "y": 6.5,
+            "yaw_deg": 270
+          },
+          {
+            "id": "item_1",
+            "asset": "partition",
+            "x": 5.5,
+            "y": 3.5,
+            "yaw_deg": 270
+          },
+          {
+            "id": "item_3",
+            "asset": "partition",
+            "x": 2.5,
+            "y": 6.5,
+            "yaw_deg": 270
+          },
+          {
+            "id": "item_2",
+            "asset": "partition",
+            "x": 1.5,
+            "y": 4.5,
+            "yaw_deg": 90
+          }
+        ]
+      },
+      "failures": []
+    },
+    {
+      "packet": {
+        "width": 7,
+        "depth": 8,
+        "obstacles": 1,
+        "spec": {
+          "scene_id": "dev_0_1",
+          "room": {
+            "width": 7,
+            "depth": 8,
+            "height": 3
+          },
+          "required_objects": [
+            {
+              "id": "item_5",
+              "asset": "cabinet"
+            },
+            {
+              "id": "item_6",
+              "asset": "partition"
+            },
+            {
+              "id": "item_3",
+              "asset": "desk"
+            },
+            {
+              "id": "item_1",
+              "asset": "partition"
+            },
+            {
+              "id": "item_2",
+              "asset": "partition"
+            },
+            {
+              "id": "item_0",
+              "asset": "chair"
+            },
+            {
+              "id": "item_4",
+              "asset": "partition"
+            }
+          ],
+          "assets": {
+            "partition": {
+              "width": 0.8,
+              "depth": 2.8,
+              "height": 1.4
+            },
+            "desk": {
+              "width": 1.8,
+              "depth": 0.8,
+              "height": 0.75
+            },
+            "chair": {
+              "width": 0.8,
+              "depth": 0.8,
+              "height": 0.9
+            },
+            "cabinet": {
+              "width": 1.8,
+              "depth": 0.8,
+              "height": 1.8
+            },
+            "column": {
+              "width": 0.8,
+              "depth": 0.8,
+              "height": 2.4
+            }
+          },
+          "regions": [
+            {
+              "id": "entry",
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "depth": 1
+            },
+            {
+              "id": "destination",
+              "x": 5,
+              "y": 5,
+              "width": 1,
+              "depth": 1
+            }
+          ],
+          "constraints": [
+            {
+              "type": "near_wall",
+              "subject": "item_3",
+              "reference": "",
+              "wall": "north",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_3",
+              "reference": "",
+              "wall": "east",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_5",
+              "reference": "",
+              "wall": "north",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_5",
+              "reference": "",
+              "wall": "west",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "in_front_of",
+              "subject": "item_0",
+              "reference": "item_3",
+              "wall": "",
+              "region": "",
+              "max_gap": 0.25
+            },
+            {
+              "type": "keep_clear",
+              "subject": "",
+              "reference": "",
+              "wall": "",
+              "region": "entry",
+              "max_gap": 0.4
+            },
+            {
+              "type": "keep_clear",
+              "subject": "",
+              "reference": "",
+              "wall": "",
+              "region": "destination",
+              "max_gap": 0.4
+            }
+          ],
+          "access_paths": [
+            {
+              "from_region": "entry",
+              "to_object": "item_3",
+              "clearance": 0.15,
+              "interaction_distance": 0.8
+            }
+          ]
+        },
+        "fixed": [
+          {
+            "id": "item_3",
+            "asset": "desk",
+            "x": 6,
+            "y": 7.5,
+            "yaw_deg": 180
+          }
+        ],
+        "domains": {
+          "item_0": [
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 0.5,
+              "y": 2.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 1.5,
+              "y": 6.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 5.5,
+              "y": 6.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 0.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 1.5,
+              "y": 7.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 5.5,
+              "y": 6.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_0",
+              "asset": "chair",
+              "x": 0.5,
+              "y": 1.5,
+              "yaw_deg": 90
+            }
+          ],
+          "item_5": [
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 1,
+              "y": 6.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 2.0,
+              "y": 4.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 0.5,
+              "y": 7.0,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 4.0,
+              "y": 0.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 2.5,
+              "y": 3.0,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 1,
+              "y": 7.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 6.0,
+              "y": 0.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_5",
+              "asset": "cabinet",
+              "x": 1.5,
+              "y": 6.0,
+              "yaw_deg": 90
+            }
+          ],
+          "item_1": [
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 5.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 1.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 1.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 2.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 2.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_1",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 2.5,
+              "yaw_deg": 90
+            }
+          ],
+          "item_2": [
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 6.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 2.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 0.5,
+              "y": 4.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 3.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 1.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 4.5,
+              "yaw_deg": 0
+            }
+          ],
+          "item_6": [
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 1.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 7.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_6",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            }
+          ],
+          "item_4": [
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 0.5,
+              "y": 3.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 1.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 6.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 4.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 2.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 3.5,
+              "yaw_deg": 180
+            }
+          ]
+        },
+        "start": [
+          0,
+          0
+        ],
+        "goal": [
+          5,
+          5
+        ],
+        "minimum_steps": 14
+      },
+      "solvable": true,
+      "valid": true,
+      "error": "",
+      "shortest_actions": 16,
+      "generated_scene": {
+        "scene_id": "dev_0_1",
+        "objects": [
+          {
+            "id": "item_3",
+            "asset": "desk",
+            "x": 6,
+            "y": 7.5,
+            "yaw_deg": 180
+          },
+          {
+            "id": "item_5",
+            "asset": "cabinet",
+            "x": 1,
+            "y": 7.5,
+            "yaw_deg": 0
+          },
+          {
+            "id": "item_6",
+            "asset": "partition",
+            "x": 2.5,
+            "y": 4.5,
+            "yaw_deg": 270
+          },
+          {
+            "id": "item_1",
+            "asset": "partition",
+            "x": 1.5,
+            "y": 1.5,
+            "yaw_deg": 90
+          },
+          {
+            "id": "item_2",
+            "asset": "partition",
+            "x": 4.5,
+            "y": 3.5,
+            "yaw_deg": 90
+          },
+          {
+            "id": "item_0",
+            "asset": "chair",
+            "x": 5.5,
+            "y": 6.5,
+            "yaw_deg": 0
+          },
+          {
+            "id": "item_4",
+            "asset": "partition",
+            "x": 5.5,
+            "y": 4.5,
+            "yaw_deg": 270
+          }
+        ]
+      },
+      "failures": []
+    },
+    {
+      "packet": {
+        "width": 8,
+        "depth": 9,
+        "obstacles": 3,
+        "spec": {
+          "scene_id": "dev_1_0",
+          "room": {
+            "width": 8,
+            "depth": 9,
+            "height": 3
+          },
+          "required_objects": [
+            {
+              "id": "item_3",
+              "asset": "partition"
+            },
+            {
+              "id": "item_5",
+              "asset": "column"
+            },
+            {
+              "id": "item_1",
+              "asset": "desk"
+            },
+            {
+              "id": "item_7",
+              "asset": "partition"
+            },
+            {
+              "id": "item_4",
+              "asset": "partition"
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet"
+            },
+            {
+              "id": "item_8",
+              "asset": "partition"
+            },
+            {
+              "id": "item_6",
+              "asset": "column"
+            },
+            {
+              "id": "item_2",
+              "asset": "chair"
+            }
+          ],
+          "assets": {
+            "partition": {
+              "width": 0.8,
+              "depth": 2.8,
+              "height": 1.4
+            },
+            "desk": {
+              "width": 1.8,
+              "depth": 0.8,
+              "height": 0.75
+            },
+            "chair": {
+              "width": 0.8,
+              "depth": 0.8,
+              "height": 0.9
+            },
+            "cabinet": {
+              "width": 1.8,
+              "depth": 0.8,
+              "height": 1.8
+            },
+            "column": {
+              "width": 0.8,
+              "depth": 0.8,
+              "height": 2.4
+            }
+          },
+          "regions": [
+            {
+              "id": "entry",
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "depth": 1
+            },
+            {
+              "id": "destination",
+              "x": 6,
+              "y": 6,
+              "width": 1,
+              "depth": 1
+            }
+          ],
+          "constraints": [
+            {
+              "type": "near_wall",
+              "subject": "item_1",
+              "reference": "",
+              "wall": "north",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_1",
+              "reference": "",
+              "wall": "east",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_0",
+              "reference": "",
+              "wall": "north",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "near_wall",
+              "subject": "item_0",
+              "reference": "",
+              "wall": "west",
+              "region": "",
+              "max_gap": 0.15
+            },
+            {
+              "type": "in_front_of",
+              "subject": "item_2",
+              "reference": "item_1",
+              "wall": "",
+              "region": "",
+              "max_gap": 0.25
+            },
+            {
+              "type": "in_front_of",
+              "subject": "item_7",
+              "reference": "item_8",
+              "wall": "",
+              "region": "",
+              "max_gap": 0.25
+            },
+            {
+              "type": "in_front_of",
+              "subject": "item_4",
+              "reference": "item_3",
+              "wall": "",
+              "region": "",
+              "max_gap": 0.25
+            },
+            {
+              "type": "keep_clear",
+              "subject": "",
+              "reference": "",
+              "wall": "",
+              "region": "entry",
+              "max_gap": 0.4
+            },
+            {
+              "type": "keep_clear",
+              "subject": "",
+              "reference": "",
+              "wall": "",
+              "region": "destination",
+              "max_gap": 0.4
+            }
+          ],
+          "access_paths": [
+            {
+              "from_region": "entry",
+              "to_object": "item_1",
+              "clearance": 0.15,
+              "interaction_distance": 0.8
+            }
+          ]
+        },
+        "fixed": [
+          {
+            "id": "item_1",
+            "asset": "desk",
+            "x": 7,
+            "y": 8.5,
+            "yaw_deg": 180
+          },
+          {
+            "id": "item_6",
+            "asset": "column",
+            "x": 6.5,
+            "y": 2.5,
+            "yaw_deg": 0
+          },
+          {
+            "id": "item_5",
+            "asset": "column",
+            "x": 7.5,
+            "y": 4.5,
+            "yaw_deg": 0
+          }
+        ],
+        "domains": {
+          "item_2": [
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 4.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 1.5,
+              "y": 6.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 6.5,
+              "y": 7.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 7.5,
+              "y": 2.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 7.5,
+              "y": 2.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 6.5,
+              "y": 7.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 1.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 2.5,
+              "y": 0.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 0.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 7.5,
+              "y": 0.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 1.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_2",
+              "asset": "chair",
+              "x": 0.5,
+              "y": 1.5,
+              "yaw_deg": 0
+            }
+          ],
+          "item_0": [
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 3.5,
+              "y": 6.0,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 3.5,
+              "y": 3.0,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 1,
+              "y": 8.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 2.5,
+              "y": 4.0,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 1,
+              "y": 7.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 5.5,
+              "y": 1.0,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 2.5,
+              "y": 6.0,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 5.0,
+              "y": 0.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 6.0,
+              "y": 5.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 6.0,
+              "y": 3.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 4.5,
+              "y": 5.0,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_0",
+              "asset": "cabinet",
+              "x": 6.5,
+              "y": 1.0,
+              "yaw_deg": 90
+            }
+          ],
+          "item_7": [
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 1.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 2.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 2.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 5.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 1.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 1.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 1.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 7.5,
+              "y": 1.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_7",
+              "asset": "partition",
+              "x": 0.5,
+              "y": 7.5,
+              "yaw_deg": 0
+            }
+          ],
+          "item_8": [
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 7.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 5.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 0.5,
+              "y": 2.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 3.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 6.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 7.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 1.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 6.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 2.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_8",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 2.5,
+              "yaw_deg": 90
+            }
+          ],
+          "item_3": [
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 4.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 4.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 7.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 1.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 6.5,
+              "y": 1.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_3",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 7.5,
+              "yaw_deg": 180
+            }
+          ],
+          "item_4": [
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 3.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 0.5,
+              "y": 2.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 4.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 5.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 1.5,
+              "y": 7.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 7.5,
+              "yaw_deg": 0
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 180
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 3.5,
+              "y": 7.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 2.5,
+              "y": 5.5,
+              "yaw_deg": 90
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 3.5,
+              "yaw_deg": 270
+            },
+            {
+              "id": "item_4",
+              "asset": "partition",
+              "x": 5.5,
+              "y": 4.5,
+              "yaw_deg": 270
+            }
+          ]
+        },
+        "start": [
+          0,
+          0
+        ],
+        "goal": [
+          6,
+          6
+        ],
+        "minimum_steps": 24
+      },
+      "solvable": true,
+      "valid": true,
+      "error": "",
+      "shortest_actions": 26,
+      "generated_scene": {
+        "scene_id": "dev_1_0",
+        "objects": [
+          {
+            "id": "item_1",
+            "asset": "desk",
+            "x": 7,
+            "y": 8.5,
+            "yaw_deg": 180
+          },
+          {
+            "id": "item_6",
+            "asset": "column",
+            "x": 6.5,
+            "y": 2.5,
+            "yaw_deg": 0
+          },
+          {
+            "id": "item_5",
+            "asset": "column",
+            "x": 7.5,
+            "y": 4.5,
+            "yaw_deg": 0
+          },
+          {
+            "id": "item_3",
+            "asset": "partition",
+            "x": 2.5,
+            "y": 5.5,
+            "yaw_deg": 270
+          },
+          {
+            "id": "item_7",
+            "asset": "partition",
+            "x": 1.5,
+            "y": 3.5,
+            "yaw_deg": 90
+          },
+          {
+            "id": "item_4",
+            "asset": "partition",
+            "x": 5.5,
+            "y": 5.5,
+            "yaw_deg": 270
+          },
+          {
+            "id": "item_0",
+            "asset": "cabinet",
+            "x": 1,
+            "y": 8.5,
+            "yaw_deg": 0
+          },
+          {
+            "id": "item_8",
+            "asset": "partition",
+            "x": 4.5,
+            "y": 3.5,
+            "yaw_deg": 90
+          },
+          {
+            "id": "item_2",
+            "asset": "chair",
+            "x": 6.5,
+            "y": 7.5,
+            "yaw_deg": 0
+          }
+        ]
+      },
+      "failures": []
+    }
+  ],
+  "meta_analysis": "Compare generated successes and failures; improve general first-output solvability.",
+  "proposal_instruction": "Use the dev feedback to improve the general construction algorithm. Preserve diversity and useful task difficulty. Return a complete replacement, not individual scene edits.",
+  "previous_dev_attempts": [
+    {
+      "round": 1,
+      "slot": 8,
+      "proposal_error": "TimeoutExpired: Command '['/srv/lab-disks/disk2/users/xymo/projects/BlenderWorld/runtime/apptainer/bin/apptainer', 'exec', '--userns', '--containall', '--no-home', '--no-mount', 'hostfs,bind-paths,cwd', '--net', '--network', 'none', '--no-privs', '--pwd', '/', '--bind', '/srv/lab-disks/disk2/users/xymo/.local/share/codex/packages/standalone/releases/0.163.0-x86_64-unknown-linux-musl/bin/codex:/cli:ro', '--bind', '/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scripts/algorithm_proposal_relay.py:/relay.py:ro', '--bind', '/srv/lab-disks/disk2/users/xymo/rsi/meta_hard_run/live/c8/model.sock:/model.sock:ro', '--bind', '/srv/lab-disks/disk2/users/xymo/rsi/meta_hard_run/live/c8/workspace:/workspace:ro', '--bind', '/srv/lab-disks/disk2/users/xymo/rsi/meta_hard_run/live/c8/output:/output:rw', '/srv/lab-disks/disk2/users/xymo/projects/BlenderWorld/runtime/harbor-images/blenderworld-agent.sif', '/usr/local/bin/python3', '-I', '-B', '/relay.py', 'bridge', 'exec', '--ignore-user-config', '--ignore-rules', '"
+    },
+    {
+      "round": 2,
+      "slot": 20,
+      "rationale": "Replaces greedy placement with bounded finite-domain search, arc consistency, exact geometric relation checks, and bitset shortest-path pruning. Preserves fixed objects and supplied poses, checks access on a clearance grid, and searches for a connected layout meeting the shortest-path lower bound. Access-grid approximation and the search budget can still limit success; no tests were run.",
+      "dev": {
+        "tasks": 12,
+        "valid": 12,
+        "solvable": 12,
+        "solvable_rate": 1.0,
+        "errors": {},
+        "shortest_actions_mean": 25.666666666666668,
+        "action_turns_mean": 6,
+        "first_output_seconds_mean": 0.15263926480353499,
+        "physics_checks": 12,
+        "physics_passes": 12,
+        "by_tier": {
+          "easy": {
+            "tasks": 4,
+            "successes": 4
+          },
+          "hard": {
+            "tasks": 4,
+            "successes": 4
+          },
+          "medium": {
+            "tasks": 4,
+            "successes": 4
+          }
+        }
+      }
+    }
+  ]
+}

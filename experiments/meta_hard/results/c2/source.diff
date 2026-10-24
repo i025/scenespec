@@ -1,0 +1,413 @@
+--- a/indoor_generator.py
++++ b/indoor_generator.py
+@@ -1,43 +1,367 @@
+-"""Pure finite-domain indoor generator fixture; never imported on the host."""
+-
+-def rect(obj, assets):
+-    a=assets[obj['asset']]
+-    w,d=a['width'],a['depth']
+-    if obj['yaw_deg']%180: w,d=d,w
+-    return (obj['x']-w/2,obj['y']-d/2,obj['x']+w/2,obj['y']+d/2)
+-
+-def overlap(a,b):
+-    return min(a[2],b[2])-max(a[0],b[0])>1e-8 and min(a[3],b[3])-max(a[1],b[1])>1e-8
+-
+-def clear(obj,placed,p):
+-    r=rect(obj,p['spec']['assets'])
+-    if any(overlap(r,rect(o,p['spec']['assets'])) for o in placed): return False
+-    for c in p['spec']['constraints']:
+-        if c['type']=='keep_clear':
+-            z=next(v for v in p['spec']['regions'] if v['id']==c['region'])
+-            if overlap(r,(z['x'],z['y'],z['x']+z['width'],z['y']+z['depth'])): return False
+-    return True
+-
+-def relation(c,objects,p):
+-    if c['subject'] not in objects: return True
+-    o=objects[c['subject']];r=rect(o,p['spec']['assets'])
+-    if c['type']=='near_wall':
+-        gap={'north':p['depth']-r[3],'south':r[1],'east':p['width']-r[2],'west':r[0]}[c['wall']]
+-        return -1e-8<=gap<=c['max_gap']+1e-8
+-    if c['type']=='in_front_of':
+-        if c['reference'] not in objects: return True
+-        ref=objects[c['reference']];rr=rect(ref,p['spec']['assets'])
+-        f={0:(0,1),90:(-1,0),180:(0,-1),270:(1,0)}[ref['yaw_deg']]
+-        dx,dy=o['x']-ref['x'],o['y']-ref['y']
+-        half=lambda q,ax:abs(ax[0])*(q[2]-q[0])/2+abs(ax[1])*(q[3]-q[1])/2
+-        gap=dx*f[0]+dy*f[1]-half(r,f)-half(rr,f)
+-        lat=(f[1],-f[0]);off=abs(dx*lat[0]+dy*lat[1])
+-        return -1e-8<=gap<=c['max_gap']+1e-8 and off<=half(r,lat)+half(rr,lat)+1e-8
+-    return True
+-
+-def layout(p):
+-    placed=list(p['fixed'])
+-    for name,domain in p['domains'].items():
+-        chosen=next((o for o in domain if clear(o,placed,p)),None)
+-        if chosen is not None: placed.append(chosen)
+-    return {'scene_id':p['spec']['scene_id'],'objects':placed}
++import math
++from collections import deque
++
++
++def layout(packet):
++    spec = packet['spec']
++    assets = spec['assets']
++    width, depth = packet['width'], packet['depth']
++    fixed = list(packet['fixed'])
++    required = {o['id']: o['asset'] for o in spec['required_objects']}
++    fixed_ids = {o['id'] for o in fixed}
++    constraints = spec.get('constraints', [])
++    regions = {r['id']: r for r in spec.get('regions', [])}
++    eps = 1e-8
++
++    def rectangle(o):
++        a = assets[o['asset']]
++        w, d = a['width'], a['depth']
++        if o['yaw_deg'] % 180:
++            w, d = d, w
++        return (o['x']-w/2, o['y']-d/2, o['x']+w/2, o['y']+d/2)
++
++    def overlaps(a, b):
++        return min(a[2], b[2])-max(a[0], b[0]) > eps and min(a[3], b[3])-max(a[1], b[1]) > eps
++
++    def front(subject, reference, c):
++        a, b = rectangle(subject), rectangle(reference)
++        fx, fy = ((0, 1), (-1, 0), (0, -1), (1, 0))[(reference['yaw_deg'] % 360)//90]
++        dx, dy = subject['x']-reference['x'], subject['y']-reference['y']
++        h = (abs(fx)*(a[2]-a[0]+b[2]-b[0])+abs(fy)*(a[3]-a[1]+b[3]-b[1]))/2
++        lateral = (abs(fy)*(a[2]-a[0]+b[2]-b[0])+abs(fx)*(a[3]-a[1]+b[3]-b[1]))/2
++        gap = dx*fx+dy*fy-h
++        return -eps <= gap <= c['max_gap']+eps and abs(dx*fy-dy*fx) <= lateral+eps
++
++    keep = []
++    walls = {}
++    relations = []
++    references = set()
++    for c in constraints:
++        t = c['type']
++        if t == 'keep_clear':
++            r = regions[c['region']]
++            keep.append((r['x'], r['y'], r['x']+r['width'], r['y']+r['depth']))
++        elif t == 'near_wall':
++            walls.setdefault(c['subject'], []).append(c)
++        elif t == 'in_front_of':
++            relations.append(c)
++            references.add(c['reference'])
++    fixed_map = {o['id']: o for o in fixed}
++    fixed_rects = [rectangle(o) for o in fixed]
++
++    def unary(o):
++        r = rectangle(o)
++        if r[0] < -eps or r[1] < -eps or r[2] > width+eps or r[3] > depth+eps:
++            return False
++        if any(overlaps(r, z) for z in keep) or any(overlaps(r, z) for z in fixed_rects):
++            return False
++        for c in walls.get(o['id'], []):
++            gap = {'north': depth-r[3], 'south': r[1], 'east': width-r[2], 'west': r[0]}[c['wall']]
++            if not -eps <= gap <= c['max_gap']+eps:
++                return False
++        for c in relations:
++            if c['subject'] == o['id'] and c['reference'] in fixed_map:
++                if not front(o, fixed_map[c['reference']], c):
++                    return False
++            if c['reference'] == o['id'] and c['subject'] in fixed_map:
++                if not front(fixed_map[c['subject']], o, c):
++                    return False
++        return True
++
++    gw, gh = int(width), int(depth)
++    cells = gw*gh
++    full = (1 << cells)-1
++    left = sum(1 << (y*gw) for y in range(gh))
++    right = left << (gw-1)
++    start = int(packet['start'][0])+gw*int(packet['start'][1])
++    goal = int(packet['goal'][0])+gw*int(packet['goal'][1])
++    sb, gb = 1 << start, 1 << goal
++    endpoints = sb | gb
++    minimum = packet['minimum_steps']
++
++    def blocked_cells(r, clearance, nx, ny, step):
++        mask = 0
++        x0 = max(0, int(math.floor((r[0]-clearance)/step-0.5))+1)
++        x1 = min(nx-1, int(math.ceil((r[2]+clearance)/step-0.5))-1)
++        y0 = max(0, int(math.floor((r[1]-clearance)/step-0.5))+1)
++        y1 = min(ny-1, int(math.ceil((r[3]+clearance)/step-0.5))-1)
++        if x1 >= x0 and y1 >= y0:
++            row = ((1 << (x1-x0+1))-1) << x0
++            for y in range(y0, y1+1):
++                mask |= row << (y*nx)
++        return mask
++
++    def adjacent(bits):
++        return (((bits << 1) & ~left) | ((bits >> 1) & ~right) | (bits << gw) | (bits >> gw)) & full
++
++    def navigation(blocked):
++        if blocked & endpoints:
++            return -1, 0
++        available = full & ~blocked
++        frontier, seen = sb, sb
++        levels = [sb]
++        while frontier and not frontier & gb:
++            frontier = adjacent(frontier) & available & ~seen
++            seen |= frontier
++            levels.append(frontier)
++        if not frontier:
++            return -1, 0
++        position, path = gb, gb
++        for level in reversed(levels[:-1]):
++            choices = adjacent(position) & level
++            position = choices & -choices
++            path |= position
++        return len(levels)-1, path
++
++    fixed_blocked = 0
++    for r in fixed_rects:
++        fixed_blocked |= blocked_cells(r, 0.15, gw, gh, 1.0)
++    names = [o['id'] for o in spec['required_objects'] if o['id'] not in fixed_ids]
++    poses, rects, masks = [], [], []
++    for name in names:
++        ps, rs, ms, seen = [], [], [], set()
++        for o in packet['domains'].get(name, []):
++            if o['id'] != name or o['asset'] != required[name] or not unary(o):
++                continue
++            r = rectangle(o)
++            key = r+(o['yaw_deg'] % 360 if name in references else 0,)
++            if key in seen:
++                continue
++            seen.add(key)
++            b = blocked_cells(r, 0.15, gw, gh, 1.0)
++            if b & endpoints:
++                continue
++            ps.append(o)
++            rs.append(r)
++            ms.append(b)
++        poses.append(ps)
++        rects.append(rs)
++        masks.append(ms)
++    n = len(names)
++    index = {name: i for i, name in enumerate(names)}
++    pair_relations = {}
++    for c in relations:
++        if c['subject'] in index and c['reference'] in index:
++            i, j = index[c['subject']], index[c['reference']]
++            pair_relations.setdefault((min(i, j), max(i, j)), []).append(c)
++    compatibility = [[None for j in range(n)] for i in range(n)]
++    for i in range(n):
++        for j in range(i+1, n):
++            ij = [0]*len(poses[i])
++            ji = [0]*len(poses[j])
++            rels = pair_relations.get((i, j), [])
++            for a, ra in enumerate(rects[i]):
++                for b, rb in enumerate(rects[j]):
++                    if overlaps(ra, rb):
++                        continue
++                    good = True
++                    for c in rels:
++                        if c['subject'] == names[i]:
++                            good = front(poses[i][a], poses[j][b], c)
++                        else:
++                            good = front(poses[j][b], poses[i][a], c)
++                        if not good:
++                            break
++                    if good:
++                        ij[a] |= 1 << b
++                        ji[b] |= 1 << a
++            compatibility[i][j], compatibility[j][i] = ij, ji
++
++    def propagate(ds, changed):
++        queue = deque(changed)
++        pending = set(changed)
++        while queue:
++            j = queue.popleft()
++            pending.discard(j)
++            if not ds[j]:
++                return False
++            for i in range(n):
++                if i == j:
++                    continue
++                old, new = ds[i], 0
++                bits = old
++                supports = compatibility[i][j]
++                while bits:
++                    bit = bits & -bits
++                    bits -= bit
++                    if supports[bit.bit_length()-1] & ds[j]:
++                        new |= bit
++                if not new:
++                    return False
++                if new != old:
++                    ds[i] = new
++                    if i not in pending:
++                        pending.add(i)
++                        queue.append(i)
++        return True
++
++    access = []
++    step = 0.25
++    ax, ay = int(math.ceil(width/step)), int(math.ceil(depth/step))
++    afull = (1 << (ax*ay))-1
++    aleft = sum(1 << (y*ax) for y in range(ay))
++    aright = aleft << (ax-1)
++    for rule in spec.get('access_paths', []):
++        clearance = rule.get('clearance', 0.15)
++        region = regions[rule['from_region']]
++        source_mask, wall_mask = 0, 0
++        for y in range(ay):
++            py = (y+0.5)*step
++            for x in range(ax):
++                px = (x+0.5)*step
++                bit = 1 << (y*ax+x)
++                if px < clearance or py < clearance or px > width-clearance or py > depth-clearance:
++                    wall_mask |= bit
++                if region['x'] <= px <= region['x']+region['width'] and region['y'] <= py <= region['y']+region['depth']:
++                    source_mask |= bit
++        static_mask = wall_mask
++        for r in fixed_rects:
++            static_mask |= blocked_cells(r, clearance, ax, ay, step)
++        amasks = [[blocked_cells(r, clearance, ax, ay, step) for r in rr] for rr in rects]
++        targets = []
++        target_name = rule['to_object']
++        target_rects = [rectangle(fixed_map[target_name])] if target_name in fixed_map else rects[index[target_name]]
++        distance = rule.get('interaction_distance', 0.8)
++        for r in target_rects:
++            target_mask = 0
++            for y in range(ay):
++                py = (y+0.5)*step
++                dy = max(r[1]-py, 0, py-r[3])
++                for x in range(ax):
++                    px = (x+0.5)*step
++                    dx = max(r[0]-px, 0, px-r[2])
++                    if dx*dx+dy*dy <= distance*distance+eps:
++                        target_mask |= 1 << (y*ax+x)
++            targets.append(target_mask)
++        access.append((static_mask, source_mask, amasks, target_name, targets))
++
++    def accessible(choice):
++        for static_mask, sources, amasks, target_name, targets in access:
++            blocked = static_mask
++            for i, v in enumerate(choice):
++                blocked |= amasks[i][v]
++            available = afull & ~blocked
++            frontier = sources & available
++            seen = frontier
++            target = targets[0] if target_name in fixed_map else targets[choice[index[target_name]]]
++            while frontier and not seen & target:
++                frontier = (((frontier << 1) & ~aleft) | ((frontier >> 1) & ~aright) | (frontier << ax) | (frontier >> ax)) & available & ~seen
++                seen |= frontier
++            if not seen & target:
++                return False
++        return True
++
++    state = {'nodes': 0, 'best': None, 'score': -1, 'answer': None}
++    learned = []
++    learned_paths = set()
++
++    def path_clause(path):
++        result = []
++        for mm in masks:
++            hits = 0
++            for v, mask in enumerate(mm):
++                if mask & path:
++                    hits |= 1 << v
++            result.append(hits)
++        return result
++
++    def enforce_clause(ds, clause):
++        support = -1
++        for i in range(n):
++            hits = ds[i] & clause[i]
++            if hits == ds[i]:
++                return True, -1
++            if hits:
++                if support >= 0:
++                    return True, -1
++                support = i
++        if support < 0:
++            return False, -1
++        ds[support] &= clause[support]
++        return True, support
++
++    def search(ds, changed):
++        state['nodes'] += 1
++        if state['nodes'] > 24000:
++            return False
++        if not propagate(ds, changed):
++            return False
++        while True:
++            changes = []
++            for clause in learned:
++                good, variable = enforce_clause(ds, clause)
++                if not good:
++                    return False
++                if variable >= 0:
++                    changes.append(variable)
++            if changes:
++                if not propagate(ds, changes):
++                    return False
++                continue
++            blocked = fixed_blocked
++            for i, bits in enumerate(ds):
++                common = full
++                while bits:
++                    bit = bits & -bits
++                    bits -= bit
++                    common &= masks[i][bit.bit_length()-1]
++                blocked |= common
++            distance, path = navigation(blocked)
++            if distance < 0:
++                return False
++            if distance < minimum:
++                clause = path_clause(path)
++                good, variable = enforce_clause(ds, clause)
++                if not good:
++                    return False
++                if variable >= 0:
++                    if not propagate(ds, [variable]):
++                        return False
++                    continue
++            break
++        remaining = [i for i in range(n) if ds[i] & (ds[i]-1)]
++        if not remaining:
++            choice = [bits.bit_length()-1 for bits in ds]
++            if accessible(choice):
++                if distance > state['score']:
++                    state['best'], state['score'] = choice, distance
++                if distance >= minimum:
++                    state['answer'] = choice
++                    return True
++            if distance < minimum and len(learned) < 96 and path not in learned_paths:
++                learned_paths.add(path)
++                learned.append(path_clause(path))
++            return False
++        variable = min(remaining, key=lambda i: (ds[i].bit_count(), -sum(1 for c in relations if c['subject'] == names[i] or c['reference'] == names[i])))
++        values = []
++        bits = ds[variable]
++        while bits:
++            bit = bits & -bits
++            bits -= bit
++            v = bit.bit_length()-1
++            flexibility = sum((compatibility[variable][j][v] & ds[j]).bit_count() for j in remaining if j != variable)
++            gain = (masks[variable][v] & path).bit_count()
++            values.append((-gain, -flexibility, rects[variable][v], poses[variable][v]['yaw_deg'], bit))
++        values.sort()
++        for value in values:
++            child = ds[:]
++            child[variable] = value[-1]
++            if search(child, [variable]):
++                return True
++            if state['nodes'] >= 24000:
++                break
++        return False
++
++    domains = [(1 << len(ps))-1 for ps in poses]
++    if all(domains):
++        search(domains, list(range(n)))
++    choice = state['answer'] if state['answer'] is not None else state['best']
++    if choice is None:
++        choice = [0 for ps in poses]
++    objects = fixed[:]
++    for i, v in enumerate(choice):
++        if poses[i]:
++            objects.append(poses[i][v])
++        elif packet['domains'].get(names[i]):
++            objects.append(packet['domains'][names[i]][0])
++    return {'scene_id': spec['scene_id'], 'objects': objects}

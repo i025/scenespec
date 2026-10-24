@@ -1,0 +1,378 @@
+--- a/indoor_generator.py
++++ b/indoor_generator.py
+@@ -5,25 +5,25 @@
+     spec = packet['spec']
+     assets = spec['assets']
+     width, depth = packet['width'], packet['depth']
+-    constraints = spec.get('constraints', [])
+-    regions = {r['id']: r for r in spec.get('regions', [])}
+     required = {o['id']: o['asset'] for o in spec['required_objects']}
+     fixed = list(packet['fixed'])
+-    fixed_ids = {o['id'] for o in fixed}
+-    names = [o['id'] for o in fixed]
+-    names += [n for n in packet['domains'] if n not in fixed_ids]
++    fixed_map = {o['id']: o for o in fixed}
++    names = list(fixed_map)
++    names.extend(n for n in required if n not in fixed_map)
+     index = {n: i for i, n in enumerate(names)}
+     count = len(names)
+-    references = {c['reference'] for c in constraints if c['type'] == 'in_front_of'}
+-    walls = {}
+-    relations = {}
+-    forbidden = []
++    regions = {r['id']: r for r in spec.get('regions', [])}
++    constraints = spec.get('constraints', [])
++    walls, relations, forbidden = {}, {}, []
++    references = set()
+     for c in constraints:
+-        if c['type'] == 'near_wall':
++        kind = c['type']
++        if kind == 'near_wall':
+             walls.setdefault(c['subject'], []).append(c)
+-        elif c['type'] == 'in_front_of':
++        elif kind == 'in_front_of':
+             relations.setdefault((c['subject'], c['reference']), []).append(c)
+-        elif c['type'] == 'keep_clear':
++            references.add(c['reference'])
++        elif kind == 'keep_clear':
+             r = regions[c['region']]
+             forbidden.append((r['x'], r['y'], r['x'] + r['width'], r['y'] + r['depth']))
+ 
+@@ -56,14 +56,13 @@
+     def front(o, r, ref, rr, cs):
+         fx, fy = ((0, 1), (-1, 0), (0, -1), (1, 0))[(ref['yaw_deg'] % 360) // 90]
+         dx, dy = o['x'] - ref['x'], o['y'] - ref['y']
+-        extent = (abs(fx) * (r[2] - r[0] + rr[2] - rr[0]) +
+-                  abs(fy) * (r[3] - r[1] + rr[3] - rr[1])) / 2
+-        lateral = (abs(fy) * (r[2] - r[0] + rr[2] - rr[0]) +
+-                   abs(fx) * (r[3] - r[1] + rr[3] - rr[1])) / 2
+-        gap = dx * fx + dy * fy - extent
+-        if gap < -1e-8 or abs(dx * fy - dy * fx) > lateral + 1e-8:
+-            return False
+-        return all(gap <= c['max_gap'] + 1e-8 for c in cs)
++        sx = (r[2] - r[0] + rr[2] - rr[0]) / 2
++        sy = (r[3] - r[1] + rr[3] - rr[1]) / 2
++        gap = dx * fx + dy * fy - abs(fx) * sx - abs(fy) * sy
++        lateral = abs(fy) * sx + abs(fx) * sy
++        return (gap >= -1e-8 and
++                abs(dx * fy - dy * fx) <= lateral + 1e-8 and
++                all(gap <= c['max_gap'] + 1e-8 for c in cs))
+ 
+     gw, gh = int(width), int(depth)
+     size = gw * gh
+@@ -81,7 +80,6 @@
+                 (bits << gw) | (bits >> gw)) & full
+ 
+     def cell_mask(r, clearance, nx, ny, step):
+-        mask = 0
+         x0 = max(0, int(math.floor((r[0] - clearance) / step - 0.5)))
+         x1 = min(nx - 1, int(math.ceil((r[2] + clearance) / step - 0.5)))
+         y0 = max(0, int(math.floor((r[1] - clearance) / step - 0.5)))
+@@ -90,19 +88,19 @@
+         for x in range(x0, x1 + 1):
+             if r[0] - clearance < (x + 0.5) * step < r[2] + clearance:
+                 row |= 1 << x
++        mask = 0
+         for y in range(y0, y1 + 1):
+             if r[1] - clearance < (y + 0.5) * step < r[3] + clearance:
+                 mask |= row << (y * nx)
+         return mask
+ 
+     poses, rects, blocks = [], [], []
+-    fixed_map = {o['id']: o for o in fixed}
+     for name in names:
+-        source = [fixed_map[name]] if name in fixed_map else packet['domains'][name]
++        source = [fixed_map[name]] if name in fixed_map else packet['domains'].get(name, [])
+         pp, rr, bb = [], [], []
+         seen = set()
+         for o in source:
+-            if o['id'] != name:
++            if o['id'] != name or o['asset'] not in assets:
+                 continue
+             r = rectangle(o)
+             if not unary(o, r):
+@@ -124,21 +122,30 @@
+     def result(selection):
+         objects = list(fixed)
+         for i, name in enumerate(names):
+-            if name not in fixed_ids:
++            if name not in fixed_map:
+                 objects.append(poses[i][selection[i]])
+         return {'scene_id': spec['scene_id'], 'objects': objects}
+ 
+     if any(not p for p in poses):
+         objects = list(fixed)
+-        objects += [packet['domains'][n][0] for n in names
+-                    if n not in fixed_ids and packet['domains'][n]]
++        for name in names:
++            if name not in fixed_map:
++                source = packet['domains'].get(name, [])
++                candidates = [o for o in source
++                              if o['id'] == name and o['asset'] == required[name]]
++                if candidates:
++                    objects.append(candidates[0])
+         return {'scene_id': spec['scene_id'], 'objects': objects}
+ 
+-    compatibility = [[None for j in range(count)] for i in range(count)]
++    compatibility = [[None] * count for i in range(count)]
++    relation_degree = [0] * count
+     for i in range(count):
+         for j in range(i + 1, count):
+             forward = relations.get((names[i], names[j]), [])
+             backward = relations.get((names[j], names[i]), [])
++            if forward or backward:
++                relation_degree[i] += 1
++                relation_degree[j] += 1
+             ij = [0] * len(poses[i])
+             ji = [0] * len(poses[j])
+             for a, o in enumerate(poses[i]):
+@@ -156,12 +163,21 @@
+             compatibility[i][j] = ij
+             compatibility[j][i] = ji
+ 
+-    work = [0]
++    work = [0, 0]
++    def exhausted():
++        return work[0] >= 24000 or work[1] >= 2200000
++
+     def propagate(domains, changed):
+-        queue = deque((i, j) for j in changed for i in range(count) if i != j)
++        queue = deque()
++        pending = set()
++        for j in changed:
++            for i in range(count):
++                if i != j and (i, j) not in pending:
++                    queue.append((i, j))
++                    pending.add((i, j))
+         while queue:
+             i, j = queue.popleft()
+-            work[0] += 1
++            pending.remove((i, j))
+             old, other = domains[i], domains[j]
+             keep = 0
+             remaining = old
+@@ -169,13 +185,17 @@
+             while remaining:
+                 bit = remaining & -remaining
+                 remaining -= bit
++                work[1] += 1
+                 if table[bit.bit_length() - 1] & other:
+                     keep |= bit
+             if keep != old:
+                 if not keep:
+                     return False
+                 domains[i] = keep
+-                queue.extend((k, i) for k in range(count) if k != i and k != j)
++                for k in range(count):
++                    if k != i and k != j and (k, i) not in pending:
++                        queue.append((k, i))
++                        pending.add((k, i))
+         return True
+ 
+     nav_cache = {}
+@@ -207,6 +227,25 @@
+             nav_cache[blocked] = answer
+         return answer
+ 
++    aggregate_cache = [{} for i in range(count)]
++    def aggregate(i, domain):
++        cache = aggregate_cache[i]
++        cached = cache.get(domain)
++        if cached is not None:
++            return cached
++        intersection, union = full, 0
++        remaining = domain
++        while remaining:
++            bit = remaining & -remaining
++            remaining -= bit
++            b = blocks[i][bit.bit_length() - 1]
++            intersection &= b
++            union |= b
++        answer = (intersection, union)
++        if len(cache) < 3000:
++            cache[domain] = answer
++        return answer
++
+     access_paths = spec.get('access_paths', [])
+     fine_step = 0.2
+     fw = int(math.ceil(width / fine_step - 1e-9))
+@@ -215,17 +254,15 @@
+     fine_left = sum(1 << (y * fw) for y in range(fh))
+     fine_right = fine_left << (fw - 1)
+     fine_nl, fine_nr = fine_full ^ fine_left, fine_full ^ fine_right
+-    fine_masks = {}
+-    source_masks = {}
+-    target_masks = {}
+-    access_cache = {}
++    fine_masks, source_masks, target_masks, access_cache = {}, {}, {}, {}
+ 
+     def access_ok(selection):
+         for ap in access_paths:
+             clearance = ap.get('clearance', 0.15)
+             if clearance not in fine_masks:
+-                fine_masks[clearance] = [[cell_mask(r, clearance, fw, fh, fine_step)
+-                                         for r in row] for row in rects]
++                fine_masks[clearance] = [
++                    [cell_mask(r, clearance, fw, fh, fine_step) for r in row]
++                    for row in rects]
+             masks = fine_masks[clearance]
+             blocked = 0
+             for i, value in enumerate(selection):
+@@ -248,11 +285,13 @@
+                     dy = max(r[1] - py, 0.0, py - r[3])
+                     if dy > interaction:
+                         continue
++                    row = 0
+                     for x in range(fw):
+                         px = (x + 0.5) * fine_step
+                         dx = max(r[0] - px, 0.0, px - r[2])
+                         if dx * dx + dy * dy <= interaction * interaction + 1e-9:
+-                            target |= 1 << (y * fw + x)
++                            row |= 1 << x
++                    target |= row << (y * fw)
+                 target_masks[tk] = target
+             key = (blocked, region_id, tk)
+             cached = access_cache.get(key)
+@@ -276,28 +315,28 @@
+                 return False
+         return True
+ 
+-    nodes = [0]
+     best = [-1, None]
++    failed = set()
++
++    def reject(key):
++        if len(failed) < 24000:
++            failed.add(key)
++        return None
++
+     def search(domains, changed):
+-        nodes[0] += 1
+-        if nodes[0] > 24000 or work[0] > 2200000:
++        if exhausted():
+             return None
++        work[0] += 1
+         if not propagate(domains, changed):
+             return None
+-        mandatory = 0
+-        possible = 0
++        key = tuple(domains)
++        if key in failed:
++            return None
++        mandatory, possible = 0, 0
+         unresolved = []
+         selection = [0] * count
+         for i, domain in enumerate(domains):
+-            remaining = domain
+-            intersection = full
+-            union = 0
+-            while remaining:
+-                bit = remaining & -remaining
+-                remaining -= bit
+-                b = blocks[i][bit.bit_length() - 1]
+-                intersection &= b
+-                union |= b
++            intersection, union = aggregate(i, domain)
+             mandatory |= intersection
+             possible |= union
+             if domain & (domain - 1):
+@@ -306,14 +345,15 @@
+                 selection[i] = domain.bit_length() - 1
+         distance, path = navigation(mandatory)
+         if distance < 0:
+-            return None
++            return reject(key)
+         if not unresolved:
+             if access_ok(selection):
+                 if distance > best[0]:
+                     best[:] = [distance, selection[:]]
+                 if distance >= minimum:
+                     return selection
+-            return None
++            return reject(key)
++
+         hitters = {}
+         if distance < minimum:
+             for i in unresolved:
+@@ -326,22 +366,45 @@
+                 if hit:
+                     hitters[i] = hit
+             if not hitters:
+-                return None
++                return reject(key)
++            upper, unused = navigation(possible)
++            if 0 <= upper < minimum:
++                return reject(key)
+             if len(hitters) == 1:
+                 i = next(iter(hitters))
+                 if hitters[i] != domains[i]:
+                     narrowed = domains[:]
+                     narrowed[i] = hitters[i]
+-                    return search(narrowed, [i])
+-            if len(unresolved) <= 3:
+-                upper, unused = navigation(possible)
+-                if 0 <= upper < minimum:
++                    answer = search(narrowed, [i])
++                    if answer is not None:
++                        return answer
++                    if not exhausted():
++                        reject(key)
+                     return None
++
++            # Every completion must block this concrete short path. Split
++            # that necessary disjunction into mutually exclusive branches.
++            if 2 <= len(hitters) <= 3 and all(hitters[i] != domains[i] for i in hitters):
++                order = sorted(hitters, key=lambda i: (
++                    hitters[i].bit_count(), -relation_degree[i], domains[i].bit_count()))
++                remaining_domains = domains[:]
++                changed_before = []
++                for i in order:
++                    narrowed = remaining_domains[:]
++                    narrowed[i] &= hitters[i]
++                    answer = search(narrowed, changed_before + [i])
++                    if answer is not None:
++                        return answer
++                    if exhausted():
++                        return None
++                    remaining_domains[i] &= ~hitters[i]
++                    changed_before.append(i)
++                return reject(key)
++
+         i = min(unresolved, key=lambda j: (
+             domains[j].bit_count(),
+             -hitters.get(j, 0).bit_count(),
+-            -sum(bool(relations.get((names[j], names[k])) or
+-                      relations.get((names[k], names[j]))) for k in unresolved)))
++            -relation_degree[j]))
+         choices = []
+         remaining = domains[i]
+         while remaining:
+@@ -353,17 +416,23 @@
+             if d < 0:
+                 continue
+             impact = (b & path).bit_count()
+-            choices.append((min(d, minimum), impact if d < minimum else -b.bit_count(), bit))
++            support = 0
++            for j in unresolved:
++                if j != i:
++                    support += (compatibility[i][j][value] & domains[j]).bit_count()
++            choices.append((min(d, minimum),
++                            impact if d < minimum else -b.bit_count(),
++                            support, bit))
+         choices.sort(reverse=True)
+-        for unused_d, unused_impact, bit in choices:
++        for unused_d, unused_impact, unused_support, bit in choices:
+             narrowed = domains[:]
+             narrowed[i] = bit
+             answer = search(narrowed, [i])
+             if answer is not None:
+                 return answer
+-            if nodes[0] > 24000 or work[0] > 2200000:
+-                break
+-        return None
++            if exhausted():
++                return None
++        return reject(key)
+ 
+     domains = [(1 << len(p)) - 1 for p in poses]
+     answer = search(domains, list(range(count)))

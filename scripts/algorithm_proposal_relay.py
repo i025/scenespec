@@ -80,9 +80,14 @@ def serve(socket_path, auth_path, audit):
                         line,_,pending = pending.partition(b'\n')
                         if line.startswith(b'data: {'):
                             item = json.loads(line[6:])
-                            if item.get('type') == 'response.completed':
-                                record['usage'] = item['response'].get('usage')
-                                record['returned_model'] = item['response'].get('model')
+                            details = item.get('response')
+                            if isinstance(details, dict):
+                                if details.get('usage') is not None:
+                                    record['usage'] = details['usage']
+                                if details.get('model'):
+                                    record['returned_model'] = details['model']
+                                if details.get('status'):
+                                    record['response_status'] = details['status']
                 response.close()
                 record['status'] = 'completed' if response.status==200 else 'http_error'
             except Exception as error:

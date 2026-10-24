@@ -1,0 +1,401 @@
+--- a/indoor_generator.py
++++ b/indoor_generator.py
+@@ -1,43 +1,355 @@
+-"""Pure finite-domain indoor generator fixture; never imported on the host."""
+-
+-def rect(obj, assets):
+-    a=assets[obj['asset']]
+-    w,d=a['width'],a['depth']
+-    if obj['yaw_deg']%180: w,d=d,w
+-    return (obj['x']-w/2,obj['y']-d/2,obj['x']+w/2,obj['y']+d/2)
+-
+-def overlap(a,b):
+-    return min(a[2],b[2])-max(a[0],b[0])>1e-8 and min(a[3],b[3])-max(a[1],b[1])>1e-8
+-
+-def clear(obj,placed,p):
+-    r=rect(obj,p['spec']['assets'])
+-    if any(overlap(r,rect(o,p['spec']['assets'])) for o in placed): return False
+-    for c in p['spec']['constraints']:
+-        if c['type']=='keep_clear':
+-            z=next(v for v in p['spec']['regions'] if v['id']==c['region'])
+-            if overlap(r,(z['x'],z['y'],z['x']+z['width'],z['y']+z['depth'])): return False
+-    return True
+-
+-def relation(c,objects,p):
+-    if c['subject'] not in objects: return True
+-    o=objects[c['subject']];r=rect(o,p['spec']['assets'])
+-    if c['type']=='near_wall':
+-        gap={'north':p['depth']-r[3],'south':r[1],'east':p['width']-r[2],'west':r[0]}[c['wall']]
+-        return -1e-8<=gap<=c['max_gap']+1e-8
+-    if c['type']=='in_front_of':
+-        if c['reference'] not in objects: return True
+-        ref=objects[c['reference']];rr=rect(ref,p['spec']['assets'])
+-        f={0:(0,1),90:(-1,0),180:(0,-1),270:(1,0)}[ref['yaw_deg']]
+-        dx,dy=o['x']-ref['x'],o['y']-ref['y']
+-        half=lambda q,ax:abs(ax[0])*(q[2]-q[0])/2+abs(ax[1])*(q[3]-q[1])/2
+-        gap=dx*f[0]+dy*f[1]-half(r,f)-half(rr,f)
+-        lat=(f[1],-f[0]);off=abs(dx*lat[0]+dy*lat[1])
+-        return -1e-8<=gap<=c['max_gap']+1e-8 and off<=half(r,lat)+half(rr,lat)+1e-8
+-    return True
+-
+-def layout(p):
+-    placed=list(p['fixed'])
+-    for name,domain in p['domains'].items():
+-        chosen=next((o for o in domain if clear(o,placed,p)),None)
+-        if chosen is not None: placed.append(chosen)
+-    return {'scene_id':p['spec']['scene_id'],'objects':placed}
++import math
++from collections import deque
++
++def layout(packet):
++    spec = packet['spec']
++    width, depth = packet['width'], packet['depth']
++    assets = spec['assets']
++    fixed = list(packet['fixed'])
++    fixed_ids = {o['id'] for o in fixed}
++    required = [o for o in spec['required_objects'] if o['id'] not in fixed_ids]
++    regions = {r['id']: r for r in spec.get('regions', [])}
++    constraints = spec.get('constraints', [])
++    accesses = spec.get('access_paths', [])
++    minimum = packet['minimum_steps']
++    eps = 1e-8
++    budget = [0, 0, 0]
++
++    def rectangle(o):
++        a = assets[o['asset']]
++        w, d = a['width'], a['depth']
++        if o['yaw_deg'] % 180:
++            w, d = d, w
++        return (o['x'] - w / 2, o['y'] - d / 2,
++                o['x'] + w / 2, o['y'] + d / 2)
++
++    def overlaps(a, b):
++        return (min(a[2], b[2]) - max(a[0], b[0]) > eps and
++                min(a[3], b[3]) - max(a[1], b[1]) > eps)
++
++    def front(subject, sr, reference, rr, gap_limit):
++        yaw = reference['yaw_deg'] % 360
++        fx, fy = ((0, 1), (-1, 0), (0, -1), (1, 0))[int(yaw // 90)]
++        dx = subject['x'] - reference['x']
++        dy = subject['y'] - reference['y']
++        hx = (sr[2] - sr[0] + rr[2] - rr[0]) / 2
++        hy = (sr[3] - sr[1] + rr[3] - rr[1]) / 2
++        gap = dx * fx + dy * fy - abs(fx) * hx - abs(fy) * hy
++        lateral = abs(dx * fy - dy * fx)
++        return (-eps <= gap <= gap_limit + eps and
++                lateral <= abs(fy) * hx + abs(fx) * hy + eps)
++
++    clear_regions = []
++    for c in constraints:
++        if c['type'] == 'keep_clear':
++            r = regions[c['region']]
++            clear_regions.append((r['x'], r['y'], r['x'] + r['width'],
++                                  r['y'] + r['depth']))
++
++    def unary(o, r):
++        if r[0] < -eps or r[1] < -eps or r[2] > width + eps or r[3] > depth + eps:
++            return False
++        if any(overlaps(r, z) for z in clear_regions):
++            return False
++        for c in constraints:
++            if c.get('subject') != o['id']:
++                continue
++            if c['type'] == 'near_wall':
++                gap = {'west': r[0], 'east': width - r[2],
++                       'south': r[1], 'north': depth - r[3]}[c['wall']]
++                if not -eps <= gap <= c['max_gap'] + eps:
++                    return False
++            elif c['type'] == 'in_front_of' and c['reference'] == o['id']:
++                if not front(o, r, o, r, c['max_gap']):
++                    return False
++        return True
++
++    def grid(w, h):
++        all_bits = (1 << (w * h)) - 1
++        left = sum(1 << (y * w) for y in range(h))
++        right = left << (w - 1)
++        return (w, h, all_bits, all_bits ^ left, all_bits ^ right)
++
++    nav = grid(int(width), int(depth))
++    start = int(packet['start'][1]) * nav[0] + int(packet['start'][0])
++    goal = int(packet['goal'][1]) * nav[0] + int(packet['goal'][0])
++    start_bit, goal_bit = 1 << start, 1 << goal
++
++    def blocked_mask(r, g, scale, clearance):
++        w, h = g[0], g[1]
++        result = 0
++        xlo = max(0, int(math.floor((r[0] - clearance) / scale - 0.5)))
++        xhi = min(w - 1, int(math.ceil((r[2] + clearance) / scale - 0.5)))
++        ylo = max(0, int(math.floor((r[1] - clearance) / scale - 0.5)))
++        yhi = min(h - 1, int(math.ceil((r[3] + clearance) / scale - 0.5)))
++        for y in range(ylo, yhi + 1):
++            py = (y + 0.5) * scale
++            if not r[1] - clearance < py < r[3] + clearance:
++                continue
++            for x in range(xlo, xhi + 1):
++                px = (x + 0.5) * scale
++                if r[0] - clearance < px < r[2] + clearance:
++                    result |= 1 << (y * w + x)
++        return result
++
++    def neighbors(bits, g):
++        return (((bits & g[4]) << 1) | ((bits & g[3]) >> 1) |
++                (bits << g[0]) | (bits >> g[0])) & g[2]
++
++    def walk(blocked, want_path=False):
++        if blocked & (start_bit | goal_bit):
++            return -1, 0
++        free = nav[2] ^ blocked
++        wave = start_bit
++        seen = wave
++        layers = []
++        distance = 0
++        while wave:
++            budget[1] += 1
++            if want_path:
++                layers.append(wave)
++            if wave & goal_bit:
++                if not want_path:
++                    return distance, 0
++                cell = goal_bit
++                path = cell
++                for layer in reversed(layers[:-1]):
++                    choices = neighbors(cell, nav) & layer
++                    cell = choices & -choices
++                    path |= cell
++                return distance, path
++            wave = neighbors(wave, nav) & free & ~seen
++            seen |= wave
++            distance += 1
++        return -1, 0
++
++    names = [o['id'] for o in fixed] + [o['id'] for o in required]
++    index = {name: i for i, name in enumerate(names)}
++    poses, rects, masks = [], [], []
++    raw_domains = [[o] for o in fixed]
++    for req in required:
++        raw_domains.append([o for o in packet['domains'].get(req['id'], [])
++                            if o['id'] == req['id'] and o['asset'] == req['asset']])
++    for raw in raw_domains:
++        records = []
++        duplicates = set()
++        for o in raw:
++            key = (o['asset'], o['x'], o['y'], o['yaw_deg'])
++            if key in duplicates:
++                continue
++            duplicates.add(key)
++            r = rectangle(o)
++            m = blocked_mask(r, nav, 1.0, 0.15)
++            if unary(o, r) and not m & (start_bit | goal_bit):
++                records.append((o, r, m))
++        records.sort(key=lambda v: (v[0]['x'], v[0]['y'], v[0]['yaw_deg']))
++        poses.append([v[0] for v in records])
++        rects.append([v[1] for v in records])
++        masks.append([v[2] for v in records])
++    n = len(names)
++    initial = [(1 << len(p)) - 1 for p in poses]
++    relations = {}
++    for c in constraints:
++        if c['type'] == 'in_front_of' and c['subject'] != c['reference']:
++            i, j = index[c['subject']], index[c['reference']]
++            key = (min(i, j), max(i, j))
++            relations.setdefault(key, []).append((i, j, c['max_gap']))
++    support = [[None for j in range(n)] for i in range(n)]
++    for i in range(n):
++        for j in range(i + 1, n):
++            si = [0] * len(poses[i])
++            sj = [0] * len(poses[j])
++            rels = relations.get((i, j), [])
++            for a, oa in enumerate(poses[i]):
++                ra = rects[i][a]
++                for b, ob in enumerate(poses[j]):
++                    rb = rects[j][b]
++                    if overlaps(ra, rb):
++                        continue
++                    good = True
++                    for subject, reference, limit in rels:
++                        if subject == i:
++                            good = front(oa, ra, ob, rb, limit)
++                        else:
++                            good = front(ob, rb, oa, ra, limit)
++                        if not good:
++                            break
++                    if good:
++                        si[a] |= 1 << b
++                        sj[b] |= 1 << a
++            support[i][j], support[j][i] = si, sj
++
++    def propagate(domains, queue):
++        queue = deque(queue)
++        while queue:
++            i, j = queue.popleft()
++            old = domains[i]
++            values = old
++            new = 0
++            sup = support[i][j]
++            other = domains[j]
++            while values:
++                budget[0] += 1
++                bit = values & -values
++                values -= bit
++                if sup[bit.bit_length() - 1] & other:
++                    new |= bit
++            if new != old:
++                if not new:
++                    return False
++                domains[i] = new
++                queue.extend((k, i) for k in range(n) if k != i and k != j)
++            if budget[0] > 2800000:
++                return False
++        return True
++
++    fine = grid(int(math.ceil(width * 4)), int(math.ceil(depth * 4)))
++    fine_valid = 0
++    points = []
++    for y in range(fine[1]):
++        for x in range(fine[0]):
++            px, py = (x + 0.5) / 4, (y + 0.5) / 4
++            bit = 1 << (y * fine[0] + x)
++            if px < width and py < depth:
++                fine_valid |= bit
++                points.append((px, py, bit))
++    access_cache = {}
++    source_masks = {}
++    for access in accesses:
++        rid = access['from_region']
++        if rid not in source_masks:
++            r = regions[rid]
++            source_masks[rid] = sum(bit for x, y, bit in points
++                if r['x'] <= x <= r['x'] + r['width'] and
++                   r['y'] <= y <= r['y'] + r['depth'])
++
++    def accessible(choice):
++        for access in accesses:
++            clearance = access.get('clearance', 0.15)
++            blocked = 0
++            for i, a in enumerate(choice):
++                key = (i, a, clearance)
++                if key not in access_cache:
++                    access_cache[key] = blocked_mask(rects[i][a], fine, 0.25, clearance)
++                blocked |= access_cache[key]
++            free = fine_valid & ~blocked
++            reached = source_masks[access['from_region']] & free
++            if not reached:
++                return False
++            i = index[access['to_object']]
++            r = rects[i][choice[i]]
++            limit = access.get('interaction_distance', 0.8)
++            target = 0
++            for x, y, bit in points:
++                dx = max(r[0] - x, 0, x - r[2])
++                dy = max(r[1] - y, 0, y - r[3])
++                if dx * dx + dy * dy <= limit * limit + eps:
++                    target |= bit
++            wave = reached
++            while wave and not reached & target:
++                wave = neighbors(wave, fine) & free & ~reached
++                reached |= wave
++            if not reached & target:
++                return False
++        return True
++
++    best = [None, -1]
++
++    def search(domains, target, level):
++        budget[2] += 1
++        if budget[2] > 45000 or budget[0] > 2800000 or budget[1] > 480000:
++            return None
++        mandatory = 0
++        options = []
++        for i, d in enumerate(domains):
++            values = d
++            intersection = nav[2]
++            while values:
++                bit = values & -values
++                values -= bit
++                intersection &= masks[i][bit.bit_length() - 1]
++            mandatory |= intersection
++            if d & (d - 1):
++                options.append(i)
++        distance, path = walk(mandatory, bool(options) and target > 0)
++        if distance < 0:
++            return None
++        if not options:
++            choice = [d.bit_length() - 1 for d in domains]
++            if distance <= best[1] and distance < target:
++                return None
++            if accessible(choice):
++                if distance > best[1]:
++                    best[:] = [choice, distance]
++                if distance >= target:
++                    return choice
++            return None
++        hits = {}
++        if distance < target:
++            for i in options:
++                values = domains[i]
++                hit = 0
++                while values:
++                    bit = values & -values
++                    values -= bit
++                    if masks[i][bit.bit_length() - 1] & path:
++                        hit |= bit
++                if hit:
++                    hits[i] = hit
++            if not hits:
++                return None
++            if len(hits) == 1:
++                i = next(iter(hits))
++                if hits[i] != domains[i]:
++                    new = domains[:]
++                    new[i] = hits[i]
++                    if propagate(new, ((j, i) for j in range(n) if j != i)):
++                        return search(new, target, level)
++                    return None
++        i = min(options, key=lambda j: (domains[j].bit_count(),
++                    0 if j in hits else 1,
++                    -sum((support[j][k][a] & domains[k]).bit_count() == 1
++                         for a in range(len(poses[j])) if domains[j] & (1 << a)
++                         for k in options if k != j)))
++        ranked = []
++        values = domains[i]
++        while values:
++            bit = values & -values
++            values -= bit
++            a = bit.bit_length() - 1
++            d, unused = walk(mandatory | masks[i][a])
++            if d >= 0:
++                ranked.append((d, (masks[i][a] & path).bit_count(),
++                               -sum((support[i][j][a] & domains[j]).bit_count()
++                                    for j in options if j != i), bit))
++        ranked.sort(reverse=True)
++        for distance_score, path_score, restriction_score, bit in ranked:
++            new = domains[:]
++            new[i] = bit
++            if propagate(new, ((j, i) for j in range(n) if j != i)):
++                result = search(new, target, level + 1)
++                if result is not None:
++                    return result
++            if budget[0] > 2800000 or budget[1] > 480000 or budget[2] > 45000:
++                break
++        return None
++
++    choice = None
++    if all(initial) and propagate(initial, ((i, j) for i in range(n) for j in range(n) if i != j)):
++        choice = search(initial[:], 0, 0)
++        if choice is None or best[1] < minimum:
++            improved = search(initial[:], minimum, 0)
++            if improved is not None:
++                choice = improved
++        if best[0] is not None:
++            choice = best[0]
++    if choice is not None:
++        objects = fixed + [poses[i][choice[i]] for i in range(len(fixed), n)]
++    else:
++        objects = fixed[:]
++        for k, req in enumerate(required):
++            i = len(fixed) + k
++            domain = poses[i] or packet['domains'].get(req['id'], [])
++            if domain:
++                objects.append(domain[0])
++    return {'scene_id': spec['scene_id'], 'objects': objects}

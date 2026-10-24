@@ -97,6 +97,9 @@ def fetch(job, run, parent, replay):
     directory = run/f"c{job['slot']}"
     if replay:
         directory.mkdir()
+        archived = next(c for c in json.loads((replay/'calls.json').read_text()) if c['slot'] == job['slot'])
+        if archived['status'] == 'generation_failed':
+            return {'error':archived['error']}
         result = json.loads((replay/f"c{job['slot']}"/'output/proposal.json').read_text())
         save(directory/'replayed_proposal.json', result)
         return result

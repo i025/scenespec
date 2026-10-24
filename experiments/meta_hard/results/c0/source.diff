@@ -1,0 +1,396 @@
+--- a/indoor_generator.py
++++ b/indoor_generator.py
+@@ -1,43 +1,350 @@
+-"""Pure finite-domain indoor generator fixture; never imported on the host."""
+-
+-def rect(obj, assets):
+-    a=assets[obj['asset']]
+-    w,d=a['width'],a['depth']
+-    if obj['yaw_deg']%180: w,d=d,w
+-    return (obj['x']-w/2,obj['y']-d/2,obj['x']+w/2,obj['y']+d/2)
+-
+-def overlap(a,b):
+-    return min(a[2],b[2])-max(a[0],b[0])>1e-8 and min(a[3],b[3])-max(a[1],b[1])>1e-8
+-
+-def clear(obj,placed,p):
+-    r=rect(obj,p['spec']['assets'])
+-    if any(overlap(r,rect(o,p['spec']['assets'])) for o in placed): return False
+-    for c in p['spec']['constraints']:
+-        if c['type']=='keep_clear':
+-            z=next(v for v in p['spec']['regions'] if v['id']==c['region'])
+-            if overlap(r,(z['x'],z['y'],z['x']+z['width'],z['y']+z['depth'])): return False
+-    return True
+-
+-def relation(c,objects,p):
+-    if c['subject'] not in objects: return True
+-    o=objects[c['subject']];r=rect(o,p['spec']['assets'])
+-    if c['type']=='near_wall':
+-        gap={'north':p['depth']-r[3],'south':r[1],'east':p['width']-r[2],'west':r[0]}[c['wall']]
+-        return -1e-8<=gap<=c['max_gap']+1e-8
+-    if c['type']=='in_front_of':
+-        if c['reference'] not in objects: return True
+-        ref=objects[c['reference']];rr=rect(ref,p['spec']['assets'])
+-        f={0:(0,1),90:(-1,0),180:(0,-1),270:(1,0)}[ref['yaw_deg']]
+-        dx,dy=o['x']-ref['x'],o['y']-ref['y']
+-        half=lambda q,ax:abs(ax[0])*(q[2]-q[0])/2+abs(ax[1])*(q[3]-q[1])/2
+-        gap=dx*f[0]+dy*f[1]-half(r,f)-half(rr,f)
+-        lat=(f[1],-f[0]);off=abs(dx*lat[0]+dy*lat[1])
+-        return -1e-8<=gap<=c['max_gap']+1e-8 and off<=half(r,lat)+half(rr,lat)+1e-8
+-    return True
+-
+-def layout(p):
+-    placed=list(p['fixed'])
+-    for name,domain in p['domains'].items():
+-        chosen=next((o for o in domain if clear(o,placed,p)),None)
+-        if chosen is not None: placed.append(chosen)
+-    return {'scene_id':p['spec']['scene_id'],'objects':placed}
++import math
++
++def layout(packet):
++    spec = packet['spec']
++    assets = spec['assets']
++    width, depth = packet['width'], packet['depth']
++    fixed = list(packet['fixed'])
++    fixed_by_id = {o['id']: o for o in fixed}
++    required = {o['id']: o['asset'] for o in spec['required_objects']}
++    names = list(fixed_by_id)
++    names.extend(k for k in required if k not in fixed_by_id)
++    regions = {r['id']: r for r in spec.get('regions', [])}
++    constraints = spec.get('constraints', [])
++    accesses = spec.get('access_paths', [])
++    eps = 1e-8
++
++    def rectangle(o):
++        a = assets[o['asset']]
++        w, d = a['width'], a['depth']
++        if o['yaw_deg'] % 180:
++            w, d = d, w
++        return (o['x'] - w / 2, o['y'] - d / 2,
++                o['x'] + w / 2, o['y'] + d / 2)
++
++    def overlap(a, b):
++        return (min(a[2], b[2]) - max(a[0], b[0]) > eps and
++                min(a[3], b[3]) - max(a[1], b[1]) > eps)
++
++    clear_regions = []
++    walls = {}
++    relations = []
++    for c in constraints:
++        typ = c['type']
++        if typ == 'keep_clear':
++            r = regions[c['region']]
++            clear_regions.append((r['x'], r['y'], r['x'] + r['width'], r['y'] + r['depth']))
++        elif typ == 'near_wall':
++            walls.setdefault(c['subject'], []).append(c)
++        elif typ == 'in_front_of':
++            relations.append(c)
++
++    def unary(o, r):
++        if r[0] < -eps or r[1] < -eps or r[2] > width + eps or r[3] > depth + eps:
++            return False
++        if any(overlap(r, z) for z in clear_regions):
++            return False
++        for c in walls.get(o['id'], []):
++            gap = {'west': r[0], 'east': width - r[2],
++                   'south': r[1], 'north': depth - r[3]}[c['wall']]
++            if gap < -eps or gap > c['max_gap'] + eps:
++                return False
++        return True
++
++    def front(o, r, ref, rr, gap_limit):
++        fx, fy = {0: (0, 1), 90: (-1, 0),
++                  180: (0, -1), 270: (1, 0)}[ref['yaw_deg'] % 360]
++        dx, dy = o['x'] - ref['x'], o['y'] - ref['y']
++        along = (abs(fx) * (r[2] - r[0] + rr[2] - rr[0]) +
++                 abs(fy) * (r[3] - r[1] + rr[3] - rr[1])) / 2
++        lateral = (abs(fy) * (r[2] - r[0] + rr[2] - rr[0]) +
++                   abs(fx) * (r[3] - r[1] + rr[3] - rr[1])) / 2
++        gap = dx * fx + dy * fy - along
++        return -eps <= gap <= gap_limit + eps and abs(dx * fy - dy * fx) <= lateral + eps
++
++    poses, rects = [], []
++    for name in names:
++        source = [fixed_by_id[name]] if name in fixed_by_id else packet['domains'][name]
++        pp, rr, seen = [], [], set()
++        for o in source:
++            if o['id'] != name or o['asset'] != required.get(name, o['asset']):
++                continue
++            r = rectangle(o)
++            key = (o['x'], o['y'], o['yaw_deg'])
++            if key not in seen and unary(o, r):
++                seen.add(key)
++                pp.append(o)
++                rr.append(r)
++        poses.append(pp)
++        rects.append(rr)
++    n = len(names)
++    index = {name: i for i, name in enumerate(names)}
++    pair_rel = {}
++    for c in relations:
++        a, b = index[c['subject']], index[c['reference']]
++        pair_rel.setdefault((min(a, b), max(a, b)), []).append((a, b, c['max_gap']))
++
++    support = [[None] * n for i in range(n)]
++    for i in range(n):
++        for j in range(i + 1, n):
++            si = [0] * len(poses[i])
++            sj = [0] * len(poses[j])
++            rel = pair_rel.get((i, j), [])
++            for a, o in enumerate(poses[i]):
++                r = rects[i][a]
++                for b, q in enumerate(poses[j]):
++                    rr = rects[j][b]
++                    if overlap(r, rr):
++                        continue
++                    good = True
++                    for sub, ref, gap in rel:
++                        if sub == i:
++                            good = front(o, r, q, rr, gap)
++                        else:
++                            good = front(q, rr, o, r, gap)
++                        if not good:
++                            break
++                    if good:
++                        si[a] |= 1 << b
++                        sj[b] |= 1 << a
++            support[i][j], support[j][i] = si, sj
++
++    def propagate(state, queue):
++        head = 0
++        while head < len(queue):
++            i, j = queue[head]
++            head += 1
++            old = state[i]
++            bits, kept = old, 0
++            table = support[i][j]
++            while bits:
++                bit = bits & -bits
++                bits -= bit
++                a = bit.bit_length() - 1
++                if table[a] & state[j]:
++                    kept |= bit
++            if kept != old:
++                if not kept:
++                    return False
++                state[i] = kept
++                for k in range(n):
++                    if k != i and k != j:
++                        queue.append((k, i))
++        return True
++
++    def grid(w, h):
++        whole = (1 << (w * h)) - 1
++        left = sum(1 << (y * w) for y in range(h))
++        right = left << (w - 1)
++        return (w, h, whole, whole ^ left, whole ^ right)
++
++    gw, gh = int(width), int(depth)
++    navigation = grid(gw, gh)
++    start = int(packet['start'][0]) + gw * int(packet['start'][1])
++    goal = int(packet['goal'][0]) + gw * int(packet['goal'][1])
++    sb, gb = 1 << start, 1 << goal
++    minimum = packet['minimum_steps']
++
++    def rectangle_mask(r, clearance, step, g):
++        w, h = g[0], g[1]
++        lo = max(0, int(math.floor((r[0] - clearance) / step - 0.5)) + 1)
++        hi = min(w - 1, int(math.ceil((r[2] + clearance) / step - 0.5)) - 1)
++        bottom = max(0, int(math.floor((r[1] - clearance) / step - 0.5)) + 1)
++        top = min(h - 1, int(math.ceil((r[3] + clearance) / step - 0.5)) - 1)
++        if lo > hi or bottom > top:
++            return 0
++        row = ((1 << (hi - lo + 1)) - 1) << lo
++        result = 0
++        for y in range(bottom, top + 1):
++            result |= row << (y * w)
++        return result
++
++    masks = [[rectangle_mask(r, 0.15, 1.0, navigation) for r in rr] for rr in rects]
++    distance_cache = {}
++
++    def distance(blocked):
++        if blocked in distance_cache:
++            return distance_cache[blocked]
++        if blocked & (sb | gb):
++            result = -1
++        else:
++            w, h, whole, no_left, no_right = navigation
++            free = whole & ~blocked
++            frontier, visited, d = sb, sb, 0
++            result = -1
++            while frontier:
++                if frontier & gb:
++                    result = d
++                    break
++                frontier = (((frontier & no_left) >> 1) |
++                            ((frontier & no_right) << 1) |
++                            (frontier << w) | (frontier >> w)) & free & ~visited
++                visited |= frontier
++                d += 1
++        if len(distance_cache) >= 50000:
++            distance_cache.clear()
++        distance_cache[blocked] = result
++        return result
++
++    def forced_and_possible(state):
++        forced, possible = 0, 0
++        for i, bits in enumerate(state):
++            intersection = navigation[2]
++            union = 0
++            while bits:
++                bit = bits & -bits
++                bits -= bit
++                m = masks[i][bit.bit_length() - 1]
++                intersection &= m
++                union |= m
++            forced |= intersection
++            possible |= union
++        return forced, possible
++
++    fine_step = 0.1
++    fine = grid(int(math.ceil(width / fine_step)), int(math.ceil(depth / fine_step)))
++    fine_masks = {}
++    target_masks = {}
++    access_failures = set()
++
++    def fine_object_mask(i, a, clearance):
++        key = (i, a, clearance)
++        if key not in fine_masks:
++            fine_masks[key] = rectangle_mask(rects[i][a], clearance, fine_step, fine)
++        return fine_masks[key]
++
++    def proximity_mask(r, radius):
++        w, h = fine[0], fine[1]
++        result = 0
++        for y in range(h):
++            cy = (y + 0.5) * fine_step
++            if cy > depth:
++                continue
++            dy = max(r[1] - cy, 0.0, cy - r[3])
++            if dy > radius:
++                continue
++            extension = math.sqrt(max(0.0, radius * radius - dy * dy))
++            lo = max(0, int(math.ceil((r[0] - extension) / fine_step - 0.5 - 1e-9)))
++            hi = min(w - 1, int(math.floor((r[2] + extension) / fine_step - 0.5 + 1e-9)))
++            if lo <= hi:
++                result |= ((1 << (hi - lo + 1)) - 1) << (lo + y * w)
++        return result
++
++    sources = []
++    for access in accesses:
++        r = regions[access['from_region']]
++        rr = (r['x'], r['y'], r['x'] + r['width'], r['y'] + r['depth'])
++        sources.append(rectangle_mask(rr, 0.0, fine_step, fine))
++
++    def access_ok(chosen):
++        if not accesses:
++            return True
++        occupancy = {}
++        w, h, whole, no_left, no_right = fine
++        for k, access in enumerate(accesses):
++            clearance = access.get('clearance', 0.15)
++            if clearance not in occupancy:
++                blocked = 0
++                for i, a in enumerate(chosen):
++                    blocked |= fine_object_mask(i, a, clearance)
++                occupancy[clearance] = blocked
++            blocked = occupancy[clearance]
++            i = index[access['to_object']]
++            a = chosen[i]
++            radius = access.get('interaction_distance', 0.8)
++            target_key = (i, a, radius)
++            if target_key not in target_masks:
++                target_masks[target_key] = proximity_mask(rects[i][a], radius)
++            cache_key = (k, blocked, i, a)
++            if cache_key in access_failures:
++                return False
++            free = whole & ~blocked
++            target = target_masks[target_key] & free
++            frontier = sources[k] & free
++            visited = frontier
++            while frontier and not (frontier & target):
++                frontier = (((frontier & no_left) >> 1) |
++                            ((frontier & no_right) << 1) |
++                            (frontier << w) | (frontier >> w)) & free & ~visited
++                visited |= frontier
++            if not (frontier & target):
++                if len(access_failures) < 10000:
++                    access_failures.add(cache_key)
++                return False
++        return True
++
++    initial = [(1 << len(pp)) - 1 for pp in poses]
++    fallback = [None, -1]
++    budget = [0]
++    failed_states = set()
++
++    def search(state):
++        budget[0] += 1
++        if budget[0] > 50000:
++            return None
++        key = tuple(state)
++        if key in failed_states:
++            return None
++        forced, possible = forced_and_possible(state)
++        low = distance(forced)
++        if low < 0:
++            return None
++        unresolved = [i for i in range(n) if state[i] & (state[i] - 1)]
++        if not unresolved:
++            chosen = [bits.bit_length() - 1 for bits in state]
++            if low > fallback[1]:
++                fallback[0], fallback[1] = chosen, low
++            if low >= minimum and access_ok(chosen):
++                return chosen
++            return None
++        if low < minimum:
++            high = distance(possible)
++            if 0 <= high < minimum:
++                return None
++        variable = min(unresolved, key=lambda i: (
++            state[i].bit_count(),
++            -sum(1 for j in unresolved if j != i and
++                 (min(i, j), max(i, j)) in pair_rel)))
++        values = []
++        bits = state[variable]
++        while bits:
++            bit = bits & -bits
++            bits -= bit
++            a = bit.bit_length() - 1
++            d = distance(forced | masks[variable][a])
++            if d < 0:
++                continue
++            freedom = sum((support[variable][j][a] & state[j]).bit_count()
++                          for j in unresolved if j != variable)
++            values.append((min(d, minimum), freedom, a))
++        values.sort(reverse=True)
++        for score, freedom, a in values:
++            child = state[:]
++            child[variable] = 1 << a
++            queue = [(j, variable) for j in range(n) if j != variable]
++            if propagate(child, queue):
++                answer = search(child)
++                if answer is not None:
++                    return answer
++            if budget[0] > 50000:
++                break
++        if len(failed_states) < 30000:
++            failed_states.add(key)
++        return None
++
++    chosen = None
++    if all(initial) and propagate(initial, [(i, j) for i in range(n) for j in range(n) if i != j]):
++        chosen = search(initial)
++    if chosen is None:
++        chosen = fallback[0]
++    objects = list(fixed)
++    for i, name in enumerate(names):
++        if name in fixed_by_id:
++            continue
++        if chosen is not None:
++            objects.append(poses[i][chosen[i]])
++        elif poses[i]:
++            objects.append(poses[i][0])
++        else:
++            objects.append(packet['domains'][name][0])
++    return {'scene_id': spec['scene_id'], 'objects': objects}
