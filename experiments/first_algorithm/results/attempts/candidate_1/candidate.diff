@@ -1,0 +1,194 @@
+--- a/scene_rsi/agent/world_generator.py
++++ b/scene_rsi/agent/world_generator.py
+@@ -1,11 +1,184 @@
+-"""One raw layout proposal. Called only inside the restricted experiment runner.
+-
+-The trusted controller supplies the original RNG sample and enforces the
+-256-proposal ceiling, geometry and minimum crate/goal distance. No oracle here.
+-"""
++"""Deterministic layout construction using local push-and-turn geometry."""
+ 
+ 
+ def layout(packet):
++    width, depth = packet['width'], packet['depth']
+     sample = packet['sample']
+-    return {'obstacles': sample[:-3], 'agent': sample[-3],
+-            'crate': sample[-2], 'goal': sample[-1]}
++    obstacles = sample[:-3]
++    blocked = {tuple(p) for p in obstacles}
++    cells = [(x, y) for x in range(width) for y in range(depth)
++             if (x, y) not in blocked]
++    free = set(cells)
++    directions = ((1, 0), (0, 1), (-1, 0), (0, -1))
++
++    seed = width * 101 + depth * 211
++    for i, point in enumerate(sample):
++        seed = (seed * 1664525 + (i + 1) * 1013
++                + point[0] * 97 + point[1] * 193 + 1013904223) & 0xffffffff
++
++    def noise(*values):
++        h = seed
++        for value in values:
++            h = ((h ^ (value + 104729)) * 2246822519) & 0xffffffff
++            h ^= h >> 13
++        return (h & 65535) / 65536.0
++
++    def add(a, b):
++        return (a[0] + b[0], a[1] + b[1])
++
++    def sub(a, b):
++        return (a[0] - b[0], a[1] - b[1])
++
++    def distance(a, b):
++        return abs(a[0] - b[0]) + abs(a[1] - b[1])
++
++    def turn_clear(cell, incoming, outgoing):
++        if outgoing == incoming:
++            return True
++        if outgoing == (-incoming[0], -incoming[1]):
++            return False
++        # After the preceding push, the agent stands at cell-incoming.
++        # These two squares give a walk around the stationary crate.
++        return (sub(cell, outgoing) in free
++                and sub(sub(cell, incoming), outgoing) in free)
++
++    def continuations(cell, incoming, occupied, reserved):
++        result = []
++        for k, direction in enumerate(directions):
++            nxt = add(cell, direction)
++            if (nxt in free and nxt not in occupied and nxt != reserved
++                    and turn_clear(cell, incoming, direction)):
++                result.append((k, direction, nxt))
++        return result
++
++    # Select a two-push geometric building block. A turn is admitted only
++    # when its agent walk is certified by the surrounding free squares.
++    # This enumerates local shapes, not complete layouts or joint states.
++    prefer_turn = seed % 5 != 0
++    best = None
++    best_score = None
++    for start in cells:
++        for first_index, first in enumerate(directions):
++            support = sub(start, first)
++            middle = add(start, first)
++            if support not in free or middle not in free:
++                continue
++            for second_index, second in enumerate(directions):
++                end = add(middle, second)
++                if (end not in free or end == start or end == support
++                        or not turn_clear(middle, first, second)):
++                    continue
++                occupied = {start, middle, end}
++                onward = len(continuations(end, second, occupied, support))
++                turned = first != second
++                openness = sum(add(end, d) in free for d in directions)
++                score = (1.6 * min(onward, 2) + 0.25 * openness
++                         + 1.2 * (turned == prefer_turn)
++                         + 2.0 * noise(start[0], start[1], first_index,
++                                       second_index, 11))
++                if best_score is None or score > best_score:
++                    best_score = score
++                    best = (start, middle, end, support, first, second)
++
++    if best is not None:
++        start, middle, end, support, first, incoming = best
++        path = [start, middle, end]
++        occupied = set(path)
++        turns = int(first != incoming)
++        desired_turns = 1 + (seed >> 7) % 3
++        target = min(len(free) - 2, 4 + (seed >> 12) % 5)
++        goal = end
++        goal_index = 2
++
++        # Extend one construction, without backtracking or scene rejection.
++        while len(path) - 1 < target:
++            options = continuations(path[-1], incoming, occupied, support)
++            if not options:
++                break
++            chosen = None
++            chosen_score = None
++            for index, direction, nxt in options:
++                onward = len(continuations(nxt, direction,
++                                           occupied | {nxt}, support))
++                turned = direction != incoming
++                separation = distance(start, nxt)
++                score = (0.85 * min(onward, 2) + 0.6 * separation
++                         + (1.25 if turns < desired_turns else -0.65) * turned
++                         + 1.3 * noise(nxt[0], nxt[1], index, len(path), 29))
++                if chosen_score is None or score > chosen_score:
++                    chosen_score = score
++                    chosen = (direction, nxt)
++            direction, nxt = chosen
++            turns += int(direction != incoming)
++            incoming = direction
++            path.append(nxt)
++            occupied.add(nxt)
++            if distance(start, nxt) >= 2:
++                goal = nxt
++                goal_index = len(path) - 1
++
++        # Ordinary walking distances place the agent in the component of
++        # the first pushing square while the initial crate blocks its cell.
++        walk_distance = {support: 0}
++        queue = [support]
++        for cell in queue:
++            for direction in directions:
++                nxt = add(cell, direction)
++                if nxt in free and nxt != start and nxt not in walk_distance:
++                    walk_distance[nxt] = walk_distance[cell] + 1
++                    queue.append(nxt)
++        desired_walk = 2 + (seed >> 20) % 6
++        agent = max(
++            (cell for cell in queue if cell != goal),
++            key=lambda cell: (
++                -abs(walk_distance[cell] - desired_walk)
++                + 0.65 * noise(cell[0], cell[1], goal_index, 47)))
++        crate = start
++    else:
++        # Some fixed obstacle patterns have no two-push building block,
++        # and some admit no solvable placement at all. Preserve validity
++        # and choose a connected, locally mobile placement in that case.
++        components = {}
++        component_id = 0
++        for root in cells:
++            if root in components:
++                continue
++            components[root] = component_id
++            queue = [root]
++            for cell in queue:
++                for direction in directions:
++                    nxt = add(cell, direction)
++                    if nxt in free and nxt not in components:
++                        components[nxt] = component_id
++                        queue.append(nxt)
++            component_id += 1
++
++        pair = None
++        pair_score = None
++        for candidate_crate in cells:
++            pushes = [d for d in directions
++                      if add(candidate_crate, d) in free
++                      and sub(candidate_crate, d) in free]
++            for candidate_goal in cells:
++                separation = distance(candidate_crate, candidate_goal)
++                if separation < 2:
++                    continue
++                score = (8 * (components[candidate_crate]
++                              == components[candidate_goal])
++                         + 3 * min(len(pushes), 2)
++                         - 0.2 * separation
++                         + noise(candidate_crate[0], candidate_crate[1],
++                                 candidate_goal[0], candidate_goal[1], 61))
++                if pair_score is None or score > pair_score:
++                    pair_score = score
++                    pair = (candidate_crate, candidate_goal, pushes)
++        crate, goal, pushes = pair
++        supports = [sub(crate, d) for d in pushes if sub(crate, d) != goal]
++        choices = supports or [cell for cell in cells
++                               if cell != crate and cell != goal]
++        agent = max(choices, key=lambda cell: (
++            2 * (components[cell] == components[crate])
++            + noise(cell[0], cell[1], 73)))
++
++    return {'obstacles': obstacles, 'agent': agent,
++            'crate': crate, 'goal': goal}

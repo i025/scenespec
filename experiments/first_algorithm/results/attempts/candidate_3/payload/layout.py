@@ -1,0 +1,189 @@
+"""Deterministic construction from reversible push motifs and walking connectivity."""
+
+
+def layout(packet):
+    width = packet['width']
+    depth = packet['depth']
+    sample = packet['sample']
+    obstacles = sample[:-3]
+    blocked = {tuple(p) for p in obstacles}
+    cells = [(x, y) for x in range(width) for y in range(depth)
+             if (x, y) not in blocked]
+    free = set(cells)
+    directions = ((1, 0), (0, 1), (-1, 0), (0, -1))
+
+    seed = 97
+    for i, p in enumerate(sample):
+        seed = (seed * 1009 + (i + 1) * (17 * p[0] + 31 * p[1] + 1)) % 2147483647
+
+    def noise(*values):
+        h = seed
+        for v in values:
+            h = (h * 48271 + 101 * (v + 19)) % 2147483647
+        return h
+
+    def shift(p, d, amount=1):
+        return (p[0] + amount * d[0], p[1] + amount * d[1])
+
+    def manhattan(a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    neighbors = {p: [shift(p, d) for d in directions
+                     if shift(p, d) in free] for p in cells}
+
+    def walking(start, crate):
+        distances = {start: 0}
+        queue = [start]
+        for p in queue:
+            for q in neighbors[p]:
+                if q != crate and q not in distances:
+                    distances[q] = distances[p] + 1
+                    queue.append(q)
+        return distances
+
+    # These labels describe ordinary walking with one specified cell blocked.
+    # They do not contain crate transitions or goal-directed search states.
+    component_cache = {}
+
+    def components(crate):
+        if crate in component_cache:
+            return component_cache[crate]
+        labels = {}
+        label = 0
+        for start in cells:
+            if start == crate or start in labels:
+                continue
+            labels[start] = label
+            queue = [start]
+            for p in queue:
+                for q in neighbors[p]:
+                    if q != crate and q not in labels:
+                        labels[q] = label
+                        queue.append(q)
+            label += 1
+        component_cache[crate] = labels
+        return labels
+
+    def pull_room(p):
+        return sum(shift(p, d) in free and shift(p, d, 2) in free
+                   for d in directions)
+
+    # Assemble a two-pull primitive. The intermediate crate cell is c.
+    # After the first pull the person is at c+d; the second requires
+    # walking to c+e and pulling onto c+2e.
+    chosen = None
+    chosen_key = None
+    prefer_turn = seed % 4 != 0
+    for c in cells:
+        labels = components(c)
+        for di, d in enumerate(directions):
+            goal = shift(c, d, -1)
+            after_first = shift(c, d)
+            if goal not in free or after_first not in free:
+                continue
+            for ei, e in enumerate(directions):
+                crate = shift(c, e)
+                agent = shift(c, e, 2)
+                if crate not in free or agent not in free or crate == goal:
+                    continue
+                if labels[after_first] != labels[crate]:
+                    continue
+                turn = di != ei
+                variety = noise(c[0], c[1], di, ei)
+                score = (variety % 23 + 4 * min(pull_room(crate), 3)
+                         + 6 * (turn == prefer_turn))
+                key = (score, variety)
+                if chosen_key is None or key > chosen_key:
+                    chosen_key = key
+                    chosen = (goal, c, crate, agent, ei, int(turn))
+
+    if chosen is None:
+        # Extremely fragmented rooms may admit no two-pull primitive.
+        # Still produce valid geometry without resampling or moving walls.
+        best = None
+        best_key = None
+        for crate in cells:
+            for goal in cells:
+                distance = manhattan(crate, goal)
+                if distance < 2:
+                    continue
+                labels = components(crate)
+                for agent in neighbors[crate]:
+                    if agent == goal:
+                        continue
+                    same = labels[agent] == labels.get(goal)
+                    key = (same, len(neighbors[crate]),
+                           -abs(distance - 3),
+                           noise(crate[0], crate[1], goal[0], goal[1],
+                                 agent[0], agent[1]))
+                    if best_key is None or key > best_key:
+                        best_key = key
+                        best = (agent, crate, goal)
+        if best is None:
+            pairs = [(a, b) for a in cells for b in cells
+                     if manhattan(a, b) >= 2]
+            crate, goal = max(pairs, key=lambda pair:
+                             noise(pair[0][0], pair[0][1],
+                                   pair[1][0], pair[1][1]))
+            agent = next(p for p in cells if p != crate and p != goal)
+        else:
+            agent, crate, goal = best
+        return {'obstacles': obstacles, 'agent': agent,
+                'crate': crate, 'goal': goal}
+
+    goal, middle, crate, agent, last_direction, turns = chosen
+    visited = {goal, middle, crate}
+    target_pushes = 4 + (seed // 7) % 4
+    target_distance = 3 + (seed // 37) % 3
+    target_turns = 1 + (seed // 113) % 3
+    best = (agent, crate)
+    best_key = None
+
+    # Grow exactly one reverse trajectory; never search alternative histories.
+    for pushes in range(2, target_pushes + 1):
+        distance = manhattan(crate, goal)
+        if distance >= 2:
+            key = (pushes + 2 * min(turns, target_turns)
+                   - abs(distance - target_distance), pushes,
+                   noise(crate[0], crate[1], pushes))
+            if best_key is None or key > best_key:
+                best_key = key
+                best = (agent, crate)
+        if pushes == target_pushes:
+            break
+        reachable = walking(agent, crate)
+        next_move = None
+        next_key = None
+        for di, d in enumerate(directions):
+            destination = shift(crate, d)
+            person_destination = shift(crate, d, 2)
+            if (destination not in reachable or destination in visited
+                    or person_destination not in free):
+                continue
+            extra_turn = di != last_direction
+            new_distance = manhattan(destination, goal)
+            variety = noise(destination[0], destination[1], pushes, di)
+            score = (3 * min(pull_room(destination), 3)
+                     + 5 * extra_turn * (turns < target_turns)
+                     - 2 * abs(new_distance - target_distance)
+                     + variety % 11)
+            key = (score, variety)
+            if next_key is None or key > next_key:
+                next_key = key
+                next_move = (destination, person_destination, di, extra_turn)
+        if next_move is None:
+            break
+        crate, agent, last_direction, extra_turn = next_move
+        turns += extra_turn
+        visited.add(crate)
+
+    agent, crate = best
+    # Add a modest walking approach within the existing reachable component.
+    reachable = walking(agent, crate)
+    approach = 1 + (seed // 251) % 4
+    choices = [p for p in reachable if p != goal]
+    agent = max(choices, key=lambda p:
+                (-abs(reachable[p] - approach),
+                 noise(p[0], p[1], crate[0], crate[1])))
+    return {'obstacles': obstacles, 'agent': agent,
+            'crate': crate, 'goal': goal}
