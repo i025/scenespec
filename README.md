@@ -1,5 +1,11 @@
 # Scene-RSI V0 — 3D 场景生成基线与独立验证器
 
+## Blender 真实 Mesh 与三视图导出
+
+新增固定资产库与可选 Blender 导出器：保留现有任务和独立评价，生成 `.blend`、`.glb` 及三个固定相机图像。已用现有 Blender 4.2.0 和 A100 实际渲染三个自动生成场景；CPU 回退也已实测。接口、复现命令、结果与限制见 [RENDERING.md](RENDERING.md)，实际文件在 [examples/rendered](examples/rendered)。
+
+![固定资产三维渲染](examples/rendered/seed_11/reverse.png)
+
 ## Interactive Code World
 
 新增可交互室内推动世界：沿用 SceneSpec、SceneState 和原始 Verifier，使用 **PyBullet 碰撞检查 + CPU TinyRenderer 三维渲染**。支持键盘移动、推动方块、障碍碰撞、目标完成、轨迹导出，以及固定 Agent 与独立可解性搜索。实验仅接受结构化生成器参数，不执行任意模型代码。
