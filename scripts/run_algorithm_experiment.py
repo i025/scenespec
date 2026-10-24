@@ -45,14 +45,14 @@ def git(repo,*args):
     return subprocess.check_output(['git','-c','core.hooksPath=/dev/null','-C',str(repo),*args],text=True).strip()
 
 
-def propose(directory,run,request,index,parent):
+def propose(directory,run,request,index,parent,prompt=PROMPT,maximum_candidates=3):
     directory.mkdir(parents=True)
     workspace,output=directory/'workspace',directory/'output'
     workspace.mkdir(); output.mkdir()
     save(workspace/'request.json',request); save(workspace/'schema.json',SCHEMA)
     for name in ('codex','home'):
         (output/name).mkdir()
-    save(directory/'reservation.json',{'attempt':index,'maximum_candidates':3,'parent_git':parent,
+    save(directory/'reservation.json',{'attempt':index,'maximum_candidates':maximum_candidates,'parent_git':parent,
          'model':relay.MODEL,'wall_limit_seconds':180,'input_bytes_limit':524288,
          'output_tokens_limit':8192,'maximum_upstream_calls':1,'status':'reserved'})
     server=relay.serve(directory/'model.sock',Path('/home/xymo/.codex/auth.json'),directory/'model_call.json')
@@ -73,7 +73,7 @@ def propose(directory,run,request,index,parent):
     started=time.perf_counter()
     try:
         result=subprocess.run(command+['/usr/local/bin/python3','-I','-B','/relay.py','bridge']+argv,
-                              input=(PROMPT+json.dumps(request)).encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                              input=(prompt+json.dumps(request)).encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,
                               env=env,timeout=180)
         (directory/'events.jsonl').write_bytes(result.stdout)
         (directory/'cli.stderr').write_bytes(result.stderr)
