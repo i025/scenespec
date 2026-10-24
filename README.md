@@ -1,5 +1,16 @@
 # Scene-RSI V0 — 3D 场景生成基线与独立验证器
 
+## Interactive Code World
+
+新增可交互室内推动世界：沿用 SceneSpec、SceneState 和原始 Verifier，使用 **PyBullet 碰撞检查 + CPU TinyRenderer 三维渲染**。支持键盘移动、推动方块、障碍碰撞、目标完成、轨迹导出，以及固定 Agent 与独立可解性搜索。实验仅接受结构化生成器参数，不执行任意模型代码。
+
+```bash
+python3.11 -m pip install -r requirements-world.txt
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3.11 -m scene_rsi.world serve
+```
+
+浏览器打开 `http://127.0.0.1:8765`；远程服务器需要 SSH 端口转发。操作、实验对照、CPU 渲染导出和限制见 [WORLD.md](WORLD.md)。旧静态基准与 Phase 2 接口保留。
+
 ## Phase 2 当前状态
 
 Phase 2B 的候选执行器接口、独立评分和离线验证见 [PHASE2B.md](PHASE2B.md)。当前未发现可验收的隔离服务，候选执行继续 fail-closed；没有真实动态对照结果。
