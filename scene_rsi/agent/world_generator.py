@@ -1,11 +1,143 @@
-"""One raw layout proposal. Called only inside the restricted experiment runner.
+"""Construct layouts by fitting clear push corridors and supported elbows."""
 
-The trusted controller supplies the original RNG sample and enforces the
-256-proposal ceiling, geometry and minimum crate/goal distance. No oracle here.
-"""
+from collections import deque
+import heapq
 
 
 def layout(packet):
+    width = packet['width']
+    depth = packet['depth']
     sample = packet['sample']
-    return {'obstacles': sample[:-3], 'agent': sample[-3],
-            'crate': sample[-2], 'goal': sample[-1]}
+    obstacles = sample[:-3]
+    blocked = {tuple(p) for p in obstacles}
+    free = {(x, y) for x in range(width) for y in range(depth)
+            if (x, y) not in blocked}
+    directions = ((1, 0), (0, 1), (-1, 0), (0, -1))
+    signature = sum((i + 1) * (p[0] + 1 + (width + 1) * (p[1] + 1))
+                    for i, p in enumerate(sample))
+    target_length = 3 + signature % 5
+    target_turns = 1 + (signature // 5) % 2
+    crate_anchor = tuple(sample[-2])
+    goal_anchor = tuple(sample[-1])
+
+    def distance(a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    # Straight clearances depend only on the fixed obstacle geometry.
+    runs = {}
+    elbows = {}
+    ordered = sorted(free)
+    for p in ordered:
+        for d, (dx, dy) in enumerate(directions):
+            length = 0
+            q = (p[0] + dx, p[1] + dy)
+            while q in free:
+                length += 1
+                q = (q[0] + dx, q[1] + dy)
+            runs[p, d] = length
+            for turn in (-1, 1):
+                e = (d + turn) % 4
+                ex, ey = directions[e]
+                # At this elbow the player can walk around the stationary
+                # crate using the other three cells of a clear 2x2 square.
+                elbows[p, d, e] = (
+                    (p[0] - dx, p[1] - dy) in free
+                    and (p[0] - ex, p[1] - ey) in free
+                    and (p[0] - dx - ex, p[1] - dy - ey) in free
+                )
+
+    best = []
+    serial = 0
+
+    def offer(crate, goal, support, length, turns):
+        nonlocal serial
+        separation = distance(crate, goal)
+        if separation < 2:
+            return
+        score = (100 - 14 * abs(length - target_length)
+                 - 12 * abs(turns - target_turns)
+                 + 3 * min(separation, 5)
+                 - 2 * (length - separation)
+                 - distance(crate, crate_anchor)
+                 - distance(goal, goal_anchor))
+        serial += 1
+        item = (score, serial, crate, goal, support)
+        if len(best) < 20:
+            heapq.heappush(best, item)
+        elif item > best[0]:
+            heapq.heapreplace(best, item)
+
+    # These are geometric templates, not a search over player/crate states.
+    # Each fitted template has one, two, or three straight legs.
+    offset = signature % 4
+    for crate in ordered:
+        for di in range(4):
+            d = (di + offset) % 4
+            dx, dy = directions[d]
+            support = (crate[0] - dx, crate[1] - dy)
+            if support not in free:
+                continue
+            for a in range(1, runs[crate, d] + 1):
+                p = (crate[0] + a * dx, crate[1] + a * dy)
+                if a >= 2:
+                    offer(crate, p, support, a, 0)
+                for turn in (-1, 1):
+                    e = (d + turn) % 4
+                    if not elbows[p, d, e]:
+                        continue
+                    ex, ey = directions[e]
+                    for b in range(1, runs[p, e] + 1):
+                        q = (p[0] + b * ex, p[1] + b * ey)
+                        offer(crate, q, support, a + b, 1)
+                        for turn2 in (-1, 1):
+                            f = (e + turn2) % 4
+                            if not elbows[q, e, f]:
+                                continue
+                            fx, fy = directions[f]
+                            for c in range(1, runs[q, f] + 1):
+                                goal = (q[0] + c * fx, q[1] + c * fy)
+                                offer(crate, goal, support, a + b + c, 2)
+
+    if best:
+        ranked = sorted(best, reverse=True)
+        # Keep selection near the best geometric fit while varying it with
+        # the supplied ordered sample.
+        cutoff = ranked[0][0] - 6
+        choices = [item for item in ranked if item[0] >= cutoff]
+        chosen = choices[(signature // 11) % len(choices)]
+        _, _, crate, goal, support = chosen
+
+        # A pedestrian flood fill places the player in the initial support
+        # region. It never explores alternative crate positions.
+        walking = {support: 0}
+        queue = deque([support])
+        while queue:
+            p = queue.popleft()
+            for dx, dy in directions:
+                q = (p[0] + dx, p[1] + dy)
+                if q in free and q != crate and q not in walking:
+                    walking[q] = walking[p] + 1
+                    queue.append(q)
+        target_walk = 1 + (signature // 17) % 3
+        agent_anchor = tuple(sample[-3])
+        agent = min((p for p in walking if p != goal),
+                    key=lambda p: (abs(walking[p] - target_walk),
+                                   distance(p, agent_anchor), p))
+    else:
+        # Some fixed obstacle patterns contain no supported two-push route.
+        # Still return a valid placement, using local mobility as a fallback.
+        degree = {p: sum((p[0] + dx, p[1] + dy) in free
+                         for dx, dy in directions) for p in ordered}
+        crate, goal = max(
+            ((c, g) for c in ordered for g in ordered
+             if distance(c, g) >= 2),
+            key=lambda pair: (3 * degree[pair[0]] + degree[pair[1]],
+                              -distance(pair[0], crate_anchor)
+                              -distance(pair[1], goal_anchor), pair))
+        agent_anchor = tuple(sample[-3])
+        agent = min((p for p in ordered if p != crate and p != goal),
+                    key=lambda p: (distance(p, crate),
+                                   distance(p, agent_anchor), p))
+
+    return {'obstacles': obstacles, 'agent': list(agent),
+            'crate': list(crate), 'goal': list(goal)}
