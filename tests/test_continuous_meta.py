@@ -11,6 +11,21 @@ from scene_rsi.continuous.meta_experiment import audit,initial_source,run_case,e
 
 
 class ContinuousMetaTest(unittest.TestCase):
+    def test_cli_timeout_preserves_partial_events_without_model_or_retry(self):
+        import subprocess
+        from scripts import run_algorithm_experiment as experiment
+        error = subprocess.TimeoutExpired(['fake-cli'],180,output=b'partial-event\n',stderr=b'partial-stderr\n')
+        with TemporaryDirectory() as temp,patch.object(experiment.relay,'serve',return_value=Mock()),\
+             patch.object(experiment,'container_command',return_value=([],{})),\
+             patch.object(experiment.subprocess,'run',side_effect=error) as launch:
+            folder = Path(temp)/'attempt'
+            with self.assertRaises(subprocess.TimeoutExpired):
+                experiment.propose(folder,Path(temp)/'run',{},1,'offline-test')
+            self.assertEqual(launch.call_count,1)
+            self.assertEqual((folder/'events.jsonl').read_bytes(),b'partial-event\n')
+            self.assertEqual((folder/'cli.stderr').read_bytes(),b'partial-stderr\n')
+            self.assertTrue(json.loads((folder/'cli.json').read_text())['timed_out'])
+
     def test_relay_enforces_input_and_output_budget_without_model(self):
         from scripts import algorithm_proposal_relay as relay
         upstream = Mock(status=200)

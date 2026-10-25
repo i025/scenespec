@@ -74,9 +74,16 @@ def propose(directory,run,request,index,parent,prompt=PROMPT,maximum_candidates=
     argv+=['-']
     started=time.perf_counter()
     try:
-        result=subprocess.run(command+['/usr/local/bin/python3','-I','-B','/relay.py','bridge']+argv,
-                              input=(prompt+json.dumps(request)).encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,
-                              env=env,timeout=180)
+        try:
+            result=subprocess.run(command+['/usr/local/bin/python3','-I','-B','/relay.py','bridge']+argv,
+                                  input=(prompt+json.dumps(request)).encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                                  env=env,timeout=180)
+        except subprocess.TimeoutExpired as error:
+            (directory/'events.jsonl').write_bytes(error.stdout or b'')
+            (directory/'cli.stderr').write_bytes(error.stderr or b'')
+            save(directory/'cli.json',{'argv':argv,'exit_code':None,'timed_out':True,
+                 'wall_seconds':time.perf_counter()-started,'wall_limit_seconds':180})
+            raise
         (directory/'events.jsonl').write_bytes(result.stdout)
         (directory/'cli.stderr').write_bytes(result.stderr)
         save(directory/'cli.json',{'argv':argv,'exit_code':result.returncode,'wall_seconds':time.perf_counter()-started})
