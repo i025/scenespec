@@ -57,7 +57,10 @@ def build_scene(data, library):
         obj['scene_object_id'] = instance['id']
         obj['scene_asset'] = instance['asset']
         obj.location = instance['location']
-        obj.rotation_euler.z = instance['rotation_z']
+        if 'rotation' in instance:
+            obj.rotation_euler = instance['rotation']
+        else:
+            obj.rotation_euler.z = instance['rotation_z']
         obj.scale = instance['scale']
 
     floor_mats = [material(f'Floor {i}', (.32+i*.012, .35+i*.012, .36+i*.012)) for i in range(3)]
