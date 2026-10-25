@@ -122,6 +122,28 @@ def main():
         'known_total_tokens':sum(c['total_tokens'] for c in costs if c['total_tokens'] is not None),
         'missing_usage_calls':sum(not c['usage_reported'] for c in costs), 'usd':None})
     save(out/'stages.json', stages)
+    probe_pairs = []
+    for fixture in sorted({c['fixture'] for c in calls}):
+        for round_number in sorted({c['round'] for c in calls}):
+            for left, right in (('M0','M0_M1probe'), ('M1_random','M1')):
+                pair = [next(c for c in calls if c['fixture'] == fixture and c['round'] == round_number and c['arm'] == arm)
+                        for arm in (left, right)]
+                inputs = [json.loads((run/c['trial']/f'r{round_number}'/'choose/request.json').read_text()) for c in pair]
+                probe_pairs.append({'fixture':fixture, 'round':round_number, 'arms':[left,right],
+                                    'same_common_diagnostics':inputs[0] == inputs[1],
+                                    'choices':[c['probe'] for c in pair], 'diverged':pair[0]['probe'] != pair[1]['probe']})
+    save(out/'probe_pairs.json', probe_pairs)
+    execution = {}
+    for arm in ('M0','M0_M1probe','M1_random','M1'):
+        # Exact labels, not suffix matches: M0_M1probe and M1_random are distinct arms.
+        arm_labels = {c['trial'] for c in calls if c['arm'] == arm}
+        files = [file for label in arm_labels for file in (run/label).rglob('summary.json')]
+        resources = [r for file in files for r in json.loads(file.read_text()).get('execution', [])]
+        execution[arm] = {'processes':len(resources), 'nonzero_exits':sum(r['exit_code'] != 0 for r in resources),
+                          'runtime_cpu_seconds':sum(r['runtime_cpu_seconds'] for r in resources),
+                          'process_lifetime_wall_seconds':sum(r['wall_seconds'] for r in resources),
+                          'scope':'Apptainer/candidate child CPU, all parent/candidate dev/selection and selected test; excludes model/policy/checker CPU'}
+    save(out/'execution_costs.json', execution)
     print(json.dumps(stages, indent=2))
 
 
