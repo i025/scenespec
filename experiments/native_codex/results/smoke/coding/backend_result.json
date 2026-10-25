@@ -1,0 +1,20 @@
+{
+  "status": "completed",
+  "patch": "diff --git a/algorithm.py b/algorithm.py\nindex b47bbd4..6d2d030 100644\n--- a/algorithm.py\n+++ b/algorithm.py\n@@ -41,6 +41,39 @@ def best_index(history):\n     return best\n \n \n+def refine_relation(task, values, rng):\n+    rules = [rule for rule in task['relations']\n+             if rule['a'] in values and rule['b'] in values\n+             and rule['a'] != rule['b']\n+             and task['supports'][rule['a']] == 'floor'\n+             and task['supports'][rule['b']] == 'floor']\n+    if not rules:\n+        return False\n+    rule = rng.choice(rules)\n+    a,b = rule['a'],rule['b']\n+    assets = {obj['id']:task['spec']['assets'][obj['asset']]\n+              for obj in task['spec']['required_objects']}\n+    dz = (assets[a]['height']-assets[b]['height'])/2\n+    target = math.sqrt(max(0.,rule['target']**2-dz**2))\n+    # Reproject after clamping so the free endpoint can absorb a blocked move.\n+    for _ in range(3):\n+        dx,dy = (values[b][j]-values[a][j] for j in (0,1))\n+        distance = math.hypot(dx,dy)\n+        if distance < 1e-8:\n+            angle = rng.uniform(-math.pi,math.pi)\n+            ux,uy = math.cos(angle),math.sin(angle)\n+        else:\n+            ux,uy = dx/distance,dy/distance\n+        amount = min(.4,max(-.4,(distance-target)/2))\n+        if abs(amount) < 1e-6:\n+            break\n+        for name,sign in ((a,1),(b,-1)):\n+            values[name][0] += sign*amount*ux\n+            values[name][1] += sign*amount*uy\n+            clamp_floor(task,values,name)\n+    return True\n+\n+\n def layout(packet):\n     history = packet['history']\n     if packet['phase'] == 'final':\n@@ -61,17 +94,8 @@ def layout(packet):\n     if index:\n         names = list(candidate)\n         failed = [name for f in best_report['failures'] for name in f['objects'] if name in candidate]\n-        if METHOD == 'joint' and index%3 == 1:\n-            rule = task['relations'][0]\n-            a,b = rule['a'],rule['b']\n-            dx,dy = (candidate[b][j]-candidate[a][j] for j in (0,1))\n-            distance = math.hypot(dx,dy)\n-            amount = min(.4,max(-.4,(distance-rule['target'])/3))\n-            for name,sign in ((a,1),(b,-1)):\n-                candidate[name][0] += sign*amount*dx/max(distance,1e-8)\n-                candidate[name][1] += sign*amount*dy/max(distance,1e-8)\n-                clamp_floor(task,candidate,name)\n-        else:\n+        refined = index%3 == 1 and refine_relation(task,candidate,rng)\n+        if not refined:\n             name = rng.choice(failed or names)\n             if METHOD == 'repair':\n                 candidate[name] = parameters(task,rng)[name]\n",
+  "summary": "Modified only `algorithm.py` to add periodic joint distance refinement that accounts for object heights and floor footprint bounds, while retaining random repair exploration.\n\nNo tests were run; validation remains with the external controller.",
+  "base_git": "4fb39f80995e1387d83e348cddd2d0f8326b8605",
+  "candidate_git": "0195088936860bbda7e552f3ae2d1404272590e4",
+  "wall_seconds": 54.21738988603465,
+  "model": "gpt-6.1-sol",
+  "model_requests": 3,
+  "usage": {
+    "input_tokens": 39449,
+    "output_tokens": 1133,
+    "total_tokens": 40582
+  },
+  "resources": {
+    "cpu_seconds": 0.41900399999999993,
+    "process_peak_rss_bytes": 144039936,
+    "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+  }
+}

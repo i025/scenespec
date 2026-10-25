@@ -1,0 +1,91 @@
+diff --git a/algorithm.py b/algorithm.py
+index b47bbd4..1af9753 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -41,6 +41,71 @@ def best_index(history):
+     return best
+ 
+ 
++def refine_relations(task, values, rng, fraction):
++    """Polish floor distances without changing sampled rotations or supports."""
++    assets = {q['id']: task['spec']['assets'][q['asset']]
++              for q in task['spec']['required_objects']}
++    rules = [rule for rule in task['relations']
++             if rule['a'] != rule['b']
++             and task['supports'].get(rule['a']) == 'floor'
++             and task['supports'].get(rule['b']) == 'floor'
++             and rule['a'] in task['zones'] and rule['b'] in task['zones']]
++    if not rules:
++        return False
++    original = {name: list(row) for name, row in values.items()}
++    best = {name: list(row) for name, row in values.items()}
++    initial_error = floor_relation_error(rules, assets, values)
++    best_error = initial_error
++    # A random mobility split leaves freedom along the distance manifold.
++    share = rng.uniform(.25, .75)
++    for sweep in range(12):
++        for rule in rules:
++            a, b = rule['a'], rule['b']
++            dx = values[b][0]-values[a][0]
++            dy = values[b][1]-values[a][1]
++            horizontal = math.hypot(dx, dy)
++            dz = (assets[b]['height']-assets[a]['height'])/2
++            target = math.sqrt(max(0., rule['target']**2-dz**2))
++            if horizontal < 1e-10:
++                angle = rng.uniform(-math.pi, math.pi)
++                ux, uy = math.cos(angle), math.sin(angle)
++            else:
++                ux, uy = dx/horizontal, dy/horizontal
++            amount = max(-.4, min(.4, (horizontal-target)*fraction))
++            # Alternate the mobility split so a saturated endpoint does not
++            # prevent the other endpoint from absorbing the remaining error.
++            weight = share if sweep%2 == 0 else 1-share
++            for name, step in ((a, amount*weight),
++                               (b, -amount*(1-weight))):
++                values[name][0] += step*ux
++                values[name][1] += step*uy
++                clamp_floor(task, values, name)
++        error = floor_relation_error(rules, assets, values)
++        if error < best_error-1e-10:
++            best_error = error
++            best = {name: list(row) for name, row in values.items()}
++    # Analytic progress only proposes a query; Mesh still judges the result.
++    improved = best_error < initial_error-1e-8
++    for name in values:
++        values[name] = list(best[name] if improved else original[name])
++    return improved
++
++
++def floor_relation_error(rules, assets, values):
++    error = 0.
++    for rule in rules:
++        a, b = rule['a'], rule['b']
++        dx = values[b][0]-values[a][0]
++        dy = values[b][1]-values[a][1]
++        dz = (assets[b]['height']-assets[a]['height'])/2
++        distance = math.sqrt(dx*dx+dy*dy+dz*dz)
++        # Keep hard distance violations more expensive than soft preference.
++        error += abs(distance-rule['target'])
++        error += 100*(max(0., rule['min']-distance)
++                      +max(0., distance-rule['max']))
++    return error
++
++
+ def layout(packet):
+     history = packet['history']
+     if packet['phase'] == 'final':
+@@ -61,7 +126,13 @@ def layout(packet):
+     if index:
+         names = list(candidate)
+         failed = [name for f in best_report['failures'] for name in f['objects'] if name in candidate]
+-        if METHOD == 'joint' and index%3 == 1:
++        polished = False
++        if index in (18,20,22,23) and not best_report['failures']:
++            polished = refine_relations(task,candidate,rng,
++                                       .5 if index in (18,22) else 1.)
++        if polished:
++            pass
++        elif METHOD == 'joint' and index%3 == 1:
+             rule = task['relations'][0]
+             a,b = rule['a'],rule['b']
+             dx,dy = (candidate[b][j]-candidate[a][j] for j in (0,1))

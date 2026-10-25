@@ -1,0 +1,144 @@
+{
+  "tasks": [
+    {
+      "task": "unscored",
+      "policy": null,
+      "fixture": null,
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "wall_seconds": 54.21738988603465,
+      "upstream_requests": 3,
+      "usage": {
+        "input_tokens": 39449,
+        "output_tokens": 1133,
+        "total_tokens": 40582
+      },
+      "missing_usage_requests": 0,
+      "resources": {
+        "cpu_seconds": 0.41900399999999993,
+        "process_peak_rss_bytes": 144039936,
+        "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+      }
+    },
+    {
+      "task": "c0",
+      "policy": "M0",
+      "fixture": "repair",
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "wall_seconds": 62.830492184031755,
+      "upstream_requests": 3,
+      "usage": {
+        "input_tokens": 44379,
+        "output_tokens": 1494,
+        "total_tokens": 45873
+      },
+      "missing_usage_requests": 0,
+      "resources": {
+        "cpu_seconds": 0.454639,
+        "process_peak_rss_bytes": 143859712,
+        "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+      }
+    },
+    {
+      "task": "c1",
+      "policy": "M1",
+      "fixture": "repair",
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "wall_seconds": 84.18572342116386,
+      "upstream_requests": 5,
+      "usage": {
+        "input_tokens": 119579,
+        "output_tokens": 1894,
+        "total_tokens": 121473
+      },
+      "missing_usage_requests": 0,
+      "resources": {
+        "cpu_seconds": 0.553003,
+        "process_peak_rss_bytes": 144416768,
+        "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+      }
+    },
+    {
+      "task": "c2",
+      "policy": "M0",
+      "fixture": "joint",
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "wall_seconds": 54.84712198493071,
+      "upstream_requests": 3,
+      "usage": {
+        "input_tokens": 44522,
+        "output_tokens": 1614,
+        "total_tokens": 46136
+      },
+      "missing_usage_requests": 0,
+      "resources": {
+        "cpu_seconds": 0.459366,
+        "process_peak_rss_bytes": 145498112,
+        "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+      }
+    },
+    {
+      "task": "c3",
+      "policy": "M1",
+      "fixture": "joint",
+      "status": "completed",
+      "model": "gpt-6.1-sol",
+      "wall_seconds": 131.58879861305468,
+      "upstream_requests": 6,
+      "usage": {
+        "input_tokens": 121332,
+        "output_tokens": 2890,
+        "total_tokens": 124222
+      },
+      "missing_usage_requests": 0,
+      "resources": {
+        "cpu_seconds": 0.609541,
+        "process_peak_rss_bytes": 144908288,
+        "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+      }
+    }
+  ],
+  "groups": {
+    "unscored": {
+      "coding_tasks": 1,
+      "completed": 1,
+      "upstream_requests": 3,
+      "missing_usage_requests": 0,
+      "usage": {
+        "input_tokens": 39449,
+        "output_tokens": 1133,
+        "total_tokens": 40582
+      },
+      "coding_wall_seconds_sum": 54.21738988603465
+    },
+    "M0": {
+      "coding_tasks": 2,
+      "completed": 2,
+      "upstream_requests": 6,
+      "missing_usage_requests": 0,
+      "usage": {
+        "input_tokens": 88901,
+        "output_tokens": 3108,
+        "total_tokens": 92009
+      },
+      "coding_wall_seconds_sum": 117.67761416896246
+    },
+    "M1": {
+      "coding_tasks": 2,
+      "completed": 2,
+      "upstream_requests": 11,
+      "missing_usage_requests": 0,
+      "usage": {
+        "input_tokens": 240911,
+        "output_tokens": 4784,
+        "total_tokens": 245695
+      },
+      "coding_wall_seconds_sum": 215.77452203421853
+    }
+  },
+  "monetary_cost": null,
+  "wall_scope": "coding task sums may overlap; finished is formal wall clock; smoke is separate"
+}

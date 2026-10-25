@@ -1,0 +1,83 @@
+diff --git a/algorithm.py b/algorithm.py
+index b47bbd4..b1c8c17 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -41,11 +41,48 @@ def best_index(history):
+     return best
+ 
+ 
++def project_relations(task, values, relations):
++    """Approach preferred 3D distances within footprint-safe floor zones."""
++    assets = task['spec']['assets']
++    heights = {q['id']: assets[q['asset']]['height']
++               for q in task['spec']['required_objects']}
++    for _ in range(24):
++        movement = 0.
++        for rule in relations:
++            a,b = rule['a'],rule['b']
++            dx,dy = (values[b][j]-values[a][j] for j in (0,1))
++            distance = math.hypot(dx,dy)
++            dz = (heights[b]-heights[a])/2
++            target = max(rule['min'],min(rule['max'],rule['target']))
++            horizontal = math.sqrt(max(0.,target*target-dz*dz))
++            if distance < 1e-9:
++                # A reproducible direction also handles coincident centres.
++                dx,dy = math.cos(values[a][2]),math.sin(values[a][2])
++                distance = 0.
++                ux,uy = dx,dy
++            else:
++                ux,uy = dx/distance,dy/distance
++            amount = (distance-horizontal)/2
++            for name,sign in ((a,1),(b,-1)):
++                old_x,old_y = values[name][:2]
++                values[name][0] += sign*amount*ux
++                values[name][1] += sign*amount*uy
++                clamp_floor(task,values,name)
++                movement += math.hypot(values[name][0]-old_x,
++                                       values[name][1]-old_y)
++        if movement < 1e-7:
++            break
++
++
+ def layout(packet):
+     history = packet['history']
+     if packet['phase'] == 'final':
+         return {'index':best_index(history)}
+     task,index = packet['task'],packet['query']
++    floor_relations = [rule for rule in task['relations']
++                       if all(task['supports'].get(rule[key]) == 'floor'
++                              and rule[key] in task['zones']
++                              for key in ('a','b'))]
+     rng = random.Random(packet['seed'])
+     if index:
+         raw = packet['memory']['rng']
+@@ -57,20 +94,19 @@ def layout(packet):
+         current = parameters(task,rng,True)
+         for name in task['zones']:
+             clamp_floor(task,current,name)
++        project_relations(task,current,floor_relations)
+     candidate = {name:list(values) for name,values in current.items()}
+     if index:
+         names = list(candidate)
+         failed = [name for f in best_report['failures'] for name in f['objects'] if name in candidate]
+-        if METHOD == 'joint' and index%3 == 1:
+-            rule = task['relations'][0]
+-            a,b = rule['a'],rule['b']
+-            dx,dy = (candidate[b][j]-candidate[a][j] for j in (0,1))
+-            distance = math.hypot(dx,dy)
+-            amount = min(.4,max(-.4,(distance-rule['target'])/3))
+-            for name,sign in ((a,1),(b,-1)):
+-                candidate[name][0] += sign*amount*dx/max(distance,1e-8)
+-                candidate[name][1] += sign*amount*dy/max(distance,1e-8)
+-                clamp_floor(task,candidate,name)
++        if index%3 == 1 and floor_relations:
++            # Random restarts retain distinct positions and orientations along
++            # the preferred-distance surface, including at zone boundaries.
++            rule = rng.choice(floor_relations)
++            name = rng.choice((rule['a'],rule['b']))
++            candidate[name] = parameters(task,rng)[name]
++            clamp_floor(task,candidate,name)
++            project_relations(task,candidate,floor_relations)
+         else:
+             name = rng.choice(failed or names)
+             if METHOD == 'repair':
