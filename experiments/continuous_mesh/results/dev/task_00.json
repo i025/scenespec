@@ -1,0 +1,140 @@
+{
+  "family": "inclined",
+  "spec": {
+    "scene_id": "dev_00",
+    "room": {
+      "width": 7.277963571643878,
+      "depth": 6.6888564179136525,
+      "height": 3.8
+    },
+    "required_objects": [
+      {
+        "id": "mount",
+        "asset": "bench"
+      },
+      {
+        "id": "box_0",
+        "asset": "box"
+      },
+      {
+        "id": "box_1",
+        "asset": "box"
+      },
+      {
+        "id": "storage",
+        "asset": "cabinet"
+      },
+      {
+        "id": "rover",
+        "asset": "robot"
+      }
+    ],
+    "assets": {
+      "bench": {
+        "width": 2.6,
+        "depth": 1.25,
+        "height": 0.55
+      },
+      "narrow_bench": {
+        "width": 2.0,
+        "depth": 1.15,
+        "height": 0.55
+      },
+      "box": {
+        "width": 0.6,
+        "depth": 0.6,
+        "height": 0.6
+      },
+      "cabinet": {
+        "width": 1.1,
+        "depth": 0.65,
+        "height": 1.3
+      },
+      "robot": {
+        "width": 0.6,
+        "depth": 0.6,
+        "height": 0.9
+      }
+    },
+    "regions": [],
+    "constraints": [],
+    "access_paths": []
+  },
+  "meshes": {
+    "bench": "obstacle",
+    "narrow_bench": "obstacle",
+    "box": "crate",
+    "cabinet": "obstacle",
+    "robot": "agent"
+  },
+  "fixed": [
+    {
+      "id": "mount",
+      "asset": "bench",
+      "position": [
+        4.366778142986327,
+        4.2808681074647374,
+        0.4276235128184598
+      ],
+      "rotation": [
+        -0.007817409098187386,
+        0.1129551562732222,
+        0.03167701507451032
+      ]
+    }
+  ],
+  "supports": {
+    "box_0": "mount",
+    "box_1": "mount",
+    "storage": "floor",
+    "rover": "floor"
+  },
+  "zones": {
+    "storage": [
+      0.25,
+      4.4388564179136525,
+      2.1,
+      6.4388564179136525
+    ],
+    "rover": [
+      0.35,
+      0.65,
+      2.55,
+      2.95
+    ]
+  },
+  "relations": [
+    {
+      "a": "storage",
+      "b": "rover",
+      "min": 1.0,
+      "max": 5.8,
+      "target": 2.2
+    }
+  ],
+  "camera": {
+    "position": [
+      4.366778142986327,
+      -1.5,
+      3.2
+    ],
+    "target": [
+      4.366778142986327,
+      4.147090979106465,
+      0.9
+    ],
+    "fov": 65.0
+  },
+  "visibility": {
+    "box_0": 0.55,
+    "box_1": 0.55
+  },
+  "entry": [
+    0.5,
+    0.5
+  ],
+  "goal": [
+    6.777963571643878,
+    6.1888564179136525
+  ]
+}

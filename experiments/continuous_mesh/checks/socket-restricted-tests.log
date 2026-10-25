@@ -1,0 +1,38 @@
+pybullet build time: Jan 29 2025 23:17:20
+.............................................................................................................E..............................................................................................E.........
+======================================================================
+ERROR: test_incomplete_response_usage_is_recorded_without_credentials (test_model_usage.ModelUsageTests.test_incomplete_response_usage_is_recorded_without_credentials)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/tests/test_model_usage.py", line 27, in test_incomplete_response_usage_is_recorded_without_credentials
+    server = relay.serve(root/'model.sock', auth, root/'record.json')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scripts/algorithm_proposal_relay.py", line 101, in serve
+    server = Server(str(socket_path),Handler)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/socketserver.py", line 456, in __init__
+    self.server_bind()
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/socketserver.py", line 469, in server_bind
+    self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_live_http_step_reset_render_and_record (test_world.TestBulletWorld.test_live_http_step_reset_render_and_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/tests/test_world.py", line 165, in test_live_http_step_reset_render_and_record
+    with WorldServer(('127.0.0.1', 0), task, config) as server:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scene_rsi/world/server.py", line 23, in __init__
+    super().__init__(address, Handler)
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/socketserver.py", line 452, in __init__
+    self.socket = socket.socket(self.address_family,
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+----------------------------------------------------------------------
+Ran 214 tests in 39.601s
+
+FAILED (errors=2)
