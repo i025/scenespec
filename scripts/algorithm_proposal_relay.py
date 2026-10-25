@@ -31,7 +31,7 @@ class UnixConnection(http.client.HTTPConnection):
         self.sock.connect(self.host)
 
 
-def serve(socket_path, auth_path, audit):
+def serve(socket_path, auth_path, audit, max_request_bytes=524288, max_output_tokens=8192):
     """One upstream inference per reserved attempt; never log authentication."""
     auth = json.loads(Path(auth_path).read_text())['tokens']
     record = {'model': MODEL, 'upstream_calls': 0, 'usage': None, 'status': 'not_called'}
@@ -42,7 +42,7 @@ def serve(socket_path, auth_path, audit):
 
         def do_POST(self):
             size = int(self.headers.get('Content-Length', '0'))
-            if self.path != '/responses' or not 0 < size <= 524288 or record['upstream_calls']:
+            if self.path != '/responses' or not 0 < size <= max_request_bytes or record['upstream_calls']:
                 self.send_error(403)
                 return
             body = json.loads(self.rfile.read(size))
@@ -50,7 +50,7 @@ def serve(socket_path, auth_path, audit):
                 self.send_error(403)
                 return
             # The model is a proposal-only completion. Local tools are not offered.
-            body.update(tools=[], tool_choice='none', store=False, stream=True, max_output_tokens=8192)
+            body.update(tools=[], tool_choice='none', store=False, stream=True, max_output_tokens=max_output_tokens)
             record.update(upstream_calls=1, status='started', request_bytes=size)
             Path(audit).write_text(json.dumps(record, indent=2)+'\n')
             started = time.perf_counter()

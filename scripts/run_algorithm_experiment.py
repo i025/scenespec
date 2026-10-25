@@ -45,7 +45,8 @@ def git(repo,*args):
     return subprocess.check_output(['git','-c','core.hooksPath=/dev/null','-C',str(repo),*args],text=True).strip()
 
 
-def propose(directory,run,request,index,parent,prompt=PROMPT,maximum_candidates=3):
+def propose(directory,run,request,index,parent,prompt=PROMPT,maximum_candidates=3,
+            request_bytes_limit=524288,output_tokens_limit=8192):
     directory.mkdir(parents=True)
     workspace,output=directory/'workspace',directory/'output'
     workspace.mkdir(); output.mkdir()
@@ -53,9 +54,10 @@ def propose(directory,run,request,index,parent,prompt=PROMPT,maximum_candidates=
     for name in ('codex','home'):
         (output/name).mkdir()
     save(directory/'reservation.json',{'attempt':index,'maximum_candidates':maximum_candidates,'parent_git':parent,
-         'model':relay.MODEL,'wall_limit_seconds':180,'input_bytes_limit':524288,
-         'output_tokens_limit':8192,'maximum_upstream_calls':1,'status':'reserved'})
-    server=relay.serve(directory/'model.sock',Path('/home/xymo/.codex/auth.json'),directory/'model_call.json')
+         'model':relay.MODEL,'wall_limit_seconds':180,'input_bytes_limit':request_bytes_limit,
+         'output_tokens_limit':output_tokens_limit,'maximum_upstream_calls':1,'status':'reserved'})
+    server=relay.serve(directory/'model.sock',Path('/home/xymo/.codex/auth.json'),directory/'model_call.json',
+                       max_request_bytes=request_bytes_limit,max_output_tokens=output_tokens_limit)
     command,env=container_command(run,[(Path('/home/xymo/.local/bin/codex').resolve(),'/cli','ro'),
                   (ROOT/'scripts/algorithm_proposal_relay.py','/relay.py','ro'),
                   (directory/'model.sock','/model.sock','ro'),(workspace,'/workspace','ro'),(output,'/output','rw')])
