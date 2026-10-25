@@ -1,0 +1,120 @@
+{
+  "model_pilot_allowed": true,
+  "rule": "2,000-node simple search must solve 10%..90% of independent calibration tasks",
+  "all_witnesses_valid": true,
+  "models_called": 0,
+  "reports": {
+    "original": {
+      "tasks": 27,
+      "valid": 24,
+      "solvable": 0,
+      "solvable_rate": 0.0,
+      "errors": {
+        "outside_pose_domain": 222,
+        "height": 129,
+        "unsupported": 129,
+        "joint_distance": 57,
+        "fixed_object_changed": 36,
+        "room_assignment": 80,
+        "passage_blocked": 1,
+        "camera_visibility": 8,
+        "missing_object": 3
+      },
+      "shortest_actions_mean": null,
+      "first_output_seconds_mean": 0.004638142599206831,
+      "by_family": {
+        "support": {
+          "tasks": 9,
+          "solvable": 0
+        },
+        "rooms": {
+          "tasks": 9,
+          "solvable": 0
+        },
+        "visibility": {
+          "tasks": 9,
+          "solvable": 0
+        }
+      }
+    },
+    "initial_greedy": {
+      "tasks": 27,
+      "valid": 1,
+      "solvable": 1,
+      "solvable_rate": 0.037037037037037035,
+      "errors": {
+        "missing_object": 70
+      },
+      "shortest_actions_mean": 32,
+      "first_output_seconds_mean": 0.003868342377245426,
+      "by_family": {
+        "support": {
+          "tasks": 9,
+          "solvable": 0
+        },
+        "rooms": {
+          "tasks": 9,
+          "solvable": 0
+        },
+        "visibility": {
+          "tasks": 9,
+          "solvable": 1
+        }
+      }
+    },
+    "initial_independent": {
+      "tasks": 27,
+      "valid": 21,
+      "solvable": 0,
+      "solvable_rate": 0.0,
+      "errors": {
+        "joint_distance": 70,
+        "collision": 6,
+        "3d_collision": 13,
+        "physics_collision": 6,
+        "camera_visibility": 5
+      },
+      "shortest_actions_mean": null,
+      "first_output_seconds_mean": 0.002337029824654261,
+      "by_family": {
+        "support": {
+          "tasks": 9,
+          "solvable": 0
+        },
+        "rooms": {
+          "tasks": 9,
+          "solvable": 0
+        },
+        "visibility": {
+          "tasks": 9,
+          "solvable": 0
+        }
+      }
+    },
+    "search_baseline": {
+      "tasks": 27,
+      "valid": 9,
+      "solvable": 9,
+      "solvable_rate": 0.3333333333333333,
+      "errors": {
+        "missing_object": 207
+      },
+      "shortest_actions_mean": 32,
+      "first_output_seconds_mean": 0.028330984723719733,
+      "by_family": {
+        "support": {
+          "tasks": 9,
+          "solvable": 3
+        },
+        "rooms": {
+          "tasks": 9,
+          "solvable": 3
+        },
+        "visibility": {
+          "tasks": 9,
+          "solvable": 3
+        }
+      }
+    }
+  }
+}

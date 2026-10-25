@@ -102,6 +102,13 @@ def build_scene(data, library):
         camera.type, camera.ortho_scale = 'ORTHO', extent*1.75
         camera.lens = 45
         camera.clip_end = 300
+        if name == 'overview' and 'view' in data:
+            # Same pinhole view as the deterministic visibility checker.
+            view = data['view']
+            obj.location = view['position']
+            aim(obj, view['target'])
+            camera.type = 'PERSP'
+            camera.angle = math.radians(view['fov'])
     for name, position, energy, size, color in (
         ('Key softbox', (w*.2, -d*.5, 8), 1500, 5, (1, .86, .7)),
         ('Fill softbox', (w*1.3, d*.8, 6), 1100, 4, (.7, .84, 1)),
