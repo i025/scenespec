@@ -1,0 +1,404 @@
+import math
+from collections import deque
+
+
+def _layout_box(assets, pose):
+    asset = assets[pose['asset']]
+    w, d = asset['width'], asset['depth']]
+    if pose['yaw_deg'] % 180:
+        w, d = d, w
+    return (pose['x'] - w / 2, pose['y'] - d / 2, pose['z'],
+            pose['x'] + w / 2, pose['y'] + d / 2,
+            pose['z'] + asset['height'])
+
+
+def _layout_overlap(a, b):
+    return (min(a[3], b[3]) - max(a[0], b[0]) > 1e-7 and
+            min(a[4], b[4]) - max(a[1], b[1]) > 1e-7 and
+            min(a[5], b[5]) - max(a[2], b[2]) > 1e-7)
+
+
+def _layout_supported(child, parent):
+    return (abs(child[2] - parent[5]) <= 1e-7 and
+            parent[0] + .05 - 1e-7 <= child[0] and
+            parent[1] + .05 - 1e-7 <= child[1] and
+            child[3] <= parent[3] - .05 + 1e-7 and
+            child[4] <= parent[4] - .05 + 1e-7)
+
+
+def _layout_ray(origin, point, box):
+    lo, hi = 0.0, 1.0 - 1e-6
+    for axis in range(3):
+        delta = point[axis] - origin[axis]
+        if abs(delta) < 1e-10:
+            if origin[axis] < box[axis] or origin[axis] > box[axis + 3]:
+                return False
+        else:
+            u = (box[axis] - origin[axis]) / delta
+            v = (box[axis + 3] - origin[axis]) / delta
+            if u > v:
+                u, v = v, u
+            if u > lo:
+                lo = u
+            if v < hi:
+                hi = v
+            if lo > hi:
+                return False
+    return True
+
+
+def layout(packet):
+    spec = packet['spec']
+    assets = spec['assets']
+    required = spec['required_objects']
+    names = [r['id'] for r in required]
+    index = {name: i for i, name in enumerate(names)}
+    n = len(names)
+    expected = {r['id']: r['asset'] for r in required}
+    fixed = {p['id']: p for p in packet['fixed']}
+    requirements = packet['requirements']
+    ceiling = spec['room']['height']
+    width, depth = packet['width'], packet['depth']
+    nx, ny = int(2 * width - 1), int(2 * depth - 1)
+    total = nx * ny
+    whole = (1 << total) - 1
+    sx, sy = (int(2 * v) for v in packet['start'])
+    gx, gy = (int(2 * v) for v in packet['goal'])
+    if not (0 <= sx < nx and 0 <= sy < ny and
+            0 <= gx < nx and 0 <= gy < ny):
+        raise ValueError('Navigation endpoint outside grid')
+    start = 1 << (sy * nx + sx)
+    goal = 1 << (gy * nx + gx)
+    endpoints = start | goal
+    left_edge = sum(1 << (y * nx) for y in range(ny))
+    right_edge = left_edge << (nx - 1)
+    budget = [0, 0]
+
+    def spend(amount):
+        budget[0] += amount
+        if budget[0] > 1200000:
+            raise ValueError('Bounded constraint search exhausted')
+
+    geometry = []
+    geometry_index = {}
+    occupancy = []
+
+    def register(box):
+        if box in geometry_index:
+            return geometry_index[box]
+        bid = len(geometry)
+        geometry_index[box] = bid
+        geometry.append(box)
+        blocked = 0
+        if box[2] < 1.8 - 1e-7 and box[5] > 1e-7:
+            x0 = max(0, int(math.floor(2 * (box[0] - .2 - .5))) + 1)
+            x1 = min(nx - 1, int(math.ceil(2 * (box[3] + .2 - .5))) - 1)
+            y0 = max(0, int(math.floor(2 * (box[1] - .2 - .5))) + 1)
+            y1 = min(ny - 1, int(math.ceil(2 * (box[4] + .2 - .5))) - 1)
+            if x0 <= x1 and y0 <= y1:
+                row = ((1 << (x1 - x0 + 1)) - 1) << x0
+                for y in range(y0, y1 + 1):
+                    blocked |= row << (y * nx)
+        occupancy.append(blocked)
+        return bid
+
+    poses, bids = [], []
+    parents = []
+    for name in names:
+        rule = requirements.get(name)
+        parent = rule['support'] if rule else 'floor'
+        parents.append(index[parent] if parent in index else -1)
+        source = [fixed[name]] if name in fixed else packet['domains'][name]
+        choices, boxes, seen = [], [], set()
+        for pose in source:
+            if pose['id'] != name or pose['asset'] != expected[name]:
+                continue
+            b = _layout_box(assets, pose)
+            if not (b[0] >= -1e-7 and b[1] >= -1e-7 and
+                    b[3] <= width + 1e-7 and b[4] <= depth + 1e-7 and
+                    b[2] >= -1e-7 and b[5] <= ceiling + 1e-7):
+                continue
+            if rule:
+                r = packet['rooms'][rule['room']]
+                if not (r[0] - 1e-7 <= b[0] and r[1] - 1e-7 <= b[1] and
+                        b[3] <= r[2] + 1e-7 and b[4] <= r[3] + 1e-7 and
+                        rule['height'][0] - 1e-7 <= b[2] <= rule['height'][1] + 1e-7):
+                    continue
+                if parent == 'floor' and abs(b[2]) >= 1e-7:
+                    continue
+                if parent != 'floor' and parent not in index:
+                    continue
+            if b in seen:
+                continue
+            bid = register(b)
+            if occupancy[bid] & endpoints:
+                continue
+            seen.add(b)
+            choices.append(pose)
+            boxes.append(bid)
+        if not choices:
+            raise ValueError('Object has no admissible domain pose')
+        poses.append(choices)
+        bids.append(boxes)
+
+    relations = {}
+    for relation in packet['distances']:
+        i, j = index[relation['a']], index[relation['b']]
+        if i == j:
+            if not relation['min'] - 1e-7 <= 0 <= relation['max'] + 1e-7:
+                raise ValueError('Inconsistent self distance')
+            continue
+        key = (min(i, j), max(i, j))
+        relations.setdefault(key, []).append((max(0.0, relation['min'] - 1e-7) ** 2,
+                                               (relation['max'] + 1e-7) ** 2))
+
+    compatibility = {}
+    neighbors = [[] for i in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            forward = [0] * len(poses[i])
+            reverse = [0] * len(poses[j])
+            limits = relations.get((i, j), ())
+            for k, aid in enumerate(bids[i]):
+                a = geometry[aid]
+                for l, bid in enumerate(bids[j]):
+                    spend(1)
+                    b = geometry[bid]
+                    if _layout_overlap(a, b):
+                        continue
+                    if parents[i] == j and not _layout_supported(a, b):
+                        continue
+                    if parents[j] == i and not _layout_supported(b, a):
+                        continue
+                    if limits:
+                        dx = (a[0] + a[3] - b[0] - b[3]) / 2
+                        dy = (a[1] + a[4] - b[1] - b[4]) / 2
+                        dz = (a[2] + a[5] - b[2] - b[5]) / 2
+                        distance = dx * dx + dy * dy + dz * dz
+                        if any(distance < low or distance > high for low, high in limits):
+                            continue
+                    forward[k] |= 1 << l
+                    reverse[l] |= 1 << k
+            all_j = (1 << len(poses[j])) - 1
+            if all(mask == all_j for mask in forward):
+                continue
+            compatibility[i, j] = forward
+            compatibility[j, i] = reverse
+            neighbors[i].append(j)
+            neighbors[j].append(i)
+
+    visibility = []
+    view = packet['view']
+    origin = tuple(view['position'])
+    sample_cache, occlusion_cache = {}, {}
+    if packet['visibility']:
+        f = [view['target'][a] - origin[a] for a in range(3)]
+        length = math.sqrt(sum(v * v for v in f))
+        if length <= 1e-12:
+            raise ValueError('Degenerate camera direction')
+        f = tuple(v / length for v in f)
+        horizontal = math.hypot(f[0], f[1])
+        right = ((f[1] / horizontal, -f[0] / horizontal, 0.0)
+                 if horizontal > 1e-12 else (1.0, 0.0, 0.0))
+        up = (right[1] * f[2], -right[0] * f[2],
+              right[0] * f[1] - right[1] * f[0])
+        tangent = math.tan(math.radians(view['fov'] / 2))
+        for name, limits in packet['visibility'].items():
+            visibility.append((index[name],
+                               int(math.ceil((limits[0] - 1e-7) * 27)),
+                               int(math.floor((limits[1] + 1e-7) * 27))))
+
+    def samples(bid):
+        if bid in sample_cache:
+            return sample_cache[bid]
+        b = geometry[bid]
+        points = []
+        for fx in (.15, .5, .85):
+            for fy in (.15, .5, .85):
+                for fz in (.15, .5, .85):
+                    point = (b[0] + fx * (b[3] - b[0]),
+                             b[1] + fy * (b[4] - b[1]),
+                             b[2] + fz * (b[5] - b[2]))
+                    delta = tuple(point[a] - origin[a] for a in range(3))
+                    z = sum(delta[a] * f[a] for a in range(3))
+                    if (z > 0 and
+                        abs(sum(delta[a] * right[a] for a in range(3))) <= z * tangent and
+                        abs(sum(delta[a] * up[a] for a in range(3))) <= z * tangent):
+                        points.append(point)
+        result = (points, (1 << len(points)) - 1)
+        sample_cache[bid] = result
+        return result
+
+    def occlusion(target, other):
+        key = (target, other)
+        if key in occlusion_cache:
+            return occlusion_cache[key]
+        points, frame = samples(target)
+        spend(len(points) + 1)
+        b = geometry[other]
+        mask = 0
+        for k, point in enumerate(points):
+            if _layout_ray(origin, point, b):
+                mask |= 1 << k
+        occlusion_cache[key] = mask
+        return mask
+
+    route_cache = {}
+
+    def navigable(blocked):
+        if blocked in route_cache:
+            return route_cache[blocked]
+        if blocked & endpoints:
+            return False
+        free = whole & ~blocked
+        seen, frontier = start, start
+        while frontier:
+            spend(1)
+            if frontier & goal:
+                if len(route_cache) < 4096:
+                    route_cache[blocked] = True
+                return True
+            frontier = (((frontier & ~right_edge) << 1) |
+                        ((frontier & ~left_edge) >> 1) |
+                        (frontier << nx) | (frontier >> nx)) & free & ~seen
+            seen |= frontier
+        if len(route_cache) < 4096:
+            route_cache[blocked] = False
+        return False
+
+    def propagate(domains, changed):
+        queue = deque()
+        pending = set()
+
+        def enqueue(i, j):
+            if (i, j) not in pending:
+                pending.add((i, j))
+                queue.append((i, j))
+
+        for j in changed:
+            for i in neighbors[j]:
+                enqueue(i, j)
+        while True:
+            while queue:
+                i, j = queue.popleft()
+                pending.remove((i, j))
+                old = domains[i]
+                remaining, revised = old, 0
+                rows = compatibility[i, j]
+                while remaining:
+                    bit = remaining & -remaining
+                    remaining -= bit
+                    spend(1)
+                    if rows[bit.bit_length() - 1] & domains[j]:
+                        revised |= bit
+                if revised != old:
+                    if not revised:
+                        return False
+                    domains[i] = revised
+                    for h in neighbors[i]:
+                        if h != j:
+                            enqueue(h, i)
+            altered = False
+            for i, low, high in visibility:
+                remaining, keep = domains[i], 0
+                while remaining:
+                    bit = remaining & -remaining
+                    remaining -= bit
+                    k = bit.bit_length() - 1
+                    target = bids[i][k]
+                    points, frame = samples(target)
+                    if frame.bit_count() < low:
+                        continue
+                    certain, possible = 0, 0
+                    viable = True
+                    for j in range(n):
+                        if j == i:
+                            continue
+                        options = domains[j]
+                        if (i, j) in compatibility:
+                            options &= compatibility[i, j][k]
+                        if not options:
+                            viable = False
+                            break
+                        every, some = frame, 0
+                        while options:
+                            option = options & -options
+                            options -= option
+                            spend(1)
+                            mask = occlusion(target, bids[j][option.bit_length() - 1])
+                            every &= mask
+                            some |= mask
+                        certain |= every
+                        possible |= some
+                        if (frame & ~certain).bit_count() < low:
+                            viable = False
+                            break
+                    if (viable and (frame & ~possible).bit_count() <= high and
+                            (frame & ~certain).bit_count() >= low):
+                        keep |= bit
+                if not keep:
+                    return False
+                if keep != domains[i]:
+                    domains[i] = keep
+                    altered = True
+                    for j in neighbors[i]:
+                        enqueue(j, i)
+            if not altered:
+                break
+        blocked = 0
+        for i in range(n):
+            options = domains[i]
+            mandatory = whole
+            while options:
+                bit = options & -options
+                options -= bit
+                spend(1)
+                mandatory &= occupancy[bids[i][bit.bit_length() - 1]]
+                if not mandatory:
+                    break
+            blocked |= mandatory
+        return navigable(blocked)
+
+    def search(domains, changed):
+        budget[1] += 1
+        if budget[1] > 10000:
+            raise ValueError('Bounded constraint search exhausted')
+        if not propagate(domains, changed):
+            return None
+        unresolved = [i for i in range(n) if domains[i] & (domains[i] - 1)]
+        if not unresolved:
+            return domains
+        chosen = min(unresolved,
+                     key=lambda i: (domains[i].bit_count(),
+                                    -sum(1 for j in neighbors[i]
+                                         if domains[j] & (domains[j] - 1)),
+                                    -len(neighbors[i])))
+        values = []
+        options = domains[chosen]
+        while options:
+            bit = options & -options
+            options -= bit
+            k = bit.bit_length() - 1
+            freedom = 0
+            for j in neighbors[chosen]:
+                freedom += (compatibility[chosen, j][k] & domains[j]).bit_count()
+            values.append((-freedom, bit))
+        values.sort()
+        for score, bit in values:
+            branch = domains[:]
+            branch[chosen] = bit
+            result = search(branch, (chosen,))
+            if result is not None:
+                return result
+        return None
+
+    domains = [(1 << len(p)) - 1 for p in poses]
+    solution = search(domains, range(n))
+    if solution is None:
+        raise ValueError('No feasible domain assignment')
+    selected = [poses[i][solution[i].bit_length() - 1] for i in range(n)]
+    return {'state': {'scene_id': spec['scene_id'],
+                      'objects': [{key: p[key] for key in
+                                   ('id', 'asset', 'x', 'y', 'yaw_deg')}
+                                  for p in selected]},
+            'elevations': {p['id']: p['z'] for p in selected}}

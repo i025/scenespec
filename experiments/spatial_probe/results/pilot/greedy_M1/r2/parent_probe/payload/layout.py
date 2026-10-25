@@ -1,0 +1,317 @@
+import math
+from collections import deque
+
+
+def layout(packet):
+    eps = 1e-7
+    spec = packet['spec']
+    assets = spec['assets']
+    rules = packet['requirements']
+    fixed = {p['id']: p for p in packet['fixed']}
+    names = list(fixed) + [k for k in packet['domains'] if k not in fixed]
+    index = {k: i for i, k in enumerate(names)}
+    n = len(names)
+    poses = []
+    boxes = []
+    blocks = []
+    nx = int(2 * packet['width'] - 1)
+    ny = int(2 * packet['depth'] - 1)
+    whole = (1 << (nx * ny)) - 1
+    left = sum(1 << (y * nx) for y in range(ny))
+    right = left << (nx - 1)
+    sx, sy = (int(2 * v) for v in packet['start'])
+    gx, gy = (int(2 * v) for v in packet['goal'])
+    start = 1 << (sy * nx + sx)
+    goal = 1 << (gy * nx + gx)
+
+    def envelope(p):
+        a = assets[p['asset']]
+        w, d = a['width'], a['depth']
+        if p['yaw_deg'] % 180:
+            w, d = d, w
+        return (p['x'] - w / 2, p['y'] - d / 2, p['z'],
+                p['x'] + w / 2, p['y'] + d / 2, p['z'] + a['height'])
+
+    def occupied(b):
+        if b[2] >= 1.8 - eps or b[5] <= eps:
+            return 0
+        xs = [x for x in range(nx) if b[0] - .2 < .5 + .5 * x < b[3] + .2]
+        row = sum(1 << x for x in xs)
+        result = 0
+        for y in range(ny):
+            if b[1] - .2 < .5 + .5 * y < b[4] + .2:
+                result |= row << (y * nx)
+        return result
+
+    def unary(name, p, b):
+        room = spec['room']
+        if b[0] < -eps or b[1] < -eps or b[3] > room['width'] + eps or b[4] > room['depth'] + eps:
+            return False
+        if b[2] < 0 or b[5] > room['height'] + eps:
+            return False
+        r = rules.get(name)
+        if r is None:
+            return True
+        bounds = packet['rooms'][r['room']]
+        if b[0] < bounds[0] - eps or b[1] < bounds[1] - eps or b[3] > bounds[2] + eps or b[4] > bounds[3] + eps:
+            return False
+        if not r['height'][0] - eps <= b[2] <= r['height'][1] + eps:
+            return False
+        return r['support'] != 'floor' or abs(b[2]) <= eps
+
+    expected = {r['id']: r['asset'] for r in spec['required_objects']}
+    for name in names:
+        source = [fixed[name]] if name in fixed else packet['domains'][name]
+        pp, bb, mm, seen = [], [], [], set()
+        for p in source:
+            b = envelope(p)
+            m = occupied(b)
+            key = (p['asset'], b)
+            if name not in fixed:
+                if p['id'] != name or p['asset'] != expected.get(name, p['asset']):
+                    continue
+                if key in seen or not unary(name, p, b) or m & (start | goal):
+                    continue
+            seen.add(key)
+            pp.append(p)
+            bb.append(b)
+            mm.append(m)
+        poses.append(pp)
+        boxes.append(bb)
+        blocks.append(mm)
+
+    distances = {}
+    for r in packet['distances']:
+        i, j = index[r['a']], index[r['b']]
+        distances.setdefault((min(i, j), max(i, j)), []).append((max(0., r['min'] - eps) ** 2, (r['max'] + eps) ** 2))
+    parents = [rules.get(k, {}).get('support') for k in names]
+
+    def supported(child, parent):
+        return (abs(child[2] - parent[5]) <= eps and
+                child[0] >= parent[0] + .05 - eps and
+                child[1] >= parent[1] + .05 - eps and
+                child[3] <= parent[3] - .05 + eps and
+                child[4] <= parent[4] - .05 + eps)
+
+    compat = {}
+    neighbors = [[] for k in names]
+    for i in range(n):
+        for j in range(i + 1, n):
+            relations = distances.get((i, j), ())
+            ij, ji = [0] * len(boxes[i]), [0] * len(boxes[j])
+            restrictive = False
+            for u, a in enumerate(boxes[i]):
+                for v, b in enumerate(boxes[j]):
+                    ok = not (min(a[3], b[3]) - max(a[0], b[0]) > eps and
+                              min(a[4], b[4]) - max(a[1], b[1]) > eps and
+                              min(a[5], b[5]) - max(a[2], b[2]) > eps)
+                    if ok and parents[i] == names[j]:
+                        ok = supported(a, b)
+                    if ok and parents[j] == names[i]:
+                        ok = supported(b, a)
+                    if ok and relations:
+                        d2 = sum(((a[t] + a[t + 3] - b[t] - b[t + 3]) * .5) ** 2 for t in range(3))
+                        ok = all(lo <= d2 <= hi for lo, hi in relations)
+                    if ok:
+                        ij[u] |= 1 << v
+                        ji[v] |= 1 << u
+                    else:
+                        restrictive = True
+            if restrictive:
+                compat[i, j], compat[j, i] = ij, ji
+                neighbors[i].append(j)
+                neighbors[j].append(i)
+
+    visibility = []
+    frame_cache = {}
+    hit_cache = {}
+    if packet['visibility']:
+        view = packet['view']
+        origin = view['position']
+        f = [view['target'][t] - origin[t] for t in range(3)]
+        length = math.sqrt(sum(v * v for v in f))
+        f = [v / length for v in f]
+        length = math.hypot(f[0], f[1])
+        r = [f[1] / length, -f[0] / length, 0.] if length > 1e-12 else [1., 0., 0.]
+        up = [r[1] * f[2], -r[0] * f[2], r[0] * f[1] - r[1] * f[0]]
+        tangent = math.tan(math.radians(view['fov'] / 2))
+        for name, limits in packet['visibility'].items():
+            visibility.append((index[name], int(math.ceil(27 * (limits[0] - eps))), int(math.floor(27 * (limits[1] + eps)))))
+
+        def framed(i, u):
+            key = (i, u)
+            if key in frame_cache:
+                return frame_cache[key]
+            b = boxes[i][u]
+            rays, mask = [], 0
+            for fx in (.15, .5, .85):
+                for fy in (.15, .5, .85):
+                    for fz in (.15, .5, .85):
+                        point = [b[t] + fraction * (b[t + 3] - b[t]) for t, fraction in enumerate((fx, fy, fz))]
+                        delta = [point[t] - origin[t] for t in range(3)]
+                        depth = sum(delta[t] * f[t] for t in range(3))
+                        if depth > 0 and abs(sum(delta[t] * r[t] for t in range(3))) <= depth * tangent and abs(sum(delta[t] * up[t] for t in range(3))) <= depth * tangent:
+                            mask |= 1 << len(rays)
+                        rays.append(delta)
+            frame_cache[key] = (mask, rays)
+            return mask, rays
+
+        def hits(i, u, j, v):
+            key = (i, u, j, v)
+            if key in hit_cache:
+                return hit_cache[key]
+            mask, rays = framed(i, u)
+            b, result = boxes[j][v], 0
+            while mask:
+                bit = mask & -mask
+                mask -= bit
+                delta = rays[bit.bit_length() - 1]
+                lo, hi = 0., 1. - 1e-6
+                for t in range(3):
+                    if abs(delta[t]) < 1e-10:
+                        if not b[t] <= origin[t] <= b[t + 3]:
+                            hi = -1.
+                            break
+                    else:
+                        a = (b[t] - origin[t]) / delta[t]
+                        c = (b[t + 3] - origin[t]) / delta[t]
+                        lo, hi = max(lo, min(a, c)), min(hi, max(a, c))
+                        if lo > hi:
+                            break
+                if lo <= hi:
+                    result |= bit
+            hit_cache[key] = result
+            return result
+
+    nav_cache = {}
+
+    def navigable(blocked):
+        if blocked in nav_cache:
+            return nav_cache[blocked]
+        free = whole & ~blocked
+        if not free & start or not free & goal:
+            return False
+        reached, frontier = start, start
+        while frontier and not reached & goal:
+            expanded = (((frontier & ~right) << 1) | ((frontier & ~left) >> 1) | (frontier << nx) | (frontier >> nx)) & free & ~reached
+            reached |= expanded
+            frontier = expanded
+        result = bool(reached & goal)
+        if len(nav_cache) < 4096:
+            nav_cache[blocked] = result
+        return result
+
+    effort = [0, 0]
+    limit = 550000
+
+    def propagate(dom):
+        queue = deque(compat)
+        while True:
+            while queue:
+                i, j = queue.popleft()
+                old, remaining = dom[i], dom[i]
+                table = compat[i, j]
+                new = 0
+                while remaining:
+                    bit = remaining & -remaining
+                    remaining -= bit
+                    effort[0] += 1
+                    if table[bit.bit_length() - 1] & dom[j]:
+                        new |= bit
+                if effort[0] > limit:
+                    return False
+                if not new:
+                    return False
+                if new != old:
+                    dom[i] = new
+                    for k in neighbors[i]:
+                        if k != j:
+                            queue.append((k, i))
+            changed = []
+            for i, minimum, maximum in visibility:
+                remaining, keep = dom[i], 0
+                while remaining:
+                    bit = remaining & -remaining
+                    remaining -= bit
+                    u = bit.bit_length() - 1
+                    frame, rays = framed(i, u)
+                    certain, possible = 0, 0
+                    for j in range(n):
+                        if i == j:
+                            continue
+                        every, some, options = frame, 0, dom[j]
+                        while options:
+                            option = options & -options
+                            options -= option
+                            h = hits(i, u, j, option.bit_length() - 1)
+                            every &= h
+                            some |= h
+                            effort[0] += 1
+                        certain |= every
+                        possible |= some
+                    if (frame & ~certain).bit_count() >= minimum and (frame & ~possible).bit_count() <= maximum:
+                        keep |= bit
+                    if effort[0] > limit:
+                        return False
+                if not keep:
+                    return False
+                if keep != dom[i]:
+                    dom[i] = keep
+                    changed.append(i)
+            if not changed:
+                break
+            for i in changed:
+                for j in neighbors[i]:
+                    queue.append((j, i))
+        guaranteed = 0
+        for i in range(n):
+            common, options = whole, dom[i]
+            while options:
+                bit = options & -options
+                options -= bit
+                common &= blocks[i][bit.bit_length() - 1]
+            guaranteed |= common
+        return navigable(guaranteed)
+
+    def search(dom):
+        effort[1] += 1
+        if effort[1] > 16000 or effort[0] > limit or not propagate(dom):
+            return None
+        choices = [i for i in range(n) if dom[i] & (dom[i] - 1)]
+        if not choices:
+            return dom
+        i = min(choices, key=lambda k: (dom[k].bit_count(), -sum(dom[j].bit_count() > 1 for j in neighbors[k])))
+        values, remaining = [], dom[i]
+        while remaining:
+            bit = remaining & -remaining
+            remaining -= bit
+            u = bit.bit_length() - 1
+            score = sum((compat[i, j][u] & dom[j]).bit_count() for j in neighbors[i])
+            values.append((-score, blocks[i][u].bit_count(), u, bit))
+        values.sort()
+        for score, occupancy, u, bit in values:
+            child = dom[:]
+            child[i] = bit
+            result = search(child)
+            if result is not None:
+                return result
+            if effort[0] > limit or effort[1] > 16000:
+                break
+        return None
+
+    initial = [(1 << len(p)) - 1 for p in poses]
+    solution = search(initial) if all(initial) else None
+    chosen = dict(fixed)
+    for i, name in enumerate(names):
+        if name in fixed:
+            continue
+        if solution is not None:
+            chosen[name] = poses[i][solution[i].bit_length() - 1]
+        elif poses[i]:
+            chosen[name] = poses[i][0]
+        else:
+            chosen[name] = packet['domains'][name][0]
+    return {'state': {'scene_id': spec['scene_id'], 'objects': [
+                {k: p[k] for k in ('id', 'asset', 'x', 'y', 'yaw_deg')}
+                for p in chosen.values()]},
+            'elevations': {name: p['z'] for name, p in chosen.items()}}

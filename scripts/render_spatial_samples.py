@@ -10,6 +10,23 @@ from scene_rsi.render import export_spatial
 from scene_rsi.world.generator_benchmark import save
 
 
+def contact_sheet(out, slot=0):
+    from PIL import Image, ImageDraw, ImageFont
+    font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 23)
+    sheet = Image.new('RGB', (1536, 1694), '#17242d')
+    draw = ImageDraw.Draw(sheet)
+    for j, title in enumerate(('Task camera', 'Room overview', 'Top')):
+        draw.text((j*512+12, 12), title, font=font, fill='white')
+    for i, (family, title) in enumerate((('support','3D support'), ('rooms','Rooms and passage'),
+                                       ('visibility','Visibility and occlusion'))):
+        y = 50+i*548
+        draw.text((12, y), title+f' | actual dev output, candidate {slot}', font=font, fill='white')
+        for j, view in enumerate(('overview','reverse','top')):
+            picture = Image.open(out/f'seed_{family}'/f'{view}.png').convert('RGB')
+            sheet.paste(picture.resize((512,512), Image.Resampling.LANCZOS), (j*512,y+32))
+    sheet.save(out/'contact_sheet.jpg', quality=92)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', type=Path, required=True)
@@ -44,6 +61,7 @@ def main():
                         'source':'actual candidate_dev output; not a reference witness',
                         'verification':result['verification'], 'render':result.get('render')})
     save(args.out/'examples.json', records)
+    contact_sheet(args.out, args.slot)
 
 
 if __name__ == '__main__':

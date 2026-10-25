@@ -47,6 +47,8 @@ def main():
     tasks = json.loads((run/'private_tasks.json').read_text())
     for name in ('calls.json', 'scores.json', 'finished.json', 'ceiling_stop.json', 'proposals_complete.json'):
         shutil.copyfile(run/name, out/name)
+    if (run/'early_ceiling_stop.json').exists():
+        shutil.copyfile(run/'early_ceiling_stop.json', out/'early_ceiling_stop.json')
     for file in run.glob('selection_K*.json'):
         shutil.copyfile(file, out/file.name)
     save(out/'dev_tasks.json', {'common':tasks['common'], 'probes':tasks['probes']})
@@ -138,12 +140,26 @@ def main():
         # Exact labels, not suffix matches: M0_M1probe and M1_random are distinct arms.
         arm_labels = {c['trial'] for c in calls if c['arm'] == arm}
         files = [file for label in arm_labels for file in (run/label).rglob('summary.json')]
-        resources = [r for file in files for r in json.loads(file.read_text()).get('execution', [])]
+        aborted = [file for file in files if 'r2' in file.relative_to(run).parts and not any(c['round'] == 2 for c in calls)]
+        resources = [r for file in files if file not in aborted for r in json.loads(file.read_text()).get('execution', [])]
+        preparation = [r for file in aborted for r in json.loads(file.read_text()).get('execution', [])]
         execution[arm] = {'processes':len(resources), 'nonzero_exits':sum(r['exit_code'] != 0 for r in resources),
                           'runtime_cpu_seconds':sum(r['runtime_cpu_seconds'] for r in resources),
                           'process_lifetime_wall_seconds':sum(r['wall_seconds'] for r in resources),
+                          'abandoned_K2_preparation':{'processes':len(preparation),
+                              'runtime_cpu_seconds':sum(r['runtime_cpu_seconds'] for r in preparation),
+                              'model_calls':0},
                           'scope':'Apptainer/candidate child CPU, all parent/candidate dev/selection and selected test; excludes model/policy/checker CPU'}
     save(out/'execution_costs.json', execution)
+    preparation = []
+    for path in sorted(run.glob('*/r2/choose/response.json')):
+        folder = path.parent.parent
+        row = {'trial':folder.parent.name, 'probe':json.loads(path.read_text())['experiment'], 'model_calls':0}
+        for phase in ('parent_common','parent_probe'):
+            if (folder/phase/'summary.json').exists():
+                row[phase] = json.loads((folder/phase/'summary.json').read_text())['metrics']
+        preparation.append(row)
+    save(out/'abandoned_K2_preparation.json', preparation)
     print(json.dumps(stages, indent=2))
 
 

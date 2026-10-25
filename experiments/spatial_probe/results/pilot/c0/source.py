@@ -1,0 +1,426 @@
+import math
+from collections import deque
+
+
+def layout(packet):
+    eps = 1e-7
+    spec = packet['spec']
+    assets = spec['assets']
+    required = {p['id']: p['asset'] for p in spec['required_objects']}
+    fixed = {p['id']: p for p in packet['fixed']}
+    names = list(required)
+    names.extend(k for k in fixed if k not in required)
+    index = {k: i for i, k in enumerate(names)}
+    n = len(names)
+    rules = packet['requirements']
+    poses = []
+    boxes = []
+    geometry = []
+    geometry_ids = {}
+    gids = []
+    ceiling = spec['room']['height']
+    room_width = spec['room']['width']
+    room_depth = spec['room']['depth']
+
+    def make_box(p):
+        a = assets[p['asset']]
+        w, d = a['width'], a['depth']
+        if p['yaw_deg'] % 180:
+            w, d = d, w
+        return (p['x']-w/2, p['y']-d/2, p['z'],
+                p['x']+w/2, p['y']+d/2, p['z']+a['height'])
+
+    def unary(name, p, b):
+        if name in required and p['asset'] != required[name]:
+            return False
+        if b[0] < -eps or b[1] < -eps or b[2] < 0:
+            return False
+        if b[3] > room_width+eps or b[4] > room_depth+eps or b[5] > ceiling+eps:
+            return False
+        if name in rules:
+            r = rules[name]
+            bounds = packet['rooms'][r['room']]
+            if not (bounds[0]-eps <= b[0] and bounds[1]-eps <= b[1]
+                    and b[3] <= bounds[2]+eps and b[4] <= bounds[3]+eps):
+                return False
+            if not r['height'][0]-eps <= b[2] <= r['height'][1]+eps:
+                return False
+            if r['support'] == 'floor' and abs(b[2]) > eps:
+                return False
+            if r['support'] != 'floor' and r['support'] not in index:
+                return False
+        return True
+
+    for name in names:
+        options = [fixed[name]] if name in fixed else packet['domains'][name]
+        pp, bb, gg = [], [], []
+        seen = set()
+        for p in options:
+            signature = (p['asset'], p['x'], p['y'], p['z'], p['yaw_deg'])
+            if signature in seen:
+                continue
+            seen.add(signature)
+            b = make_box(p)
+            if not unary(name, p, b):
+                continue
+            if b not in geometry_ids:
+                geometry_ids[b] = len(geometry)
+                geometry.append(b)
+            pp.append(p)
+            bb.append(b)
+            gg.append(geometry_ids[b])
+        if not pp:
+            raise ValueError('An object has no admissible pose')
+        poses.append(pp)
+        boxes.append(bb)
+        gids.append(gg)
+
+    nx = int(round(2*packet['width']))-1
+    ny = int(round(2*packet['depth']))-1
+    cell_count = nx*ny
+    all_cells = (1 << cell_count)-1
+    start_xy = tuple(2*v for v in packet['start'])
+    goal_xy = tuple(2*v for v in packet['goal'])
+    if not (0 <= start_xy[0] < nx and 0 <= start_xy[1] < ny
+            and 0 <= goal_xy[0] < nx and 0 <= goal_xy[1] < ny):
+        raise ValueError('Navigation endpoint outside grid')
+    start_bit = 1 << (int(start_xy[0])*ny+int(start_xy[1]))
+    goal_bit = 1 << (int(goal_xy[0])*ny+int(goal_xy[1]))
+    endpoint_bits = start_bit | goal_bit
+    bottom_rows = sum(1 << (x*ny) for x in range(nx))
+    top_rows = bottom_rows << (ny-1)
+    blocked_geometry = []
+    for b in geometry:
+        blocked = 0
+        if b[2] < 1.8-eps and b[5] > eps:
+            for x in range(nx):
+                px = .5+.5*x
+                if b[0]-.2 < px < b[3]+.2:
+                    for y in range(ny):
+                        if b[1]-.2 < .5+.5*y < b[4]+.2:
+                            blocked |= 1 << (x*ny+y)
+        blocked_geometry.append(blocked)
+    blocks = [[blocked_geometry[g] for g in row] for row in gids]
+    domains = []
+    for i in range(n):
+        mask = 0
+        for a, blocked in enumerate(blocks[i]):
+            if not blocked & endpoint_bits:
+                mask |= 1 << a
+        if not mask:
+            raise ValueError('Every pose blocks a navigation endpoint')
+        domains.append(mask)
+
+    distances = {}
+    for r in packet['distances']:
+        i, j = index[r['a']], index[r['b']]
+        if i == j:
+            if not r['min']-eps <= 0 <= r['max']+eps:
+                raise ValueError('Inconsistent self distance')
+        else:
+            key = (min(i, j), max(i, j))
+            distances.setdefault(key, []).append((max(0., r['min']-eps)**2,
+                                                   (r['max']+eps)**2))
+    parents = []
+    for name in names:
+        parent = rules[name]['support'] if name in rules else 'floor'
+        parents.append(index[parent] if parent != 'floor' else -1)
+
+    def supported(child, parent):
+        return (abs(child[2]-parent[5]) <= eps
+                and parent[0]+.05-eps <= child[0]
+                and parent[1]+.05-eps <= child[1]
+                and child[3] <= parent[3]-.05+eps
+                and child[4] <= parent[4]-.05+eps)
+
+    compatibility = [{} for i in range(n)]
+    neighbors = [[] for i in range(n)]
+    for i in range(n):
+        for j in range(i+1, n):
+            limits = distances.get((i, j), ())
+            ij = [0]*len(poses[i])
+            ji = [0]*len(poses[j])
+            unrestricted = True
+            for a, b in enumerate(boxes[i]):
+                for c, d in enumerate(boxes[j]):
+                    ok = not (min(b[3], d[3])-max(b[0], d[0]) > eps
+                              and min(b[4], d[4])-max(b[1], d[1]) > eps
+                              and min(b[5], d[5])-max(b[2], d[2]) > eps)
+                    if ok and parents[i] == j:
+                        ok = supported(b, d)
+                    if ok and parents[j] == i:
+                        ok = supported(d, b)
+                    if ok and limits:
+                        dx = (b[0]+b[3]-d[0]-d[3])*.5
+                        dy = (b[1]+b[4]-d[1]-d[4])*.5
+                        dz = (b[2]+b[5]-d[2]-d[5])*.5
+                        squared = dx*dx+dy*dy+dz*dz
+                        ok = all(lo <= squared <= hi for lo, hi in limits)
+                    if ok:
+                        ij[a] |= 1 << c
+                        ji[c] |= 1 << a
+                    else:
+                        unrestricted = False
+            if not unrestricted:
+                compatibility[i][j] = ij
+                compatibility[j][i] = ji
+                neighbors[i].append(j)
+                neighbors[j].append(i)
+
+    visibility = []
+    for name, bounds in packet['visibility'].items():
+        lo = max(0, int(math.ceil(27*(bounds[0]-eps))))
+        hi = min(27, int(math.floor(27*(bounds[1]+eps))))
+        visibility.append((index[name], lo, hi))
+    origin = packet['view']['position']
+    forward = [packet['view']['target'][k]-origin[k] for k in range(3)]
+    norm = math.sqrt(sum(v*v for v in forward))
+    if norm == 0:
+        raise ValueError('Degenerate camera')
+    forward = [v/norm for v in forward]
+    horizontal = math.hypot(forward[0], forward[1])
+    if horizontal > 1e-12:
+        right = (forward[1]/horizontal, -forward[0]/horizontal, 0.)
+    else:
+        right = (1., 0., 0.)
+    up = (right[1]*forward[2]-right[2]*forward[1],
+          right[2]*forward[0]-right[0]*forward[2],
+          right[0]*forward[1]-right[1]*forward[0])
+    tangent = math.tan(math.radians(packet['view']['fov']*.5))
+    samples = {}
+    framed_masks = {}
+    for i, lo, hi in visibility:
+        for g in gids[i]:
+            if g in samples:
+                continue
+            b = geometry[g]
+            rays, framed = [], 0
+            bit = 1
+            for fx in (.15, .5, .85):
+                for fy in (.15, .5, .85):
+                    for fz in (.15, .5, .85):
+                        delta = (b[0]+fx*(b[3]-b[0])-origin[0],
+                                 b[1]+fy*(b[4]-b[1])-origin[1],
+                                 b[2]+fz*(b[5]-b[2])-origin[2])
+                        depth = sum(delta[k]*forward[k] for k in range(3))
+                        if (depth > 0 and abs(sum(delta[k]*right[k] for k in range(3))) <= depth*tangent
+                                and abs(sum(delta[k]*up[k] for k in range(3))) <= depth*tangent):
+                            framed |= bit
+                            rays.append((bit, tuple(None if abs(v) < 1e-10 else 1./v for v in delta)))
+                        bit <<= 1
+            samples[g] = rays
+            framed_masks[g] = framed
+
+    occlusion_cache = {}
+    effort = [0, 0]
+
+    def occlusion(target, obstacle):
+        key = (target, obstacle)
+        if key in occlusion_cache:
+            return occlusion_cache[key]
+        b = geometry[obstacle]
+        low = (b[0]-origin[0], b[1]-origin[1], b[2]-origin[2])
+        high = (b[3]-origin[0], b[4]-origin[1], b[5]-origin[2])
+        hidden = 0
+        for bit, inverse in samples[target]:
+            effort[1] += 1
+            near, far = 0., 1.-1e-6
+            hit = True
+            for k in range(3):
+                inv = inverse[k]
+                if inv is None:
+                    if low[k] > 0 or high[k] < 0:
+                        hit = False
+                        break
+                else:
+                    a, c = low[k]*inv, high[k]*inv
+                    if a > c:
+                        a, c = c, a
+                    if a > near:
+                        near = a
+                    if c < far:
+                        far = c
+                    if near > far:
+                        hit = False
+                        break
+            if hit:
+                hidden |= bit
+        occlusion_cache[key] = hidden
+        return hidden
+
+    block_intersections = [{} for i in range(n)]
+    nav_cache = {}
+
+    def navigation(ds):
+        blocked = 0
+        for i, mask in enumerate(ds):
+            cache = block_intersections[i]
+            if mask in cache:
+                mandatory = cache[mask]
+            else:
+                values = mask
+                bit = values & -values
+                mandatory = blocks[i][bit.bit_length()-1]
+                values ^= bit
+                while values and mandatory:
+                    bit = values & -values
+                    mandatory &= blocks[i][bit.bit_length()-1]
+                    values ^= bit
+                if len(cache) < 4096:
+                    cache[mask] = mandatory
+            blocked |= mandatory
+        if blocked in nav_cache:
+            return nav_cache[blocked]
+        free = all_cells & ~blocked
+        if endpoint_bits & blocked:
+            result = False
+        else:
+            reached = start_bit
+            frontier = start_bit
+            result = False
+            while frontier:
+                if reached & goal_bit:
+                    result = True
+                    break
+                expanded = ((frontier << ny) | (frontier >> ny)
+                            | ((frontier & ~top_rows) << 1)
+                            | ((frontier & ~bottom_rows) >> 1))
+                frontier = expanded & free & ~reached
+                reached |= frontier
+        if len(nav_cache) < 12000:
+            nav_cache[blocked] = result
+        return result
+
+    def visibility_filter(ds, exact):
+        changed = []
+        for i, minimum, maximum in visibility:
+            old = ds[i]
+            kept = 0
+            options = old
+            while options:
+                bit = options & -options
+                options ^= bit
+                a = bit.bit_length()-1
+                g = gids[i][a]
+                framed = framed_masks[g]
+                if framed.bit_count() < minimum:
+                    continue
+                must_hide = 0
+                may_hide = 0
+                viable = True
+                for j in range(n):
+                    if i == j:
+                        continue
+                    choices = ds[j]
+                    forced = framed
+                    possible = 0
+                    while choices:
+                        other_bit = choices & -choices
+                        choices ^= other_bit
+                        h = occlusion(g, gids[j][other_bit.bit_length()-1])
+                        forced &= h
+                        if maximum < 27:
+                            possible |= h
+                        if not forced and (maximum == 27 or possible == framed):
+                            break
+                    must_hide |= forced
+                    may_hide |= possible
+                    if (framed & ~must_hide).bit_count() < minimum:
+                        viable = False
+                        break
+                if viable and maximum < 27 and (framed & ~may_hide).bit_count() > maximum:
+                    viable = False
+                if viable:
+                    kept |= bit
+                if not exact and effort[1] > 1100000:
+                    kept |= options
+                    break
+            if not kept:
+                return None
+            if kept != old:
+                ds[i] = kept
+                changed.append(i)
+        return changed
+
+    weights = [1]*n
+
+    def propagate(ds, initial):
+        queue = deque(initial)
+        queued = set(initial)
+        while True:
+            while queue:
+                j = queue.popleft()
+                queued.discard(j)
+                for i in neighbors[j]:
+                    old = ds[i]
+                    new = 0
+                    values = old
+                    table = compatibility[i][j]
+                    while values:
+                        bit = values & -values
+                        values ^= bit
+                        if table[bit.bit_length()-1] & ds[j]:
+                            new |= bit
+                    if not new:
+                        weights[i] += 1
+                        weights[j] += 1
+                        return False
+                    if new != old:
+                        ds[i] = new
+                        if i not in queued:
+                            queue.append(i)
+                            queued.add(i)
+            complete = all(mask & (mask-1) == 0 for mask in ds)
+            if visibility and (complete or effort[1] <= 1100000):
+                changed = visibility_filter(ds, complete)
+                if changed is None:
+                    return False
+                if changed:
+                    for i in changed:
+                        if i not in queued:
+                            queue.append(i)
+                            queued.add(i)
+                    continue
+            return navigation(ds)
+
+    def search(ds, changed):
+        effort[0] += 1
+        if effort[0] > 24000 or effort[1] > 1800000:
+            return None
+        if not propagate(ds, changed):
+            return None
+        candidates = [i for i in range(n) if ds[i] & (ds[i]-1)]
+        if not candidates:
+            return ds
+        i = min(candidates, key=lambda j: (ds[j].bit_count(),
+                    -sum(weights[k] for k in neighbors[j] if ds[k] & (ds[k]-1)),
+                    -len(neighbors[j])))
+        ordered = []
+        values = ds[i]
+        while values:
+            bit = values & -values
+            values ^= bit
+            a = bit.bit_length()-1
+            freedom = sum((compatibility[i][j][a] & ds[j]).bit_count()
+                          for j in neighbors[i] if ds[j] & (ds[j]-1))
+            ordered.append((-freedom, blocks[i][a].bit_count(), a, bit))
+        ordered.sort()
+        for score, footprint, a, bit in ordered:
+            child = ds[:]
+            child[i] = bit
+            result = search(child, [i])
+            if result is not None:
+                return result
+            if effort[0] > 24000 or effort[1] > 1800000:
+                break
+        weights[i] += 1
+        return None
+
+    solution = search(domains, list(range(n)))
+    if solution is None:
+        raise ValueError('No feasible layout found within the bounded search')
+    selected = [poses[i][solution[i].bit_length()-1] for i in range(n)]
+    return {'state': {'scene_id': spec['scene_id'],
+                      'objects': [{k: p[k] for k in ('id', 'asset', 'x', 'y', 'yaw_deg')}
+                                  for p in selected]},
+            'elevations': {p['id']: p['z'] for p in selected}}

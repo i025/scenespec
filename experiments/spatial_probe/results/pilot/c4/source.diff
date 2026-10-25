@@ -1,0 +1,462 @@
+--- a/spatial_generator.py
++++ b/spatial_generator.py
+@@ -1,119 +1,351 @@
+-"""Simple deterministic depth-first constraint search, capped at 2,000 nodes.
+-
+-Pure standalone baseline; only executed by the restricted runner. No oracle.
+-"""
+ import math
+ from collections import deque
+ 
+ 
+-def box(packet, p):
+-    a = packet['spec']['assets'][p['asset']]
+-    w, d = a['width'], a['depth']
+-    if p['yaw_deg']%180:
+-        w, d = d, w
+-    return (p['x']-w/2, p['y']-d/2, p['z'], p['x']+w/2, p['y']+d/2, p['z']+a['height'])
+-
+-
+-def local(packet, p, placed):
+-    b = box(packet, p)
+-    rule = packet['requirements'][p['id']]
+-    r = packet['rooms'][rule['room']]
+-    if not (r[0]-1e-7 <= b[0] and r[1]-1e-7 <= b[1] and b[3] <= r[2]+1e-7 and b[4] <= r[3]+1e-7):
+-        return False
+-    if not rule['height'][0]-1e-7 <= b[2] <= rule['height'][1]+1e-7 or b[2] < 0 or b[5] > packet['spec']['room']['height']+1e-7:
+-        return False
+-    if any(all(min(a[i+3], b[i+3])-max(a[i], b[i]) > 1e-7 for i in range(3))
+-           for a in [box(packet, q) for q in placed.values()]):
+-        return False
+-    for relation in packet['distances']:
+-        other = relation['b'] if relation['a'] == p['id'] else relation['a'] if relation['b'] == p['id'] else None
+-        if other in placed:
+-            a = box(packet, placed[other])
+-            distance = math.sqrt(sum(((a[i]+a[i+3]-b[i]-b[i+3])/2)**2 for i in range(3)))
+-            if not relation['min']-1e-7 <= distance <= relation['max']+1e-7:
+-                return False
+-    parent = rule['support']
+-    if parent == 'floor':
+-        return abs(b[2]) < 1e-7
+-    if parent not in placed:
+-        return False
+-    a = box(packet, placed[parent])
+-    return abs(b[2]-a[5]) <= 1e-7 and a[0]+.05-1e-7 <= b[0] and a[1]+.05-1e-7 <= b[1] and b[3] <= a[3]-.05+1e-7 and b[4] <= a[4]-.05+1e-7
+-
+-
+-def ray(origin, target, b):
+-    lo, hi = 0., 1.-1e-6
+-    for i in range(3):
+-        delta = target[i]-origin[i]
+-        if abs(delta) < 1e-10:
+-            if not b[i] <= origin[i] <= b[i+3]:
+-                return False
+-        else:
+-            a, c = (b[i]-origin[i])/delta, (b[i+3]-origin[i])/delta
+-            lo, hi = max(lo, min(a, c)), min(hi, max(a, c))
+-            if lo > hi:
+-                return False
+-    return True
+-
+-
+-def global_ok(packet, placed):
+-    boxes = {key:box(packet, p) for key, p in placed.items()}
++def layout(packet):
++    eps = 1e-7
++    spec = packet['spec']
++    assets = spec['assets']
++    required = spec['required_objects']
++    names = [r['id'] for r in required]
++    index = {name: i for i, name in enumerate(names)}
++    fixed = {p['id']: p for p in packet['fixed']}
++    rules = packet['requirements']
++    n = len(names)
++    fuel = [700000]
++    nodes = [0]
++    stopped = [False]
++
++    def envelope(p):
++        a = assets[p['asset']]
++        w, d = a['width'], a['depth']
++        if p['yaw_deg'] % 180:
++            w, d = d, w
++        return (p['x']-w/2, p['y']-d/2, p['z'],
++                p['x']+w/2, p['y']+d/2, p['z']+a['height'])
++
++    def overlap(a, b):
++        return (min(a[3], b[3])-max(a[0], b[0]) > eps and
++                min(a[4], b[4])-max(a[1], b[1]) > eps and
++                min(a[5], b[5])-max(a[2], b[2]) > eps)
++
++    def supported(child, parent):
++        return (abs(child[2]-parent[5]) <= eps and
++                parent[0]+.05-eps <= child[0] and
++                parent[1]+.05-eps <= child[1] and
++                child[3] <= parent[3]-.05+eps and
++                child[4] <= parent[4]-.05+eps)
++
++    nx = int(2*packet['width']-1)
++    ny = int(2*packet['depth']-1)
++    whole = (1 << (nx*ny))-1
++    left_edge = sum(1 << (y*nx) for y in range(ny))
++    right_edge = left_edge << (nx-1)
++    sx, sy = (int(2*v) for v in packet['start'])
++    gx, gy = (int(2*v) for v in packet['goal'])
++    start_bit = 1 << (sy*nx+sx)
++    goal_bit = 1 << (gy*nx+gx)
++    endpoints = start_bit | goal_bit
++
++    def blocked_cells(b):
++        if b[2] >= 1.8-eps or b[5] <= eps:
++            return 0
++        result = 0
++        for y in range(max(0, int(math.floor(2*(b[1]-.7)))+1),
++                       min(ny, int(math.ceil(2*(b[4]-.3))))):
++            cy = .5+.5*y
++            if not b[1]-.2 < cy < b[4]+.2:
++                continue
++            for x in range(max(0, int(math.floor(2*(b[0]-.7)))+1),
++                           min(nx, int(math.ceil(2*(b[3]-.3))))):
++                if b[0]-.2 < .5+.5*x < b[3]+.2:
++                    result |= 1 << (y*nx+x)
++        return result
++
++    nav_cache = {}
++
++    def navigable(blocked):
++        if blocked & endpoints:
++            return False
++        if blocked in nav_cache:
++            return nav_cache[blocked]
++        free = whole & ~blocked
++        seen = start_bit
++        front = start_bit
++        while front and not seen & goal_bit:
++            expanded = (((front & ~right_edge) << 1) |
++                        ((front & ~left_edge) >> 1) |
++                        (front << nx) | (front >> nx))
++            front = expanded & free & ~seen
++            seen |= front
++        result = bool(seen & goal_bit)
++        if len(nav_cache) < 2048:
++            nav_cache[blocked] = result
++        return result
++
++    poses, boxes, blocks = [], [], []
++    original = []
++    for r in required:
++        name = r['id']
++        source = [fixed[name]] if name in fixed else packet['domains'][name]
++        original.append(source)
++        ps, bs, ns = [], [], []
++        seen = set()
++        for p in source:
++            if p['id'] != name or p['asset'] != r['asset']:
++                continue
++            b = envelope(p)
++            if name not in fixed:
++                rule = rules[name]
++                room = packet['rooms'][rule['room']]
++                if not (room[0]-eps <= b[0] and room[1]-eps <= b[1] and
++                        b[3] <= room[2]+eps and b[4] <= room[3]+eps and
++                        b[0] >= -eps and b[1] >= -eps and
++                        b[3] <= spec['room']['width']+eps and
++                        b[4] <= spec['room']['depth']+eps and
++                        b[2] >= 0 and b[5] <= spec['room']['height']+eps and
++                        rule['height'][0]-eps <= b[2] <= rule['height'][1]+eps):
++                    continue
++                if rule['support'] == 'floor' and abs(b[2]) >= eps:
++                    continue
++            nav = blocked_cells(b)
++            if name not in fixed and nav & endpoints:
++                continue
++            key = (p['asset'], b, p['yaw_deg'])
++            if key in seen:
++                continue
++            seen.add(key)
++            ps.append(p)
++            bs.append(b)
++            ns.append(nav)
++        poses.append(ps)
++        boxes.append(bs)
++        blocks.append(ns)
++
++    relations = {}
++    degree = [0]*n
++    for rel in packet['distances']:
++        a, b = index[rel['a']], index[rel['b']]
++        key = (min(a, b), max(a, b))
++        relations.setdefault(key, []).append((rel['min'], rel['max']))
++        degree[a] += 4
++        degree[b] += 4
++    parents = []
++    for name in names:
++        parent = rules.get(name, {}).get('support', 'floor')
++        parents.append(index[parent] if parent in index else -1)
++    for i, parent in enumerate(parents):
++        if parent >= 0:
++            degree[i] += 2
++            degree[parent] += 2
++
++    compat = [[None]*n for i in range(n)]
++    for i in range(n):
++        for j in range(i+1, n):
++            ab = [0]*len(boxes[i])
++            ba = [0]*len(boxes[j])
++            distances = relations.get((i, j), ())
++            for a, x in enumerate(boxes[i]):
++                for b, y in enumerate(boxes[j]):
++                    if overlap(x, y):
++                        continue
++                    if parents[i] == j and not supported(x, y):
++                        continue
++                    if parents[j] == i and not supported(y, x):
++                        continue
++                    if distances:
++                        d2 = sum(((x[k]+x[k+3]-y[k]-y[k+3])*.5)**2
++                                 for k in range(3))
++                        if any(d2 < max(0., lo-eps)**2 or
++                               d2 > (hi+eps)**2 for lo, hi in distances):
++                            continue
++                    ab[a] |= 1 << b
++                    ba[b] |= 1 << a
++            compat[i][j] = ab
++            compat[j][i] = ba
++
+     view = packet['view']
+-    origin = view['position']
+-    forward = [b-a for a, b in zip(origin, view['target'])]
+-    norm = math.sqrt(sum(v*v for v in forward))
+-    forward = [v/norm for v in forward]
+-    norm = math.hypot(forward[0], forward[1])
+-    right = [forward[1]/norm, -forward[0]/norm, 0.]
+-    up = [right[1]*forward[2], -right[0]*forward[2], right[0]*forward[1]-right[1]*forward[0]]
+-    tangent = math.tan(math.radians(view['fov']/2))
++    origin = tuple(view['position'])
++    forward = tuple(view['target'][k]-origin[k] for k in range(3))
++    length = math.sqrt(sum(v*v for v in forward))
++    forward = tuple(v/length for v in forward) if length else (0., 1., 0.)
++    horizontal = math.hypot(forward[0], forward[1])
++    right = ((forward[1]/horizontal, -forward[0]/horizontal, 0.)
++             if horizontal > 1e-12 else (1., 0., 0.))
++    up = (right[1]*forward[2], -right[0]*forward[2],
++          right[0]*forward[1]-right[1]*forward[0])
++    tangent = math.tan(math.radians(view['fov']*.5))
++    visibility = []
+     for name, limits in packet['visibility'].items():
+-        b, count = boxes[name], 0
++        i = index[name]
++        lower = int(math.ceil(27*(limits[0]-eps)))
++        upper = int(math.floor(27*(limits[1]+eps)))
++        visibility.append((i, lower, upper))
++        degree[i] += 6
++    samples = {}
++    occlusions = {}
++
++    def target_samples(i, a):
++        key = (i, a)
++        if key in samples:
++            return samples[key]
++        b = boxes[i][a]
++        points = []
+         for fx in (.15, .5, .85):
+             for fy in (.15, .5, .85):
+                 for fz in (.15, .5, .85):
+-                    point = [b[i]+f*(b[i+3]-b[i]) for i, f in enumerate((fx, fy, fz))]
+-                    delta = [b-a for a, b in zip(origin, point)]
+-                    depth = sum(a*b for a, b in zip(delta, forward))
+-                    framed = depth > 0 and all(abs(sum(a*b for a, b in zip(delta, axis))) <= depth*tangent for axis in (right, up))
+-                    if framed and not any(ray(origin, point, other) for key, other in boxes.items() if key != name):
+-                        count += 1
+-        if not limits[0]-1e-7 <= count/27 <= limits[1]+1e-7:
++                    point = tuple(b[k]+f*(b[k+3]-b[k])
++                                  for k, f in enumerate((fx, fy, fz)))
++                    delta = tuple(point[k]-origin[k] for k in range(3))
++                    depth = sum(delta[k]*forward[k] for k in range(3))
++                    if depth > 0 and all(abs(sum(delta[k]*axis[k] for k in range(3)))
++                                         <= depth*tangent for axis in (right, up)):
++                        points.append(delta)
++        result = (points, (1 << len(points))-1)
++        samples[key] = result
++        return result
++
++    def occluded(i, a, j, b):
++        key = (i, a, j, b)
++        if key in occlusions:
++            return occlusions[key]
++        points, full = target_samples(i, a)
++        box = boxes[j][b]
++        mask = 0
++        for s, delta in enumerate(points):
++            fuel[0] -= 1
++            lo, hi = 0., 1.-1e-6
++            hit = True
++            for k in range(3):
++                d = delta[k]
++                if abs(d) < 1e-10:
++                    if not box[k] <= origin[k] <= box[k+3]:
++                        hit = False
++                        break
++                else:
++                    x = (box[k]-origin[k])/d
++                    y = (box[k+3]-origin[k])/d
++                    lo = max(lo, min(x, y))
++                    hi = min(hi, max(x, y))
++                    if lo > hi:
++                        hit = False
++                        break
++            if hit:
++                mask |= 1 << s
++        occlusions[key] = mask
++        return mask
++
++    def bits(mask):
++        while mask:
++            bit = mask & -mask
++            yield bit.bit_length()-1
++            mask ^= bit
++
++    def propagate(domains):
++        queue = deque((i, j) for i in range(n) for j in range(n) if i != j)
++        while True:
++            while queue:
++                if fuel[0] <= 0:
++                    stopped[0] = True
++                    return False
++                i, j = queue.popleft()
++                old = domains[i]
++                new = 0
++                table = compat[i][j]
++                for a in bits(old):
++                    fuel[0] -= 1
++                    if table[a] & domains[j]:
++                        new |= 1 << a
++                if not new:
++                    return False
++                if new != old:
++                    domains[i] = new
++                    queue.extend((k, i) for k in range(n) if k != i and k != j)
++            changed = []
++            for i, lower, upper in visibility:
++                kept = 0
++                for a in bits(domains[i]):
++                    points, full = target_samples(i, a)
++                    forced, possible = 0, 0
++                    for j in range(n):
++                        if j == i:
++                            continue
++                        every, some = full, 0
++                        for b in bits(domains[j]):
++                            mask = occluded(i, a, j, b)
++                            every &= mask
++                            some |= mask
++                            if fuel[0] <= 0:
++                                stopped[0] = True
++                                return False
++                        forced |= every
++                        possible |= some
++                    if ((full & ~forced).bit_count() >= lower and
++                            (full & ~possible).bit_count() <= upper):
++                        kept |= 1 << a
++                if not kept:
++                    return False
++                if kept != domains[i]:
++                    domains[i] = kept
++                    changed.append(i)
++            if not changed:
++                break
++            for i in changed:
++                queue.extend((j, i) for j in range(n) if j != i)
++        forced_blocked = 0
++        for i in range(n):
++            common = whole
++            for a in bits(domains[i]):
++                common &= blocks[i][a]
++            forced_blocked |= common
++        return navigable(forced_blocked)
++
++    initial = [(1 << len(ps))-1 for ps in poses]
++    saved = [initial[:], -1]
++    solution = [None]
++
++    def search(domains):
++        nodes[0] += 1
++        if nodes[0] > 16000 or fuel[0] <= 0:
++            stopped[0] = True
+             return False
+-    free = {(x, y) for x in range(2*packet['width']-1) for y in range(2*packet['depth']-1)
+-            if not any(b[2] < 1.8-1e-7 and b[5] > 1e-7 and b[0]-.2 < x*.5+.5 < b[3]+.2 and b[1]-.2 < y*.5+.5 < b[4]+.2 for b in boxes.values())}
+-    start, goal = tuple(2*v for v in packet['start']), tuple(2*v for v in packet['goal'])
+-    if start not in free or goal not in free:
++        if any(not d for d in domains) or not propagate(domains):
++            return False
++        singles = sum(d.bit_count() == 1 for d in domains)
++        if singles > saved[1]:
++            saved[0], saved[1] = domains[:], singles
++        if singles == n:
++            solution[0] = domains
++            return True
++        choices = [i for i in range(n) if domains[i].bit_count() > 1]
++        i = min(choices, key=lambda j: (domains[j].bit_count(), -degree[j]))
++        ordered = []
++        for a in bits(domains[i]):
++            remaining = sum((compat[i][j][a] & domains[j]).bit_count()
++                            for j in choices if j != i)
++            ordered.append((-remaining, blocks[i][a].bit_count(), a))
++        ordered.sort()
++        for score, occupied, a in ordered:
++            child = domains[:]
++            child[i] = 1 << a
++            if search(child):
++                return True
++            if stopped[0]:
++                break
+         return False
+-    pending, seen = deque([start]), {start}
+-    while pending:
+-        cell = pending.popleft()
+-        if cell == goal:
+-            return True
+-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+-            q = (cell[0]+dx, cell[1]+dy)
+-            if q in free and q not in seen:
+-                seen.add(q)
+-                pending.append(q)
+-    return False
+-
+-
+-def answer(packet, placed):
+-    return {'state':{'scene_id':packet['spec']['scene_id'],
+-                     'objects':[{k:v for k, v in p.items() if k != 'z'} for p in placed.values()]},
+-            'elevations':{key:p['z'] for key, p in placed.items()}}
+-
+-
+-def layout(packet):
+-    fixed = {p['id']:p for p in packet['fixed']}
+-    placed = dict(fixed)
+-    names = sorted(packet['domains'], key=lambda k:(packet['requirements'][k]['height'][0], k))
+-    for name in names:
+-        parent = packet['requirements'][name]['support']
+-        context = dict(fixed)
+-        if parent in placed:
+-            context[parent] = placed[parent]
+-        chosen = next((p for p in packet['domains'][name] if local(packet, p, context)), None)
+-        if chosen is not None:
+-            placed[name] = chosen
+-    return answer(packet, placed)
++
++    search(initial[:])
++    selected = solution[0] if solution[0] is not None else saved[0]
++    objects, elevations = [], {}
++    for i, name in enumerate(names):
++        if name in fixed:
++            p = fixed[name]
++        elif selected[i] and poses[i]:
++            a = (selected[i] & -selected[i]).bit_length()-1
++            p = poses[i][a]
++        else:
++            p = original[i][0]
++        objects.append({k: p[k] for k in ('id', 'asset', 'x', 'y', 'yaw_deg')})
++        elevations[name] = p['z']
++    return {'state': {'scene_id': spec['scene_id'], 'objects': objects},
++            'elevations': elevations}

@@ -105,6 +105,7 @@ def main():
     parser.add_argument('--run', type=Path, required=True)
     parser.add_argument('--security', type=Path, required=True)
     parser.add_argument('--calibration', type=Path, required=True)
+    parser.add_argument('--pilot-only', action='store_true', help='reproduce a fresh eight-call K=1 pilot, no K=2 preparation')
     args = parser.parse_args()
     security = json.loads((args.security/'acceptance.json').read_text())
     gate = json.loads((args.calibration/'gate.json').read_text())
@@ -127,7 +128,7 @@ def main():
             trials.append({'label':fixture+'_'+arm, 'fixture':fixture, 'arm':arm,
                            'parent_source':source, 'attempts':[], 'candidates':[baseline[fixture]], 'snapshots':{}})
     calls = []
-    for round_number in (1, 2):
+    for round_number in ((1,) if args.pilot_only else (1, 2)):
         if round_number == 2:
             stop = ceiling(trials)
             save(run/'ceiling_stop.json', {'stop':stop, 'rule':'all eight selected selection rates >= .90 after K=1',
@@ -207,6 +208,9 @@ def main():
         save(run/f'selection_K{round_number}.json',
              [{'trial':t['label'], 'selected_index':t['snapshots'][str(round_number)],
                'selection':selection(t['candidates'])['selection']['metrics']} for t in trials])
+    if args.pilot_only:
+        save(run/'ceiling_stop.json', {'stop':True, 'rule':'explicit --pilot-only budget; no K=2 requested',
+                                      'at_unix':time.time()})
     save(run/'proposals_complete.json', {'at_unix':time.time(), 'calls_reserved':len(calls), 'test_feedback_exposed':False})
     scores = []
     for fixture in FIXTURES:

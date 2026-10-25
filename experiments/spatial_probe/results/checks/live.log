@@ -1,0 +1,28 @@
+pybullet build time: Jan 29 2025 23:17:20
+greedy_M0 1 evaluated 18
+greedy_M0_M1probe 1 generation_failed None
+greedy_M1_random 1 evaluated 18
+greedy_M1 1 evaluated 18
+independent_M1 1 evaluated 18
+independent_M1_random 1 static_rejected None
+independent_M0_M1probe 1 evaluated 18
+independent_M0 1 evaluated 18
+Traceback (most recent call last):
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scripts/run_spatial_ablation.py", line 230, in <module>
+    main()
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scripts/run_spatial_ablation.py", line 141, in main
+    report, rows = evaluate(source, common, folder/'parent_common', run)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scene_rsi/benchmark/spatial_tasks.py", line 349, in evaluate
+    process = LayoutProcess(payload, run)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scene_rsi/meta/layout_process.py", line 46, in __init__
+    ready = self.read_line()
+            ^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scene_rsi/meta/layout_process.py", line 60, in read_line
+    for key, _ in self.selector.select(.1):
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/selectors.py", line 468, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
