@@ -1,0 +1,1 @@
+Modified only `algorithm.py`: added bounded joint refinement toward preferred 3D distances, with footprint clamping and retained random exploration and orientation variation. Tests were not run; validation remains with the external controller.

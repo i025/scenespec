@@ -1,0 +1,66 @@
+diff --git a/algorithm.py b/algorithm.py
+index b47bbd4..8345b8c 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -33,6 +33,42 @@ def clamp_floor(task, values, name):
+     values[name] = [min(x1-ex,max(x0+ex,x)),min(y1-ey,max(y0+ey,y)),yaw]
+ 
+ 
++def repair_preference(task, values, rng):
++    rules = [rule for rule in task['relations']
++             if rule['a'] in task['zones'] and rule['b'] in task['zones']
++             and rule['a'] != rule['b']]
++    if not rules:
++        return False
++    rule = rng.choice(rules)
++    a,b = rule['a'],rule['b']
++    assets = {obj['id']:task['spec']['assets'][obj['asset']]
++              for obj in task['spec']['required_objects']}
++    dz = (assets[a]['height']-assets[b]['height'])/2
++    target = math.sqrt(max(0.,rule['target']**2-dz**2))
++    # Vary the pair's shared translation instead of imposing a fixed layout.
++    share = rng.uniform(.2,.8)
++    for _ in range(12):
++        dx,dy = (values[b][j]-values[a][j] for j in (0,1))
++        distance = math.hypot(dx,dy)
++        error = distance-target
++        if abs(error) < 1e-5:
++            break
++        if distance > 1e-8:
++            ux,uy = dx/distance,dy/distance
++        else:
++            angle = rng.uniform(-math.pi,math.pi)
++            ux,uy = math.cos(angle),math.sin(angle)
++        # Repeated projection lets the other object move when one hits a bound.
++        before = (tuple(values[a]),tuple(values[b]))
++        for name,weight in ((a,share),(b,-(1-share))):
++            values[name][0] += weight*error*ux
++            values[name][1] += weight*error*uy
++            clamp_floor(task,values,name)
++        if before == (tuple(values[a]),tuple(values[b])):
++            break
++    return True
++
++
+ def best_index(history):
+     best = 0
+     for i,row in enumerate(history):
+@@ -61,17 +97,7 @@ def layout(packet):
+     if index:
+         names = list(candidate)
+         failed = [name for f in best_report['failures'] for name in f['objects'] if name in candidate]
+-        if METHOD == 'joint' and index%3 == 1:
+-            rule = task['relations'][0]
+-            a,b = rule['a'],rule['b']
+-            dx,dy = (candidate[b][j]-candidate[a][j] for j in (0,1))
+-            distance = math.hypot(dx,dy)
+-            amount = min(.4,max(-.4,(distance-rule['target'])/3))
+-            for name,sign in ((a,1),(b,-1)):
+-                candidate[name][0] += sign*amount*dx/max(distance,1e-8)
+-                candidate[name][1] += sign*amount*dy/max(distance,1e-8)
+-                clamp_floor(task,candidate,name)
+-        else:
++        if not (index%3 == 1 and repair_preference(task,candidate,rng)):
+             name = rng.choice(failed or names)
+             if METHOD == 'repair':
+                 candidate[name] = parameters(task,rng)[name]
