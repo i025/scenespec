@@ -53,6 +53,25 @@ class M3MechanismTests(unittest.TestCase):
             self.assertFalse(mechanism.read(out / 'validation.json')['passed'])
             self.assertEqual(mechanism.read(out / 'execution.json')['exit_code'], 0)
 
+    def test_history_ablation_returns_current_observed_before_any_historical_parse(self):
+        source = mechanism.ablate(mechanism.SOURCE.read_text(), 'history_separation')
+        tree = ast.parse(source)
+        helper = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                      and node.name == '_pooled_diagnosis')
+        original, guard = helper.body[:2]
+        self.assertEqual(ast.unparse(original), 'original = _current_diagnosis(packet)')
+        self.assertEqual(ast.unparse(guard.test), "original[1] == 'observed'")
+        self.assertEqual(len(guard.body), 1)
+        self.assertIsInstance(guard.body[0], ast.Return)
+        self.assertEqual(ast.unparse(guard.body[0].value), 'original')
+        calls = [node for node in ast.walk(helper) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == '_diagnose']
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(ast.unparse(calls[0].args[0]), "{'history': summary.get('history', {})}")
+        self.assertGreater(calls[0].lineno, guard.end_lineno)
+        # No legacy parser may reinterpret current measurements or examples.
+        self.assertEqual(len(calls[0].args), 1)
+
     def test_wording_or_reordering_does_not_count_as_behavior(self):
         diagnosis = {'objective': 'preference', 'status': 'hypothesis', 'evidence': ['current'],
                      'expected_observation': 'first description'}

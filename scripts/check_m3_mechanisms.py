@@ -33,15 +33,14 @@ def ablate(source, mechanism):
         source += '''
 
 def _pooled_diagnosis(packet):
-    # Ablation: the existing legacy diagnosis pools current and historical risks.
+    # Ablation: remove only the boundary promoting history into current facts.
     original = _current_diagnosis(packet)
+    if original[1] == 'observed':
+        return original
     summary = packet.get('summary', {})
-    objective, risks, notes = _diagnose(summary, packet.get('examples', []))
+    objective, risks, notes = _diagnose({'history': summary.get('history', {})})
     if objective is None:
         return original
-    current_objective, risks, notes = _diagnose(summary.get('current', {}), packet.get('examples', []))
-    if objective == current_objective:
-        return original if original[0] == objective else (objective, 'observed', ['summary.current'])
     return objective, 'observed', ['summary.history']
 '''
     elif mechanism == 'probe_delivery':
@@ -206,7 +205,7 @@ def check(dev, generator, out, run):
         'coding_model_calls': 0, 'candidate_algorithm_executions': 0,
         'frozen_policies_modified': False, 'formal_results_modified': False,
         'margin_ablation': 'direction-only comparisons; outer fixed acceptance constraints preserved',
-        'history_ablation': 'existing legacy diagnosis pools current/history; original validation failures retained',
+        'history_ablation': 'retain original observed current diagnosis; otherwise promote historical risk into observed fact; original validation failures retained',
         'probe_ablation': 'remove probe priority; retain complete four-seed groups and eight-example cap'}
     save(out / 'result.json', result)
     return result
