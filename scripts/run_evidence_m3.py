@@ -2,7 +2,6 @@
 import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
 from functools import partial
 from itertools import combinations
 import json
@@ -199,6 +198,15 @@ def fixture_packets(objective, old_risk):
     return {'phase': 'choose', 'summary': summary, 'probe_menu': MENU}
 
 
+def comparative_sources(diagnostic):
+    metrics = {'runtime': ('runtime_errors',), 'reliability': ('successes', 'success_rate', 'valid_pair_count'),
+               'position': ('diversity_position_rms_m',), 'valid_position': ('valid_pair_diversity_m',),
+               'rotation': ('diversity_rotation_deg',), 'visibility': ('visibility_mean',),
+               'preference': ('preference_error_m',)}[diagnostic['objective']]
+    sides = ('candidate',) if diagnostic['objective'] == 'runtime' else ('baseline', 'candidate')
+    return all(any('summary.current.' + side + '.' + metric in diagnostic['evidence'] for metric in metrics) for side in sides)
+
+
 def qualify(source, out, run):
     out.mkdir(); records = []; errors = []
     for objective in ('position', 'rotation', 'visibility', 'preference', 'reliability', 'runtime', 'unknown'):
@@ -225,8 +233,8 @@ def qualify(source, out, run):
                             raise ValueError('history promoted into observed current comparative failure')
                     elif diagnostic['status'] != 'observed' or (found != objective and not (objective == 'position' and found == 'valid_position')):
                         raise ValueError('current sole violated objective was not diagnosed')
-                    elif objective != 'runtime' and not all(any(p.startswith('summary.current.' + side + '.') for p in diagnostic['evidence']) for side in ('baseline', 'candidate')):
-                        raise ValueError('comparative observed diagnosis needs actual baseline and candidate evidence')
+                    elif not comparative_sources(diagnostic):
+                        raise ValueError('observed diagnosis needs objective-relevant current metric evidence')
                 facts = [(r['diagnosis']['objective'], r['diagnosis']['status']) for r in (choice, decision)]
                 records.append({'objective': objective, 'history': old_risk, 'facts': facts,
                                 'probe': choice['experiment'], 'delivery': delivery})

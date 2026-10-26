@@ -43,6 +43,14 @@ class EvidenceM3Tests(unittest.TestCase):
         old = experiment.check_delivery(examples, examples[:8], probe, False)
         self.assertEqual(old['delivered'], experiment.delivered_pairs(examples[:8]))
 
+    def test_unrelated_current_fields_do_not_prove_observed_violation(self):
+        diagnostic = {'objective': 'position', 'evidence': ['summary.current.baseline.tasks', 'summary.current.candidate.tasks']}
+        self.assertFalse(experiment.comparative_sources(diagnostic))
+        diagnostic['evidence'] = ['summary.current.baseline.diversity_position_rms_m', 'summary.current.candidate.diversity_position_rms_m']
+        self.assertTrue(experiment.comparative_sources(diagnostic))
+        diagnostic = {'objective': 'runtime', 'evidence': ['summary.current.candidate.runtime_errors']}
+        self.assertTrue(experiment.comparative_sources(diagnostic))
+
     def test_four_seed_pair_counts_and_distances_preserve_original_definition(self):
         case = experiment.read(experiment.OLD / 'dev_cases.json')[0]
         original = [experiment.read(experiment.OLD / 'c2/dev' / f'00_{i}.json') for i in range(2)]

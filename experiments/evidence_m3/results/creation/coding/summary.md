@@ -1,0 +1,1 @@
+The parent policy mixes historical failures into current diagnoses and selects examples individually, which can omit the chosen probe’s four-repeat evidence. I’ll replace that flow with current-measurement diagnoses, complete condition-group selection, and concise research instructions for continuous Mesh optimization.
