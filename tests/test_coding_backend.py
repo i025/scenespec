@@ -54,6 +54,47 @@ class CodingBackendTests(unittest.TestCase):
         self.assertEqual(task['budget']['mesh_queries'],24)
         self.assertNotIn('generator_source',task['feedback'])
 
+    def test_native_response_cap_and_incomplete_reason_are_preserved(self):
+        from scripts.algorithm_proposal_relay import UnixConnection
+        usage={'input_tokens':31,'output_tokens':5000,'total_tokens':5031}
+        class Response:
+            status=200
+            def getheader(self,*args):return 'text/event-stream'
+            def __iter__(self):
+                yield ('data: '+json.dumps({'type':'response.incomplete','response':{
+                    'status':'incomplete','incomplete_details':{'reason':'max_output_tokens'},'usage':usage}})+'\n\n').encode()
+            def close(self):pass
+        with TemporaryDirectory() as tmp,patch.object(coding.urllib.request,'urlopen',return_value=Response()) as send:
+            root=Path(tmp);auth=root/'auth.json'
+            auth.write_text(json.dumps({'tokens':{'access_token':'fake-secret','account_id':'fake-account'}}))
+            budget=dict(coding.BUDGET,total_tokens=400000)
+            server=coding.serve(root/'socket',auth,root/'record.json',budget)
+            connection=UnixConnection(str(root/'socket'))
+            try:
+                connection.request('POST','/responses',json.dumps({'model':coding.MODEL,'input':[],'max_output_tokens':4096}))
+                response=connection.getresponse()
+                self.assertEqual(response.status,200)
+                self.assertIn(b'response.incomplete',response.read())
+            finally:
+                connection.close();server.shutdown();server.server_close()
+            sent=json.loads(send.call_args.args[0].data)
+            self.assertEqual(sent['max_output_tokens'],16384)
+            record=json.loads((root/'record.json').read_text())['requests'][0]
+            self.assertEqual(record['response_status'],'incomplete')
+            self.assertEqual(record['incomplete_details'],{'reason':'max_output_tokens'})
+            self.assertEqual(record['usage'],usage)
+            self.assertGreaterEqual(record['token_reservation'],16384)
+
+    def test_failed_cli_patch_is_not_an_eligible_candidate(self):
+        task=self.task()
+        def failed_backend(received,directory):
+            return {'status':'failed','patch':'an archived partial patch','summary':'incomplete response'}
+        with TemporaryDirectory() as tmp,patch('scripts.run_native_continuous.materialize') as consume:
+            result,source=candidate(task,Path(tmp),failed_backend)
+        self.assertEqual(result['status'],'failed')
+        self.assertIsNone(source)
+        consume.assert_not_called()
+
     def test_api_style_backend_needs_no_codex_events(self):
         task=self.task()
         patch='--- a/algorithm.py\n+++ b/algorithm.py\n@@ -1,2 +1,2 @@\n def layout(packet):\n-    return {}\n+    return {"ok": True}\n'

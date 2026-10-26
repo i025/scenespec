@@ -16,7 +16,7 @@ from .layout_process import container_command
 ROOT=Path(__file__).resolve().parents[2]
 MODEL='gpt-6.1-sol'
 BUDGET={'wall_seconds':600,'model_requests':6,'input_bytes_total':1048576,
-        'input_bytes_per_request':196608,'output_tokens_per_request':4096,'mesh_queries':24,
+        'input_bytes_per_request':196608,'output_tokens_per_request':16384,'mesh_queries':24,
         'editor_cpu_seconds_per_process':45,'editor_virtual_as_gib':16,'editor_tmp_mib':64,
         'editor_shared_uid_task_limit':4096,'candidate_cpu_seconds':5,'candidate_memory_mib':256}
 
@@ -108,6 +108,7 @@ def serve(socket_path,auth_path,audit,budget):
                         if details.get('usage') is not None: row['usage']=details['usage']
                         if details.get('model'): row['returned_model']=details['model']
                         if details.get('status'): row['response_status']=details['status']
+                        if details.get('incomplete_details'): row['incomplete_details']=details['incomplete_details']
                     self.wfile.write(line);self.wfile.flush()
                 response.close();row['status']='completed' if response.status==200 else 'http_error'
             except Exception as error:

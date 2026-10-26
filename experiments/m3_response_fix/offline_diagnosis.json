@@ -1,0 +1,77 @@
+{
+  "scope": "offline A; no new model calls",
+  "original_git": "f37076e",
+  "explicit_response_cap": 4096,
+  "requests": [
+    {
+      "index": 0,
+      "http_status": 200,
+      "response_status": "completed",
+      "input_tokens": 8833,
+      "output_tokens": 65,
+      "total_tokens": 8898
+    },
+    {
+      "index": 1,
+      "http_status": 200,
+      "response_status": "completed",
+      "input_tokens": 18776,
+      "output_tokens": 48,
+      "total_tokens": 18824
+    },
+    {
+      "index": 2,
+      "http_status": 200,
+      "response_status": "completed",
+      "input_tokens": 23620,
+      "output_tokens": 35,
+      "total_tokens": 23655
+    },
+    {
+      "index": 3,
+      "http_status": 200,
+      "response_status": "completed",
+      "input_tokens": 33472,
+      "output_tokens": 47,
+      "total_tokens": 33519
+    },
+    {
+      "index": 4,
+      "http_status": 200,
+      "response_status": "incomplete",
+      "input_tokens": 34523,
+      "output_tokens": 4096,
+      "total_tokens": 38619
+    }
+  ],
+  "last_response_attribution": {
+    "reasoning_tokens": 227,
+    "message_output_tokens": 58,
+    "tool_call_output_tokens": 3811
+  },
+  "last_cli_error": [
+    {
+      "type": "error",
+      "message": "Incomplete response returned, reason: max_output_tokens"
+    },
+    {
+      "type": "turn.failed",
+      "error": {
+        "message": "Incomplete response returned, reason: max_output_tokens"
+      }
+    }
+  ],
+  "file_change_events": 0,
+  "exported_candidate_bytes": 0,
+  "archived_diff_bytes": 0,
+  "retained_seed_workspace_diff_bytes": 0,
+  "retained_seed_equals_M2": true,
+  "conclusion": "relay explicitly forced max_output_tokens=4096; model response incomplete during tool-call output, not command stdout or a final-answer-only cap",
+  "uncertainty": "old bridge exported scratch only for exit 0; failed ephemeral scratch no longer exists; no complete edit recorded, but cannot prove absence of all partial scratch edits",
+  "tool_return_text_cap": 24000,
+  "new_response_cap": 16384,
+  "documentation": [
+    "https://developers.openai.com/api/docs/guides/reasoning",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-sol"
+  ]
+}

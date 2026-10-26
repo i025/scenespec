@@ -22,7 +22,9 @@ class PairedRepairTests(unittest.TestCase):
             def close(self):pass
         with TemporaryDirectory() as tmp,patch.object(coding.urllib.request,'urlopen',return_value=Response()) as send:
             root=Path(tmp);auth=root/'auth.json';coding.save(auth,{'tokens':{'access_token':'fake','account_id':'fake'}})
-            server=coding.serve(root/'socket',auth,root/'audit.json',dict(coding.BUDGET,total_tokens=25000))
+            # This tiny synthetic quota tests rejection after one call, with its
+            # original small response allowance independent of the live default.
+            server=coding.serve(root/'socket',auth,root/'audit.json',dict(coding.BUDGET,total_tokens=25000,output_tokens_per_request=4096))
             try:
                 for expected in (200,403):
                     connection=UnixConnection(str(root/'socket'))

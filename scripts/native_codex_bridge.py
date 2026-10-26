@@ -54,14 +54,14 @@ for path in ('/workspace/TASK.json','/workspace/CONTRACT.md','/workspace/.git/co
 print('NATIVE_EDITOR_ACCEPTANCE: bounded scratch; protected task/Git; no GPU',file=sys.stderr,flush=True)
 try:
     result=subprocess.run(['/guard','--launch','/cli']+sys.argv[1:])
-    if result.returncode==0:
-        if set(os.listdir('/workspace')) != {'algorithm.py','TASK.json','CONTRACT.md','.git'}:
-            raise ValueError('coding workspace changed outside algorithm.py')
-        if os.path.islink('/workspace/algorithm.py'):
-            raise ValueError('algorithm must be a regular file')
-        source=open('/workspace/algorithm.py','rb').read(131073)
-        if len(source)>131072: raise ValueError('algorithm exceeds 128KiB')
-        with open('/candidate.py','wb') as output: output.write(source)
+    # Preserve partial edits for audit; the original CLI exit status still rejects them.
+    if set(os.listdir('/workspace')) != {'algorithm.py','TASK.json','CONTRACT.md','.git'}:
+        raise ValueError('coding workspace changed outside algorithm.py')
+    if os.path.islink('/workspace/algorithm.py'):
+        raise ValueError('algorithm must be a regular file')
+    source=open('/workspace/algorithm.py','rb').read(131073)
+    if len(source)>131072: raise ValueError('algorithm exceeds 128KiB')
+    with open('/candidate.py','wb') as output: output.write(source)
 finally:
     server.shutdown();server.server_close()
     child=resource.getrusage(resource.RUSAGE_CHILDREN)

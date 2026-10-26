@@ -18,7 +18,7 @@ try { text(await tools.apply_patch("*** Begin Patch\\n*** Update File: /workspac
 text(await tools.apply_patch("*** Begin Patch\\n*** Update File: /workspace/algorithm.py\\n@@\\n-    return {}\\n+    return {\\"changed\\": True}\\n*** End Patch"));'''
 
 
-def fake_server(path,auth,audit,budget):
+def fake_server(path,auth,audit,budget,fail_after_edit=False):
     calls=[]
     class Handler(http.server.BaseHTTPRequestHandler):
         def log_message(self,*a):pass
@@ -31,11 +31,16 @@ def fake_server(path,auth,audit,budget):
                 item={'type':'message','id':'m0','role':'assistant','status':'completed',
                       'content':[{'type':'output_text','text':'Offline file edit completed.','annotations':[]}]}
             self.send_response(200);self.send_header('Content-Type','text/event-stream');self.end_headers()
-            for event in [ {'type':'response.created','response':{'id':'r'+str(len(calls)),'model':'gpt-6.1-sol','status':'in_progress','output':[]}},
+            events=[ {'type':'response.created','response':{'id':'r'+str(len(calls)),'model':'gpt-6.1-sol','status':'in_progress','output':[]}},
                 {'type':'response.output_item.added','output_index':0,'item':item},
                 {'type':'response.output_item.done','output_index':0,'item':item},
                 {'type':'response.completed','response':{'id':'r'+str(len(calls)),'model':'gpt-6.1-sol','status':'completed','output':[item],
-                  'usage':{'input_tokens':0,'output_tokens':0,'total_tokens':0}}} ]:
+                  'usage':{'input_tokens':0,'output_tokens':0,'total_tokens':0}}} ]
+            if fail_after_edit and len(calls)>1:
+                events=[events[0],{'type':'response.incomplete','response':{'id':'r2','model':'gpt-6.1-sol','status':'incomplete',
+                         'output':[],'incomplete_details':{'reason':'max_output_tokens'},
+                         'usage':{'input_tokens':0,'output_tokens':0,'total_tokens':0}}}]
+            for event in events:
                 self.wfile.write(('event: '+event['type']+'\ndata: '+json.dumps(event)+'\n\n').encode());self.wfile.flush()
             save(audit,{'mode':'offline_fake','requests':[]})
             save(audit.parent/'offline_requests.json',calls)
@@ -48,12 +53,15 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--guard',type=Path,required=True)
+    parser.add_argument('--fail-after-edit',action='store_true',help='offline regression: retain patch but reject failed CLI')
     args=parser.parse_args()
     task={'objective':'offline transport fixture','analysis':'not a scored scene candidate','strategy':'edit one return value',
           'feedback':{},'allowed_files':['algorithm.py'],'files':{'algorithm.py':'def layout(packet):\n    return {}\n'},
           'contract':'offline fixture','budget':dict(BUDGET,wall_seconds=45)}
-    result=run_codex(task,args.out/'attempt',args.out/'runtime',args.guard,parent_git='offline',server_factory=fake_server)
-    assert result['status']=='completed' and result['patch']
+    from functools import partial
+    result=run_codex(task,args.out/'attempt',args.out/'runtime',args.guard,parent_git='offline',
+                     server_factory=partial(fake_server,fail_after_edit=args.fail_after_edit))
+    assert result['status']==('failed' if args.fail_after_edit else 'completed') and result['patch']
     assert '"changed": True' in (args.out/'attempt/candidate.py').read_text()
     calls=json.loads((args.out/'attempt/offline_requests.json').read_text())
     outputs=[item.get('output') for req in calls for item in req.get('input',[]) if item.get('type')=='custom_tool_call_output']
@@ -62,6 +70,11 @@ def main():
     assert 'def layout(packet)' in text
     protected=json.loads((args.out/'attempt/workspace/TASK.json').read_text())
     assert protected['objective']=='offline transport fixture'
+    if args.fail_after_edit:
+        save(args.out/'acceptance.json',{'failed_cli_patch_preserved':True,'status_remains_failed':True,
+             'candidate_git':result['candidate_git'],'model_calls':0,'candidate_execution':False})
+        print('offline failed CLI edit retained as a patch, not accepted; model calls 0')
+        return
     save(args.out/'acceptance.json',{'native_patch_applied':True,'allowed_read':True,'private_read_denied':True,
         'arbitrary_program_denied':True,'protected_task_unchanged':True,'gpu_absent':True,
         'scratch_limit_bytes':67108864,'model_calls':0,'independent_git_workspace':True,
