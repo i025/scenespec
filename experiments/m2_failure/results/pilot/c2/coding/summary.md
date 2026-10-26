@@ -1,0 +1,1 @@
+Modified only `algorithm.py`: added bounded, yaw-preserving distance refinement alternating with random restarts, plus seeded initial orientations for rotation diversity. Preserved the API and query budget. Tests were left to the external controller.

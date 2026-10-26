@@ -1,6 +1,7 @@
 """Publish actual policy revision and pilot aggregates; never publish private tasks."""
 import argparse
 import json
+import math
 from pathlib import Path
 import re
 import shutil
@@ -9,12 +10,40 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'scripts'))
 from summarize_native_continuous import copy_coding
-from analyze_continuous_benchmark import task_packets
+from analyze_continuous_benchmark import task_packets,distance
+from analyze_m2_failures import best_indices
+from scene_rsi.continuous.baselines import state
 from run_continuous_meta import bootstrap_difference,load_rows
 from scene_rsi.meta.coding import save
 
 
 def read(path):return json.loads(path.read_text())
+
+
+def pilot_dev_diagnostics(folder,cases):
+    reports=[]
+    for name in ('baseline_group','c0','c1','c2'):
+        if not (folder/name/'dev/summary.json').exists():continue
+        proposal=[];steps=[];equal=0
+        for i,case in enumerate(cases):
+            rows=[read(folder/name/f'dev/{i:02d}_{repeat}.json') for repeat in (0,1)]
+            for q in range(24):
+                proposal.append(distance(case['task'],*[state(case['task'],r['trace'][q]['values']) for r in rows])['position_rms_m'])
+            for repeat,row in enumerate(rows):
+                trace=row['trace']
+                if name in ('c0','c1'):
+                    baseline=read(folder/'baseline_group'/f'dev/{i:02d}_{repeat}.json')['trace']
+                    equal+=sum(trace[q]['values']==baseline[q]['values'] for q in range(23))
+                    anchor=trace[best_indices(trace)[22]]['values']
+                    steps.extend(math.dist(trace[23]['values'][obj][:2],anchor[obj][:2]) for obj in case['task']['zones'])
+                elif name=='c2':
+                    steps.extend(math.dist(trace[q]['values'][obj][:2],trace[q-1]['values'][obj][:2]) for q in range(2,24,2) for obj in case['task']['zones'])
+        reports.append({'algorithm':name,'proposal_mean_position_m':sum(proposal)/len(proposal),
+              'final_position_m':read(folder/name/'dev/summary.json')['diversity_position_rms_m'],
+              'first_23_queries_equal_baseline':equal if name in ('c0','c1') else None,
+              'floor_step_max_m':max(steps) if steps else None,'floor_step_mean_m':sum(steps)/len(steps) if steps else None,
+              'floor_step_scope':'query23 vs prefix minimum loss' if name in ('c0','c1') else 'even queries vs preceding query' if name=='c2' else None})
+    return {'model_calls':0,'candidate_executions':0,'mesh_queries':0,'scope':'saved DEV traces only; descriptive, not a causal search ablation','reports':reports}
 
 
 def main():
@@ -45,6 +74,7 @@ def main():
         for filename in ('calls.json','preflight.json','reference_acceptance.json','prepare_cost.json','started.json','proposals_complete.json','scores.json','finished.json'):
             shutil.copyfile(folder/filename,pilot/filename)
         calls=read(folder/'calls.json');scores=read(folder/'scores.json')
+        save(pilot/'dev_trace_diagnostics.json',pilot_dev_diagnostics(folder,cases['dev']))
         for name in ('baseline_group','c0','c1','c2'):
             source,dest=folder/name,pilot/name;dest.mkdir()
             if (source/'dev').exists():shutil.copytree(source/'dev',dest/'dev')

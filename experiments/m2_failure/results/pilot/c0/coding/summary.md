@@ -1,0 +1,1 @@
+Modified only `algorithm.py`: added a bounded final-query refinement toward preferred 3D distances, limiting floor movement to 12 cm while retaining rotations and seeded restarts. Syntax and Mesh tests remain for the external controller.
