@@ -1,0 +1,53 @@
+diff --git a/algorithm.py b/algorithm.py
+index 5728e54..bd9b2ce 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -33,6 +33,40 @@ def clamp_floor(task, values, name):
+     values[name] = [min(x1-ex,max(x0+ex,x)),min(y1-ey,max(y0+ey,y)),yaw]
+ 
+ 
++def guide_floor_relation(task, values, name):
++    """Reduce radial preference error without changing sampled yaw or tangent."""
++    if task['supports'][name] != 'floor':
++        return
++    assets = task['spec']['assets']
++    heights = {q['id']: assets[q['asset']]['height']/2+.003
++               for q in task['spec']['required_objects']}
++    dx_total,dy_total,count = 0.,0.,0
++    x,y = values[name][:2]
++    for relation in task['relations']:
++        if name == relation['a']:
++            other = relation['b']
++        elif name == relation['b']:
++            other = relation['a']
++        else:
++            continue
++        if task['supports'].get(other) != 'floor':
++            continue
++        dx,dy = x-values[other][0],y-values[other][1]
++        radius = math.hypot(dx,dy)
++        if radius < 1e-9:
++            continue
++        target = max(relation['min'],min(relation['max'],relation['target']))
++        dz = heights[name]-heights[other]
++        desired = math.sqrt(max(0.,target*target-dz*dz))
++        step = max(-.25,min(.25,.65*(desired-radius)))
++        dx_total += step*dx/radius
++        dy_total += step*dy/radius
++        count += 1
++    if count:
++        values[name][0] += dx_total/count
++        values[name][1] += dy_total/count
++
++
+ def best_index(history):
+     best = 0
+     for i,row in enumerate(history):
+@@ -57,6 +91,7 @@ def layout(packet):
+         values[name][0] += rng.uniform(-scale, scale)
+         values[name][1] += rng.uniform(-scale, scale)
+         values[name][2] += rng.uniform(-.4, .4)
++        guide_floor_relation(task, values, name)
+     else:
+         values = parameters(task, rng, True)
+     for name in task['zones']:

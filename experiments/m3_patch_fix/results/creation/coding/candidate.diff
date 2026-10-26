@@ -1,0 +1,211 @@
+diff --git a/algorithm.py b/algorithm.py
+index cc70648..1f61c5a 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -298,7 +298,206 @@ def _select(examples, objective=None):
+     return selected
+ 
+ 
++def _current_diagnosis(packet):
++    """Keep current observations independent of historical optimization failures."""
++    summary = packet.get('summary', {})
++    summary = summary if isinstance(summary, dict) else {}
++    current = summary.get('current', {})
++    current = current if isinstance(current, dict) else {}
++    baseline = current.get('baseline', {})
++    candidate = current.get('candidate')
++    baseline = baseline if isinstance(baseline, dict) else {}
++    compared = isinstance(candidate, dict)
++    measured = candidate if compared else baseline
++    prefix = 'summary.current.candidate.' if compared else 'summary.current.baseline.'
++    findings = {}
++
++    def record(objective, deficit, paths):
++        if deficit > 0 and (objective not in findings or deficit > findings[objective][0]):
++            findings[objective] = (deficit, paths)
++
++    runtime = measured.get('runtime_errors')
++    if _number(runtime):
++        record('runtime', runtime, [prefix + 'runtime_errors'])
++    for key in ('success_rate', 'hard_success_count', 'hard_successes',
++                'fixed_agent_successes', 'valid_pair_count'):
++        new, old = measured.get(key), baseline.get(key)
++        if not _number(new):
++            continue
++        if compared and _number(old):
++            record('reliability', (old - new) / max(1.0, old),
++                   ['summary.current.baseline.' + key, prefix + key])
++        elif not compared and key == 'success_rate':
++            record('reliability', 1.0 - new, [prefix + key])
++    for key in ('both_hard_success', 'all_hard_success'):
++        if measured.get(key) is False:
++            record('reliability', 1.0, [prefix + key])
++    if compared:
++        for objective, metric, limit in (
++            ('visibility', 'visibility_mean', 0.01),
++            ('position', 'diversity_position_rms_m', 0.9),
++            ('valid_position', 'valid_pair_diversity_m', 0.9),
++            ('rotation', 'diversity_rotation_deg', 0.8),
++            ('preference', 'preference_error_m', 0.01),
++        ):
++            old, new = baseline.get(metric), candidate.get(metric)
++            if not (_number(old) and _number(new)):
++                continue
++            if objective == 'visibility':
++                deficit = old - new - limit
++            elif objective == 'preference':
++                deficit = limit - (old - new)
++            else:
++                deficit = (limit * old - new) / max(1e-12, limit * old) if old > 0 else 0
++            record(objective, deficit,
++                   ['summary.current.baseline.' + metric, prefix + metric])
++    examples = packet.get('examples', [])
++    examples = examples if isinstance(examples, list) else []
++    for i, row in enumerate(examples):
++        if not isinstance(row, dict):
++            continue
++        pair = row.get('pair_metrics', {})
++        if isinstance(pair, dict) and pair.get('all_hard_success') is False:
++            record('reliability', 1.0, ['examples.' + str(i) + '.pair_metrics.all_hard_success'])
++        if _number(row.get('runtime_errors')):
++            record('runtime', row['runtime_errors'], ['examples.' + str(i) + '.runtime_errors'])
++    for objective in ('runtime', 'reliability', 'visibility'):
++        if objective in findings:
++            return objective, 'observed', findings[objective][1]
++    diversity = [key for key in ('position', 'valid_position', 'rotation') if key in findings]
++    if diversity:
++        objective = max(diversity, key=lambda key: (findings[key][0], key))
++        return objective, 'observed', findings[objective][1]
++    if 'preference' in findings:
++        return 'preference', 'observed', findings['preference'][1]
++    preference = baseline.get('preference_error_m')
++    if _number(preference) and preference > 0:
++        return 'preference', 'hypothesis', ['summary.current.baseline.preference_error_m']
++    return None, 'unknown', []
++
++
++def _probe_name(selected, fallback):
++    if isinstance(selected, str) and selected in ('random', 'dense', 'barriers'):
++        return selected
++    if isinstance(selected, dict):
++        for key in ('experiment', 'name', 'probe'):
++            name = selected.get(key)
++            if name in ('random', 'dense', 'barriers'):
++                return name
++    return fallback
++
++
++def _condition_groups(packet, objective):
++    """Spend example slots on complete seed groups, reserving probe coverage."""
++    examples = packet.get('examples', [])
++    examples = examples if isinstance(examples, list) else []
++    selected_probe = packet.get('selected_probe', {})
++    probe_conditions = selected_probe.get('condition_indices', []) if isinstance(selected_probe, dict) else []
++    probe_conditions = probe_conditions if isinstance(probe_conditions, list) else []
++    grouped = {}
++    for i, row in enumerate(examples):
++        if not isinstance(row, dict):
++            continue
++        condition, repeat = row.get('condition_index'), row.get('repeat')
++        if not isinstance(condition, (int, str)) or isinstance(condition, bool):
++            continue
++        if not isinstance(repeat, int) or isinstance(repeat, bool) or repeat not in (0, 1, 2, 3):
++            continue
++        # Keep provenance separate so duplicate common rows cannot displace probe rows.
++        origin = row.get('origin')
++        is_probe = (condition in probe_conditions and origin != 'common') if probe_conditions else origin == 'probe'
++        key = (condition, is_probe)
++        grouped.setdefault(key, {}).setdefault(repeat, i)
++    groups = []
++    metric = {'position': 'position_rms_m', 'valid_position': 'position_rms_m',
++              'rotation': 'rotation_mean_deg', 'preference': 'preference_error_m_mean'}.get(objective)
++    for (condition, is_probe), repeats in grouped.items():
++        if len(repeats) != 4:
++            continue
++        indices = [repeats[repeat] for repeat in range(4)]
++        values, failures, runtimes = [], 0, 0.0
++        for i in indices:
++            row = examples[i]
++            pair = row.get('pair_metrics', {})
++            pair = pair if isinstance(pair, dict) else {}
++            value = pair.get(metric) if metric else None
++            if _number(value):
++                values.append(value)
++            failures += int(pair.get('all_hard_success') is False or row.get('valid') is False)
++            if _number(row.get('runtime_errors')):
++                runtimes += max(0, row['runtime_errors'])
++        value = sum(values) / len(values) if values else None
++        if objective == 'runtime':
++            score = (runtimes, failures)
++        elif objective == 'reliability':
++            score = (failures, runtimes)
++        elif metric:
++            score = (int(value is not None), value if objective == 'preference' and value is not None
++                     else -value if value is not None else 0)
++        else:
++            score = (failures, runtimes)
++        groups.append((score, -indices[0], condition, is_probe, indices))
++    # Deterministic input-order ties avoid comparing heterogeneous condition IDs.
++    groups.sort(key=lambda group: (group[0], group[1]), reverse=True)
++    probe_groups = [group for group in groups if group[3]]
++    if not probe_groups:
++        return []
++    first = probe_groups[0]
++    chosen = first[4][:]
++    for group in groups:
++        if group[2] != first[2]:
++            chosen.extend(group[4])
++            break
++    return chosen
++
++
+ def layout(packet):
++    objective, status, evidence = _current_diagnosis(packet)
++    experiment = {'runtime': 'dense', 'reliability': 'random',
++                  'visibility': 'barriers', 'position': 'dense',
++                  'valid_position': 'dense', 'rotation': 'barriers',
++                  'preference': 'random'}.get(objective, 'random')
++    proposing = packet.get('phase') != 'choose'
++    if proposing:
++        experiment = _probe_name(packet.get('selected_probe'), experiment)
++    expectations = {
++        'runtime': 'Locate the earliest exception or unbounded work in complete repeated-condition traces; test a bounded repair without adding Mesh queries.',
++        'reliability': 'Compare all four repeats for failed hard constraints and locate the first proposal, projection or fallback that breaks feasibility.',
++        'visibility': 'Compare constrained-condition camera visibility before and after proposal projection and incumbent selection, retaining hard-success and diversity margins.',
++        'position': 'Compare continuous u/v proposal spread with selected and final all-pair positional spread across four repeats; identify contraction without assuming a baseline retention ratio.',
++        'valid_position': 'Compare u/v spread only among hard-valid seed pairs, together with valid-pair counts; distinguish selection contraction from validity filtering.',
++        'rotation': 'Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation.',
++        'preference': 'Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread.',
++        None: 'Establish current hard-success, runtime and preference measurements and paired diversity baselines before asserting a violated comparative objective.',
++    }
++    diagnosis = {'objective': objective, 'status': status, 'evidence': evidence[:12],
++                 'probe': experiment, 'expected_observation': expectations[objective][:600]}
++    analysis = ('Current diagnosis: ' + str(objective) + ' (' + status + '). ' +
++                expectations[objective] + ' Evidence: ' + ', '.join(evidence) +
++                '. Historical failed improvements do not establish a current violation. '
++                'Without a measured candidate comparison, retention and improvement margins are unknown. '
++                'Single-layout optimizer_loss does not constrain cross-seed diversity.')[:3000]
++    if not proposing:
++        return {'experiment': experiment, 'analysis': analysis, 'diagnosis': diagnosis}
++    indices = _condition_groups(packet, objective)
++    prompt = '''Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.
++
++Inspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.
++
++Use the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.
++
++Choose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.
++
++Frozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.
++'''
++    prompt += '\nCurrent diagnosis: ' + analysis + '\nResearch observation: ' + expectations[objective]
++    if not indices:
++        analysis = (analysis + ' No complete four-repeat probe group was supplied; the required evidence selection cannot be formed.')[:3000]
++    return {'analysis': analysis, 'prompt': prompt[:8000],
++            'example_indices': indices, 'diagnosis': diagnosis}
++
++
++def _legacy_layout(packet):
+     summary = packet.get('summary', {})
+     if packet.get('phase') == 'choose':
+         return _choose(summary)

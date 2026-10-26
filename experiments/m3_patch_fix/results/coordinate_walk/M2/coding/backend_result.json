@@ -1,0 +1,20 @@
+{
+  "status": "completed",
+  "patch": "diff --git a/algorithm.py b/algorithm.py\nindex 5728e54..bd9b2ce 100644\n--- a/algorithm.py\n+++ b/algorithm.py\n@@ -33,6 +33,40 @@ def clamp_floor(task, values, name):\n     values[name] = [min(x1-ex,max(x0+ex,x)),min(y1-ey,max(y0+ey,y)),yaw]\n \n \n+def guide_floor_relation(task, values, name):\n+    \"\"\"Reduce radial preference error without changing sampled yaw or tangent.\"\"\"\n+    if task['supports'][name] != 'floor':\n+        return\n+    assets = task['spec']['assets']\n+    heights = {q['id']: assets[q['asset']]['height']/2+.003\n+               for q in task['spec']['required_objects']}\n+    dx_total,dy_total,count = 0.,0.,0\n+    x,y = values[name][:2]\n+    for relation in task['relations']:\n+        if name == relation['a']:\n+            other = relation['b']\n+        elif name == relation['b']:\n+            other = relation['a']\n+        else:\n+            continue\n+        if task['supports'].get(other) != 'floor':\n+            continue\n+        dx,dy = x-values[other][0],y-values[other][1]\n+        radius = math.hypot(dx,dy)\n+        if radius < 1e-9:\n+            continue\n+        target = max(relation['min'],min(relation['max'],relation['target']))\n+        dz = heights[name]-heights[other]\n+        desired = math.sqrt(max(0.,target*target-dz*dz))\n+        step = max(-.25,min(.25,.65*(desired-radius)))\n+        dx_total += step*dx/radius\n+        dy_total += step*dy/radius\n+        count += 1\n+    if count:\n+        values[name][0] += dx_total/count\n+        values[name][1] += dy_total/count\n+\n+\n def best_index(history):\n     best = 0\n     for i,row in enumerate(history):\n@@ -57,6 +91,7 @@ def layout(packet):\n         values[name][0] += rng.uniform(-scale, scale)\n         values[name][1] += rng.uniform(-scale, scale)\n         values[name][2] += rng.uniform(-.4, .4)\n+        guide_floor_relation(task, values, name)\n     else:\n         values = parameters(task, rng, True)\n     for name in task['zones']:\n",
+  "summary": "Modified only `algorithm.py` to add bounded, relation-aware floor-position corrections that account for 3D centre height while preserving sampled yaw and tangential variation. Query budget and final selection remain unchanged.\n\nTests were not run, as instructed.",
+  "base_git": "b0939ce5bb3f1b42623db1aca479387547377dca",
+  "candidate_git": "225269598e3c551836b17d11044ff1cc4eb0aefc",
+  "wall_seconds": 56.45576327084564,
+  "model": "gpt-6.1-sol",
+  "model_requests": 3,
+  "usage": {
+    "input_tokens": 48794,
+    "output_tokens": 1245,
+    "total_tokens": 50039
+  },
+  "resources": {
+    "cpu_seconds": 0.42425399999999996,
+    "process_peak_rss_bytes": 146374656,
+    "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+  }
+}

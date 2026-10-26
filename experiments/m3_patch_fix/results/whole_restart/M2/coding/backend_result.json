@@ -1,0 +1,20 @@
+{
+  "status": "completed",
+  "patch": "diff --git a/algorithm.py b/algorithm.py\nindex e56958b..f00493a 100644\n--- a/algorithm.py\n+++ b/algorithm.py\n@@ -33,6 +33,58 @@ def clamp_floor(task, values, name):\n     values[name] = [min(x1-ex,max(x0+ex,x)),min(y1-ey,max(y0+ey,y)),yaw]\n \n \n+def refine_relations(task, values):\n+    \"\"\"Make a small preference step without worsening floor relation bounds.\"\"\"\n+    assets = task['spec']['assets']\n+    heights = {q['id']: assets[q['asset']]['height']/2+.003\n+               for q in task['spec']['required_objects']\n+               if task['supports'].get(q['id']) == 'floor'}\n+    relations = [r for r in task['relations']\n+                 if r['a'] in heights and r['b'] in heights]\n+    origin = {name: values[name][:] for name in heights}\n+\n+    def errors(candidate):\n+        hard, preference = [], 0.\n+        for relation in relations:\n+            a, b = relation['a'], relation['b']\n+            distance = math.sqrt(\n+                (candidate[a][0]-candidate[b][0])**2\n+                +(candidate[a][1]-candidate[b][1])**2\n+                +(heights[a]-heights[b])**2)\n+            hard.append(max(0., relation['min']-distance,\n+                            distance-relation['max']))\n+            preference += abs(distance-relation['target'])\n+        return hard, preference\n+\n+    hard, preference = errors(values)\n+    # Keep each random proposal close to its original sample; do not converge\n+    # all restarts to the same preferred-distance configuration.\n+    for relation in relations:\n+        a, b = relation['a'], relation['b']\n+        dx, dy = values[b][0]-values[a][0], values[b][1]-values[a][1]\n+        horizontal = math.hypot(dx, dy)\n+        if horizontal < 1e-12 or a == b:\n+            continue\n+        dz = heights[b]-heights[a]\n+        target = math.sqrt(max(0., relation['target']**2-dz**2))\n+        step = (horizontal-target)/2\n+        candidate = {name: value[:] for name, value in values.items()}\n+        for name, direction in ((a, 1.), (b, -1.)):\n+            x = values[name][0]+direction*step*dx/horizontal\n+            y = values[name][1]+direction*step*dy/horizontal\n+            ox, oy = origin[name][:2]\n+            displacement = math.hypot(x-ox, y-oy)\n+            scale = min(1., .04/max(displacement, 1e-12))\n+            candidate[name][:2] = [ox+(x-ox)*scale, oy+(y-oy)*scale]\n+            clamp_floor(task, candidate, name)\n+        new_hard, new_preference = errors(candidate)\n+        if (all(new <= old for new, old in zip(new_hard, hard))\n+                and new_preference < preference-1e-12):\n+            values = candidate\n+            hard, preference = new_hard, new_preference\n+    return values\n+\n+\n def best_index(history):\n     best = 0\n     for i,row in enumerate(history):\n@@ -53,4 +105,5 @@ def layout(packet):\n     values = parameters(task, rng, index == 0)\n     for name in task['zones']:\n         clamp_floor(task, values, name)\n+    values = refine_relations(task, values)\n     return {'values': values, 'memory': {'rng': rng.getstate()}}\n",
+  "summary": "Modified only `algorithm.py` to add preference-distance adjustments capped at 4 cm per floor object, preserving sampled orientations and rejecting steps that worsen floor-relation bounds.\n\nTests were not run, as instructed.",
+  "base_git": "739f909c39e40cdf67d173ff565ec8aba417f082",
+  "candidate_git": "de0976d5dbcfb16724b3200056ab48e950d757a7",
+  "wall_seconds": 77.36228991602547,
+  "model": "gpt-6.1-sol",
+  "model_requests": 3,
+  "usage": {
+    "input_tokens": 49188,
+    "output_tokens": 1576,
+    "total_tokens": 50764
+  },
+  "resources": {
+    "cpu_seconds": 0.466232,
+    "process_peak_rss_bytes": 143892480,
+    "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+  }
+}

@@ -1,0 +1,1 @@
+Updated only `algorithm.py` to base diagnoses on current evidence and select complete four-repeat condition groups, including the chosen probe. Added focused continuous Mesh research guidance. Tests were left to the external controller as instructed.
