@@ -1,0 +1,32 @@
+pybullet build time: Jan 29 2025 23:17:20
+test_api_style_backend_needs_no_codex_events (test_coding_backend.CodingBackendTests.test_api_style_backend_needs_no_codex_events) ... ok
+test_native_bootstrap_does_not_advertise_extra_agents (test_coding_backend.CodingBackendTests.test_native_bootstrap_does_not_advertise_extra_agents) ... ok
+test_native_relay_retains_tools_records_usage_and_enforces_call_cap (test_coding_backend.CodingBackendTests.test_native_relay_retains_tools_records_usage_and_enforces_call_cap) ... ERROR
+/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/unittest/case.py:622: ResourceWarning: unclosed <socket.socket fd=4, family=1, type=1, proto=0, raddr=/tmp/tmppz3jbbrx/socket>
+  with outcome.testPartExecutor(self):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+test_patch_cannot_modify_other_files (test_coding_backend.CodingBackendTests.test_patch_cannot_modify_other_files) ... ok
+test_strategy_preserved_and_source_is_a_workspace_file (test_coding_backend.CodingBackendTests.test_strategy_preserved_and_source_is_a_workspace_file) ... ok
+
+======================================================================
+ERROR: test_native_relay_retains_tools_records_usage_and_enforces_call_cap (test_coding_backend.CodingBackendTests.test_native_relay_retains_tools_records_usage_and_enforces_call_cap)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/tests/test_coding_backend.py", line 32, in test_native_relay_retains_tools_records_usage_and_enforces_call_cap
+    connection.request('POST','/responses',json.dumps({'model':coding.MODEL,'input':[]}))
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/http/client.py", line 1351, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/http/client.py", line 1397, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/http/client.py", line 1346, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/http/client.py", line 1145, in _send_output
+    self.send(chunk)
+  File "/srv/lab-disks/disk2/users/xymo/rsi/world_run/env/lib/python3.11/http/client.py", line 1067, in send
+    self.sock.sendall(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.028s
+
+FAILED (errors=1)
