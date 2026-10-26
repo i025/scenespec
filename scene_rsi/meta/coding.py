@@ -65,24 +65,32 @@ def serve(socket_path,auth_path,audit,budget):
         def log_message(self,*args): pass
         def do_POST(self):
             size=int(self.headers.get('Content-Length','0'))
-            if self.path!='/responses' or not 0<size<=budget['input_bytes_per_request'] or len(record['requests'])>=budget['model_requests']:
-                self.send_error(403,'coding request quota');return
+            def reject(kind,value,threshold):
+                record.setdefault('rejections',[]).append({'limit_type':kind,'observed':value,
+                    'threshold':threshold,'request_bytes':size,'upstream_requests':len(record['requests'])})
+                save(audit,record);self.send_error(403,'coding '+kind)
+            if self.path!='/responses':
+                reject('path',self.path,'/responses');return
+            if not 0<size<=budget['input_bytes_per_request']:
+                reject('input_bytes_per_request',size,budget['input_bytes_per_request']);return
+            if len(record['requests'])>=budget['model_requests']:
+                reject('model_requests',len(record['requests']),budget['model_requests']);return
             body=tools_only(json.loads(self.rfile.read(size)))
             if body.get('model')!=MODEL:
                 self.send_error(403,'fixed model');return
             body['max_output_tokens']=budget['output_tokens_per_request']
             encoded=json.dumps(body).encode()
             if record['input_bytes_total']+len(encoded)>budget['input_bytes_total']:
-                self.send_error(403,'coding input budget');return
+                reject('input_bytes_total',record['input_bytes_total']+len(encoded),budget['input_bytes_total']);return
             # Optional common experiment cap; preserve the existing CLI and policies.
             if 'total_tokens' in budget:
                 known=all(r.get('usage') is not None for r in record['requests'])
                 spent=sum(r['usage']['total_tokens'] for r in record['requests']) if known else 0
                 reserve=len(encoded)+16384+budget['output_tokens_per_request']
                 if not known or spent+reserve>budget['total_tokens']:
-                    record['token_quota_rejected']=True;save(audit,record)
-                    self.send_error(403,'coding token reservation');return
-            row={'index':len(record['requests']),'request_bytes':len(encoded),'status':'reserved','usage':None}
+                    record['token_quota_rejected']=True
+                    reject('total_tokens' if known else 'unknown_usage',spent+reserve if known else None,budget['total_tokens']);return
+            row={'index':len(record['requests']),'raw_request_bytes':size,'request_bytes':len(encoded),'status':'reserved','usage':None}
             if 'total_tokens' in budget: row['token_reservation']=reserve
             record['requests'].append(row);record['input_bytes_total']+=len(encoded);save(audit,record)
             started=time.perf_counter()
@@ -97,19 +105,21 @@ def serve(socket_path,auth_path,audit,budget):
                 self.send_response(response.status)
                 self.send_header('Content-Type',response.getheader('Content-Type','text/event-stream'));self.end_headers()
                 output_bytes=0
-                for line in response:
-                    output_bytes+=len(line)
-                    if output_bytes>2*1024**2: raise ValueError('model stream exceeds limit')
-                    if line.startswith(b'data: {'):
-                        event=json.loads(line[6:]);item=event.get('item',{})
-                        if item.get('namespace')=='collaboration' or item.get('name','').startswith('collaboration.'):
-                            raise ValueError('extra agents forbidden')
-                        details=event.get('response',{})
-                        if details.get('usage') is not None: row['usage']=details['usage']
-                        if details.get('model'): row['returned_model']=details['model']
-                        if details.get('status'): row['response_status']=details['status']
-                        if details.get('incomplete_details'): row['incomplete_details']=details['incomplete_details']
-                    self.wfile.write(line);self.wfile.flush()
+                with (audit.parent/f'response_{row["index"]}.sse').open('wb') as stream:
+                    for line in response:
+                        output_bytes+=len(line)
+                        if output_bytes>2*1024**2: raise ValueError('model stream exceeds limit')
+                        stream.write(line)
+                        if line.startswith(b'data: {'):
+                            event=json.loads(line[6:]);item=event.get('item',{})
+                            if item.get('namespace')=='collaboration' or item.get('name','').startswith('collaboration.'):
+                                raise ValueError('extra agents forbidden')
+                            details=event.get('response',{})
+                            if details.get('usage') is not None: row['usage']=details['usage']
+                            if details.get('model'): row['returned_model']=details['model']
+                            if details.get('status'): row['response_status']=details['status']
+                            if details.get('incomplete_details'): row['incomplete_details']=details['incomplete_details']
+                        self.wfile.write(line);self.wfile.flush()
                 response.close();row['status']='completed' if response.status==200 else 'http_error'
             except Exception as error:
                 row.update(status='failed',error=type(error).__name__)
@@ -162,7 +172,12 @@ strategy; any old "return replacement source" wording means edit the algorithm f
 The editor command tool is intentionally a fixed reader: pwd, ls, rg --files, and cat of algorithm.py,
 TASK.json or CONTRACT.md. Read them with `cat algorithm.py TASK.json CONTRACT.md` and set the command
 tool max_output_tokens=24000 to avoid truncating feedback. Git diffs are captured externally; do not run git.
-Use tools.apply_patch for edits. No shell expressions, sed, Python execution or tests here. The trusted
+Read each file once; do not repeat the full task or source in later tool output.
+Use native tools.apply_patch for edits. For several changes in one file, use ONE Update File header
+with multiple @@ hunks, or separate sequential apply_patch calls against the resulting file. Never
+combine Delete/Add or duplicate file headers for the same path in one patch. Keep unchanged code as
+context; no whole-file replacement is required. Real context conflicts must remain errors.
+No shell expressions, sed, Python execution or tests here. The trusted
 external controller performs syntax and Mesh tests later. Do not spawn agents, use network, request
 permissions or inspect other paths. Complete one general algorithm-level improvement within budget.
 '''

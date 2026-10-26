@@ -14,6 +14,7 @@ from scene_rsi.meta.coding import save
 
 def copy_coding(source,out):
     out.mkdir(parents=True)
+    for path in source.glob('response_*.sse'):shutil.copyfile(path,out/path.name)
     for name in ('candidate.diff','candidate.py','summary.md','events.jsonl','cli.stderr','cli.json','model_calls.json','reservation.json','backend_result.json'):
         if (source/name).exists():shutil.copyfile(source/name,out/name)
     for name in ('TASK.json','CONTRACT.md'):

@@ -18,7 +18,7 @@ try { text(await tools.apply_patch("*** Begin Patch\\n*** Update File: /workspac
 text(await tools.apply_patch("*** Begin Patch\\n*** Update File: /workspace/algorithm.py\\n@@\\n-    return {}\\n+    return {\\"changed\\": True}\\n*** End Patch"));'''
 
 
-def fake_server(path,auth,audit,budget,fail_after_edit=False):
+def fake_server(path,auth,audit,budget,fail_after_edit=False,code=CODE):
     calls=[]
     class Handler(http.server.BaseHTTPRequestHandler):
         def log_message(self,*a):pass
@@ -26,7 +26,7 @@ def fake_server(path,auth,audit,budget,fail_after_edit=False):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
             calls.append(data)
             if len(calls)==1:
-                item={'type':'custom_tool_call','id':'ct0','call_id':'call0','name':'exec','namespace':'functions','input':CODE,'status':'completed'}
+                item={'type':'custom_tool_call','id':'ct0','call_id':'call0','name':'exec','namespace':'functions','input':code,'status':'completed'}
             else:
                 item={'type':'message','id':'m0','role':'assistant','status':'completed',
                       'content':[{'type':'output_text','text':'Offline file edit completed.','annotations':[]}]}
@@ -54,13 +54,27 @@ def main():
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--guard',type=Path,required=True)
     parser.add_argument('--fail-after-edit',action='store_true',help='offline regression: retain patch but reject failed CLI')
+    parser.add_argument('--patch-regressions',action='store_true',help='offline native multi-hunk, sequential and conflicting patch checks')
     args=parser.parse_args()
+    source='def layout(packet):\n    return {}\n'
+    code=CODE
+    if args.patch_regressions:
+        source='a = 1\nb = 2\n\n'+source
+        patches=[
+            ('protected', '*** Begin Patch\n*** Update File: /workspace/TASK.json\n@@\n-  "objective": "offline transport fixture",\n+  "objective": "forbidden",\n*** End Patch'),
+            ('duplicate', '*** Begin Patch\n*** Update File: /workspace/algorithm.py\n@@\n-a = 1\n+a = 10\n*** Update File: /workspace/algorithm.py\n@@\n-b = 2\n+b = 20\n*** End Patch'),
+            ('multi_hunk', '*** Begin Patch\n*** Update File: /workspace/algorithm.py\n@@\n-a = 1\n+a = 10\n@@\n-b = 2\n+b = 20\n*** End Patch'),
+            ('sequential', '*** Begin Patch\n*** Update File: /workspace/algorithm.py\n@@\n-a = 10\n+a = 11\n*** End Patch'),
+            ('conflict', '*** Begin Patch\n*** Update File: /workspace/algorithm.py\n@@\n-a = 1\n+a = 999\n*** End Patch')]
+        for name,patch in patches:
+            code+='\ntry { text({case:'+json.dumps(name)+',result:await tools.apply_patch('+json.dumps(patch)+')}); } catch(e) { text({case:'+json.dumps(name)+',error:String(e)}); }'
+            code+='\ntext(await tools.exec_command({cmd:"cat algorithm.py",login:false}));'
     task={'objective':'offline transport fixture','analysis':'not a scored scene candidate','strategy':'edit one return value',
-          'feedback':{},'allowed_files':['algorithm.py'],'files':{'algorithm.py':'def layout(packet):\n    return {}\n'},
+          'feedback':{},'allowed_files':['algorithm.py'],'files':{'algorithm.py':source},
           'contract':'offline fixture','budget':dict(BUDGET,wall_seconds=45)}
     from functools import partial
     result=run_codex(task,args.out/'attempt',args.out/'runtime',args.guard,parent_git='offline',
-                     server_factory=partial(fake_server,fail_after_edit=args.fail_after_edit))
+                     server_factory=partial(fake_server,fail_after_edit=args.fail_after_edit,code=code))
     assert result['status']==('failed' if args.fail_after_edit else 'completed') and result['patch']
     assert '"changed": True' in (args.out/'attempt/candidate.py').read_text()
     calls=json.loads((args.out/'attempt/offline_requests.json').read_text())
@@ -70,6 +84,26 @@ def main():
     assert 'def layout(packet)' in text
     protected=json.loads((args.out/'attempt/workspace/TASK.json').read_text())
     assert protected['objective']=='offline transport fixture'
+    if args.patch_regressions:
+        reads=[];cases={}
+        for output in outputs:
+            for block in output:
+                try: value=json.loads(block.get('text',''))
+                except json.JSONDecodeError: continue
+                if isinstance(value,dict):
+                    if 'output' in value: reads.append(value['output'])
+                    if 'case' in value: cases[value['case']]=value
+        assert 'multiple operations target /workspace/algorithm.py' in cases['duplicate']['error']
+        assert 'Failed to find expected lines' in cases['conflict']['error']
+        assert 'error' in cases['protected']
+        assert any(r.startswith('a = 1\nb = 2\n') for r in reads)
+        assert any(r.startswith('a = 10\nb = 20\n') for r in reads)
+        assert sum(r.startswith('a = 11\nb = 20\n') for r in reads)==2
+        actual=(args.out/'attempt/candidate.py').read_text()
+        assert actual=='a = 11\nb = 20\n\ndef layout(packet):\n    return {"changed": True}\n',actual
+        save(args.out/'patch_acceptance.json',{'multi_hunk':True,'sequential':True,'conflict_rejected':True,
+             'duplicate_rejected_without_partial_write':True,'model_calls':0,
+             'fixture_is_not_the_missing_original_failed_patch':True})
     if args.fail_after_edit:
         save(args.out/'acceptance.json',{'failed_cli_patch_preserved':True,'status_remains_failed':True,
              'candidate_git':result['candidate_git'],'model_calls':0,'candidate_execution':False})

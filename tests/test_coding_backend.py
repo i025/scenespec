@@ -40,6 +40,29 @@ class CodingBackendTests(unittest.TestCase):
             record=(root/'record.json').read_text()
             self.assertNotIn('fake-secret',record)
             self.assertEqual(json.loads(record)['requests'][0]['usage'],usage)
+            rejection=json.loads(record)['rejections'][0]
+            self.assertEqual(rejection['limit_type'],'model_requests')
+            self.assertEqual((rejection['observed'],rejection['threshold']),(1,1))
+
+    def test_request_size_rejection_records_actual_bytes_without_headers(self):
+        from scripts.algorithm_proposal_relay import UnixConnection
+        with TemporaryDirectory() as tmp,patch.object(coding.urllib.request,'urlopen') as send:
+            root=Path(tmp);auth=root/'auth.json'
+            auth.write_text(json.dumps({'tokens':{'access_token':'fake-secret','account_id':'fake-account'}}))
+            body=json.dumps({'model':coding.MODEL,'input':[]}).encode()
+            server=coding.serve(root/'socket',auth,root/'record.json',dict(coding.BUDGET,input_bytes_per_request=len(body)-1))
+            connection=UnixConnection(str(root/'socket'))
+            try:
+                connection.request('POST','/responses',body,{'Authorization':'Bearer never-log-this'})
+                response=connection.getresponse();self.assertEqual(response.status,403);response.read()
+            finally:
+                connection.close();server.shutdown();server.server_close()
+            record=(root/'record.json').read_text();rejection=json.loads(record)['rejections'][0]
+            self.assertEqual(rejection['limit_type'],'input_bytes_per_request')
+            self.assertEqual(rejection['request_bytes'],len(body))
+            self.assertEqual((rejection['observed'],rejection['threshold']),(len(body),len(body)-1))
+            self.assertNotIn('fake-secret',record);self.assertNotIn('never-log-this',record)
+            send.assert_not_called()
 
     def task(self):
         return improvement_task({'meta_analysis':'UNCHANGED analysis','proposal_instruction':'UNCHANGED strategy',
@@ -84,6 +107,10 @@ class CodingBackendTests(unittest.TestCase):
             self.assertEqual(record['incomplete_details'],{'reason':'max_output_tokens'})
             self.assertEqual(record['usage'],usage)
             self.assertGreaterEqual(record['token_reservation'],16384)
+            stream=(root/'response_0.sse').read_text()
+            self.assertIn('response.incomplete',stream)
+            self.assertIn('max_output_tokens',stream)
+            self.assertNotIn('fake-secret',stream)
 
     def test_failed_cli_patch_is_not_an_eligible_candidate(self):
         task=self.task()
