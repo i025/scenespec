@@ -1,0 +1,110 @@
+{
+  "attempts": 1,
+  "new_response_cap": 16384,
+  "task_equivalence": {
+    "all_nonbudget_fields_identical": true,
+    "budget_differences": {
+      "output_tokens_per_request": [
+        4096,
+        16384
+      ]
+    },
+    "new_independent_workspace": true,
+    "coding_tasks_authorized": 1
+  },
+  "requests": [
+    {
+      "index": 0,
+      "request_bytes": 45156,
+      "http_status": 200,
+      "response_status": "completed",
+      "incomplete_details": null,
+      "usage": {
+        "input_tokens": 8833,
+        "output_tokens": 63,
+        "total_tokens": 8896
+      }
+    },
+    {
+      "index": 1,
+      "request_bytes": 87959,
+      "http_status": 200,
+      "response_status": "completed",
+      "incomplete_details": null,
+      "usage": {
+        "input_tokens": 18774,
+        "output_tokens": 43,
+        "total_tokens": 18817
+      }
+    },
+    {
+      "index": 2,
+      "request_bytes": 113638,
+      "http_status": 200,
+      "response_status": "completed",
+      "incomplete_details": null,
+      "usage": {
+        "input_tokens": 24079,
+        "output_tokens": 77,
+        "total_tokens": 24156
+      }
+    },
+    {
+      "index": 3,
+      "request_bytes": 159009,
+      "http_status": 200,
+      "response_status": "completed",
+      "incomplete_details": null,
+      "usage": {
+        "input_tokens": 33973,
+        "output_tokens": 316,
+        "total_tokens": 34289
+      }
+    },
+    {
+      "index": 4,
+      "request_bytes": 170231,
+      "http_status": 200,
+      "response_status": "completed",
+      "incomplete_details": null,
+      "usage": {
+        "input_tokens": 35293,
+        "output_tokens": 4893,
+        "total_tokens": 40186
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 120952,
+    "output_tokens": 5392,
+    "total_tokens": 126344
+  },
+  "coding_wall_seconds": 143.73128420719877,
+  "resources": {
+    "cpu_seconds": 0.8063710000000001,
+    "process_peak_rss_bytes": 146079744,
+    "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+  },
+  "output_cap_fix_confirmed": "response 4 completed with 4893 output tokens, exceeding old 4096; no incomplete response",
+  "patch_error": "apply_patch verification failed: invalid patch: multiple operations target /workspace/algorithm.py",
+  "final_error": "local relay 403 coding request quota",
+  "quota_diagnosis": {
+    "upstream_requests_recorded": 5,
+    "request_count_limit": 6,
+    "request_bytes_limit": 196608,
+    "excluded": "5<6 excludes the recorded-count limit; this message is emitted before total-input/token reservation checks; no authentication error or timeout",
+    "likely": "after invalid patch the next native request exceeded the 196608-byte input envelope",
+    "uncertainty": "rejected request path and Content-Length were not retained, so the exact raw size and nonempty-size branch cannot be proved from the archived record alone"
+  },
+  "exported_source_bytes": 22441,
+  "exported_source_equals_frozen_M2": true,
+  "diff_bytes": 0,
+  "qualification_executed": false,
+  "downstream_comparison_executed": false,
+  "new_private_tasks_generated": false,
+  "additional_model_calls_after_failure": 0,
+  "previous_attempt_tokens_separately": 123515,
+  "both_attempts_total_tokens": 249859,
+  "monetary_cost": null,
+  "no_M3_capability_conclusion": true
+}
