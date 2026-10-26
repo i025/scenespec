@@ -66,6 +66,7 @@ def prepare(run,geometry):
             for policy in ('M2','M3'):
                 dest=folder/policy/f'r{repeat}';dest.mkdir(parents=True)
                 task,choice=request_for(source,cases['dev'],dev_rows,POLICIES[policy].read_text(),dest/'policy',run,policy=='M3')
+                task=json.loads(json.dumps(task))  # Compare the actual JSON interface, including delivery tuples.
                 if len(task['feedback']['examples'])!=8:raise ValueError('exactly eight policy-selected examples; no padding')
                 assert task['budget']==BUDGET
                 save(dest/'task.json',task)

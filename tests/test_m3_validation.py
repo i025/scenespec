@@ -164,6 +164,46 @@ class M3ValidationTests(unittest.TestCase):
             self.assertEqual(experiment.read(root / 'ablation_started.json')['tasks'], 0)
             self.assertEqual(experiment.read(root / 'ablation_results.json')['arms'], [])
 
+    def test_prepare_compares_repeat_tasks_using_the_real_json_interface(self):
+        with TemporaryDirectory() as directory:
+            base = Path(directory)
+            source_dir = base / 'sources'
+            source_dir.mkdir()
+            for initial in experiment.INITIALS:
+                (source_dir / f'initial_{initial}.py').write_text('# offline source only\n')
+            policy_paths = {name: base / (name + '.py') for name in experiment.POLICIES}
+            for path in policy_paths.values():
+                path.write_text('# offline frozen policy\n')
+            task = self.task()
+            task['feedback']['delivery'] = {'selected': [(0, 0), (2, 3)],
+                                             'delivered': [(0, 0), (2, 3)]}
+
+            def conditions(folder, geometry, counts):
+                folder.mkdir()
+                return {split: [] for split in counts}
+
+            with patch.object(experiment, 'ROOT', base), \
+                    patch.object(experiment, 'EXP', source_dir), \
+                    patch.object(experiment, 'POLICIES', policy_paths), \
+                    patch.object(experiment, 'git', return_value='offline'), \
+                    patch.object(experiment, 'conditions', side_effect=conditions), \
+                    patch.object(experiment, 'evaluate4', return_value=(self.metrics(), [])), \
+                    patch.object(experiment, 'request_for', side_effect=lambda *args: (deepcopy(task), {})) as request, \
+                    patch.object(experiment, 'candidate') as model, \
+                    patch.object(experiment, 'run_codex') as backend:
+                experiment.prepare(base / 'run', base)
+                self.assertEqual(request.call_count, 8)
+                model.assert_not_called()
+                backend.assert_not_called()
+            self.assertEqual(len(experiment.read(base / 'run/calls.json')), 8)
+            for initial in experiment.INITIALS:
+                for policy in experiment.POLICIES:
+                    folder = base / 'run' / initial / policy
+                    first = experiment.read(folder / 'r0/task.json')
+                    self.assertEqual(first, experiment.read(folder / 'r1/task.json'))
+                    self.assertEqual(first['feedback']['delivery']['selected'], [[0, 0], [2, 3]])
+            self.assertEqual(task['feedback']['delivery']['selected'], [(0, 0), (2, 3)])
+
     def test_prepare_rejects_changed_evidence_budgets_repeats_and_original_pool(self):
         for violation in ('extra_example', 'missing_example', 'budget', 'repeat', 'metrics_pool'):
             with self.subTest(violation=violation), TemporaryDirectory() as directory:
