@@ -74,7 +74,16 @@ def serve(socket_path,auth_path,audit,budget):
             encoded=json.dumps(body).encode()
             if record['input_bytes_total']+len(encoded)>budget['input_bytes_total']:
                 self.send_error(403,'coding input budget');return
+            # Optional common experiment cap; preserve the existing CLI and policies.
+            if 'total_tokens' in budget:
+                known=all(r.get('usage') is not None for r in record['requests'])
+                spent=sum(r['usage']['total_tokens'] for r in record['requests']) if known else 0
+                reserve=len(encoded)+16384+budget['output_tokens_per_request']
+                if not known or spent+reserve>budget['total_tokens']:
+                    record['token_quota_rejected']=True;save(audit,record)
+                    self.send_error(403,'coding token reservation');return
             row={'index':len(record['requests']),'request_bytes':len(encoded),'status':'reserved','usage':None}
+            if 'total_tokens' in budget: row['token_reservation']=reserve
             record['requests'].append(row);record['input_bytes_total']+=len(encoded);save(audit,record)
             started=time.perf_counter()
             try:
