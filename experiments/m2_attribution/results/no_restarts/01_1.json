@@ -1,0 +1,1030 @@
+{
+  "state": {
+    "scene_id": "m2_dev_01",
+    "objects": [
+      {
+        "id": "mount",
+        "asset": "narrow_bench",
+        "position": [
+          6.22877836850087,
+          3.8379351810081075,
+          0.4034179691651877
+        ],
+        "rotation": [
+          0.02992760125581336,
+          0.11033512293244901,
+          -0.03618898768026918
+        ]
+      },
+      {
+        "id": "divider_0",
+        "asset": "wall_0",
+        "position": [
+          3.68462945742305,
+          0.9643063498699112,
+          0.578
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "divider_1",
+        "asset": "wall_1",
+        "position": [
+          3.68462945742305,
+          4.612693210032495,
+          0.578
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": "box_0",
+        "asset": "box",
+        "position": [
+          5.7927251296336975,
+          3.776403070351818,
+          1.0309172697477704
+        ],
+        "rotation": [
+          -0.10338646592714014,
+          -0.0488426673719844,
+          -2.312260509933182
+        ]
+      },
+      {
+        "id": "box_1",
+        "asset": "box",
+        "position": [
+          6.78599361396695,
+          3.7404419893142915,
+          0.9208058775990144
+        ],
+        "rotation": [
+          -0.07587881692170802,
+          -0.08557061353141307,
+          -2.7162399038592215
+        ]
+      },
+      {
+        "id": "storage",
+        "asset": "cabinet",
+        "position": [
+          1.2125306773703672,
+          4.384205364881318,
+          0.653
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          -1.9151817144904069
+        ]
+      },
+      {
+        "id": "rover",
+        "asset": "robot",
+        "position": [
+          1.4124693226296328,
+          2.2024572997167273,
+          0.453
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          -1.6934999888497997
+        ]
+      }
+    ]
+  },
+  "result": {
+    "success": true,
+    "failures": [],
+    "quality": {
+      "penetration_m": 0.0,
+      "boundary_excess_m": 0.0,
+      "support_gap_m": 0.005999991576563788,
+      "relation_error_m": 0.0,
+      "preference_error_m": 1.8572168691832758e-08,
+      "visibility_mean": 1.0,
+      "framing_mean": 1.0
+    },
+    "optimizer_loss": 0.17999975286856423,
+    "visibility": {
+      "box_0": {
+        "visible_pixels": 178,
+        "isolated_pixels": 178,
+        "fraction": 1.0,
+        "framed_vertices_fraction": 1.0
+      },
+      "box_1": {
+        "visible_pixels": 188,
+        "isolated_pixels": 188,
+        "fraction": 1.0,
+        "framed_vertices_fraction": 1.0
+      }
+    },
+    "navigation": {
+      "actions": 51,
+      "step_m": 0.25,
+      "tested_cells": 677,
+      "collision_shape": "actual mesh, conservative swept .2m-radius/1.6m-high cylinder"
+    },
+    "stability": {
+      "box_0": {
+        "translation_m": 0.001016477447373503,
+        "rotation_rad": 9.52071093989767e-06,
+        "support_contact": true,
+        "linear_speed_m_s": 2.8587014927070905e-07,
+        "angular_speed_rad_s": 3.6663320318418855e-07,
+        "stable": true
+      },
+      "box_1": {
+        "translation_m": 0.0010166345462761192,
+        "rotation_rad": 1.0336079586277737e-05,
+        "support_contact": true,
+        "linear_speed_m_s": 3.082188826184094e-07,
+        "angular_speed_rad_s": 9.643945898313243e-07,
+        "stable": true
+      },
+      "storage": {
+        "translation_m": 0.0020097774654271967,
+        "rotation_rad": 7.019709136830781e-05,
+        "support_contact": true,
+        "linear_speed_m_s": 3.298213285580963e-05,
+        "angular_speed_rad_s": 5.650180120026909e-05,
+        "stable": true
+      },
+      "rover": {
+        "translation_m": 0.0020115111113975666,
+        "rotation_rad": 2.9693912979472068e-05,
+        "support_contact": true,
+        "linear_speed_m_s": 1.5228890964745143e-05,
+        "angular_speed_rad_s": 2.7729814871939878e-05,
+        "stable": true
+      }
+    },
+    "evaluation_seconds": 0.09541411302052438
+  },
+  "error": null,
+  "queries": 24,
+  "trace": [
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.175,
+          4.746773720325168,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.45,
+          1.8,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 0.7663277564691042,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.4098980742376449,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.175,
+          4.746773720325168,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.45,
+          1.8,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 0.7663277564691042,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.4098980742376449,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2117371840153415,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4132628159846585,
+          2.1938194078143174,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.00599999157656376,
+        "relation_error_m": 0.0,
+        "preference_error_m": 0.008710759981250149,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18261297529128784,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2117371840153415,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4132628159846585,
+          2.1938194078143174,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.00599999157656376,
+        "relation_error_m": 0.0,
+        "preference_error_m": 0.008710759981250149,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18261297529128784,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2124725568800567,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4125274431199433,
+          2.20182319571861,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.0059999915765638154,
+        "relation_error_m": 0.0,
+        "preference_error_m": 0.0006394274818806167,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18019157554147863,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2124725568800567,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4125274431199433,
+          2.20182319571861,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.0059999915765638154,
+        "relation_error_m": 0.0,
+        "preference_error_m": 0.0006394274818806167,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18019157554147863,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125264128792863,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124735871207137,
+          2.202410765818012,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.0059999915765638154,
+        "relation_error_m": 0.0,
+        "preference_error_m": 4.694154214401891e-05,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18001382975955765,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125264128792863,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124735871207137,
+          2.202410765818012,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.0059999915765638154,
+        "relation_error_m": 0.0,
+        "preference_error_m": 4.694154214401891e-05,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18001382975955765,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125303658722488,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124696341277512,
+          2.2024539006251085,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 3.446082450508925e-06,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18000078112164877,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125303658722488,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124696341277512,
+          2.2024539006251085,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 3.446082450508925e-06,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.18000078112164877,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306560665714,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693439334286,
+          2.2024570672478516,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.0059999915765638154,
+        "relation_error_m": 0.0,
+        "preference_error_m": 2.5298463235401414e-07,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999982319230415,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306560665714,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693439334286,
+          2.2024570672478516,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.0059999915765638154,
+        "relation_error_m": 0.0,
+        "preference_error_m": 2.5298463235401414e-07,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999982319230415,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306773703672,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693226296328,
+          2.2024572997167273,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.8572168691832758e-08,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999975286856423,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306773703672,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693226296328,
+          2.2024572997167273,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.8572168691832758e-08,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999975286856423,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306789343264,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693210656736,
+          2.2024573167827888,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.3634244844240584e-09,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999974770594096,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306773703672,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693226296328,
+          2.2024572997167273,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.8572168691832758e-08,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999975286856423,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306789343264,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693210656736,
+          2.2024573167827888,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.3634244844240584e-09,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999974770594096,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306773703672,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693226296328,
+          2.2024572997167273,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.8572168691832758e-08,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999975286856423,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306789343264,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693210656736,
+          2.2024573167827888,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.3634244844240584e-09,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999974770594096,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306773703672,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693226296328,
+          2.2024572997167273,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.8572168691832758e-08,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999975286856423,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306789343264,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693210656736,
+          2.2024573167827888,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.3634244844240584e-09,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999974770594096,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306773703672,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693226296328,
+          2.2024572997167273,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.8572168691832758e-08,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999975286856423,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306789343264,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693210656736,
+          2.2024573167827888,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.3634244844240584e-09,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999974770594096,
+      "failures": []
+    },
+    {
+      "values": {
+        "box_0": [
+          -0.5,
+          -0.06,
+          -2.276946275019903
+        ],
+        "box_1": [
+          0.5,
+          -0.06,
+          -2.6816480747993006
+        ],
+        "storage": [
+          1.2125306773703672,
+          4.384205364881318,
+          -1.9151817144904069
+        ],
+        "rover": [
+          1.4124693226296328,
+          2.2024572997167273,
+          -1.6934999888497997
+        ]
+      },
+      "quality": {
+        "penetration_m": 0.0,
+        "boundary_excess_m": 0.0,
+        "support_gap_m": 0.005999991576563788,
+        "relation_error_m": 0.0,
+        "preference_error_m": 1.8572168691832758e-08,
+        "visibility_mean": 1.0,
+        "framing_mean": 1.0
+      },
+      "optimizer_loss": 0.17999975286856423,
+      "failures": []
+    }
+  ],
+  "generation_wall_seconds": 0.9962267919909209,
+  "controller_cpu_seconds": 0.5918056000000007,
+  "execution": {
+    "exit_code": 0,
+    "wall_seconds": 0.8999026829842478,
+    "runtime_cpu_seconds": 0.6099800000000002,
+    "children_rss_high_water_bytes": 131637248,
+    "resource_scope": "Apptainer and waited children; RSS is controller lifetime child high-water mark",
+    "stderr": ""
+  },
+  "task_index": 1,
+  "repeat": 1
+}

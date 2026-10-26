@@ -1,0 +1,27 @@
+--- frozen_M2_generator.py
++++ no_initial_yaw_no_projection.py
+@@ -13,13 +13,13 @@
+     for name,parent in task['supports'].items():
+         if parent == 'floor':
+             x0,y0,x1,y1 = task['zones'][name]
+-            values[name] = [(x0+x1)/2,(y0+y1)/2,rng.uniform(-math.pi,math.pi)] if heuristic else [rng.uniform(x0,x1),rng.uniform(y0,y1),rng.uniform(-math.pi,math.pi)]
++            values[name] = [(x0+x1)/2,(y0+y1)/2,0.*rng.uniform(-math.pi,math.pi)] if heuristic else [rng.uniform(x0,x1),rng.uniform(y0,y1),rng.uniform(-math.pi,math.pi)]
+         else:
+             mount = next(q for q in task['fixed'] if q['id'] == parent)
+             a = task['spec']['assets'][mount['asset']]
+             siblings = sorted(groups[parent])
+             offset = (siblings.index(name)-(len(siblings)-1)/2)*a['width']/2
+-            values[name] = [offset,-.06,rng.uniform(-math.pi,math.pi)] if heuristic else [rng.uniform(-a['width']*.37,a['width']*.37),rng.uniform(-a['depth']*.25,a['depth']*.25),rng.uniform(-math.pi,math.pi)]
++            values[name] = [offset,-.06,0.*rng.uniform(-math.pi,math.pi)] if heuristic else [rng.uniform(-a['width']*.37,a['width']*.37),rng.uniform(-a['depth']*.25,a['depth']*.25),rng.uniform(-math.pi,math.pi)]
+     return values
+ 
+ 
+@@ -138,7 +138,7 @@
+         # Refine the preceding restart rather than repeatedly converging the best
+         # layout to one preferred-distance solution across all seeds.
+         values = {name:list(row) for name,row in history[-1]['values'].items()}
+-        refine_relations(task, values, rng)
++        refine_relations(task, {n:list(v) for n,v in values.items()}, rng)
+     elif index:
+         groups={}
+         for name,parent in task['supports'].items():groups.setdefault(parent,[]).append(name)

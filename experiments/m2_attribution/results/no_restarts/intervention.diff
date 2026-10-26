@@ -1,0 +1,11 @@
+--- frozen_M2_generator.py
++++ no_restarts.py
+@@ -146,6 +146,6 @@
+         choices=[parent for parent,names in groups.items() if any(name in failed for name in names)] or list(groups)
+         group=rng.choice(choices);fresh=parameters(task,rng)
+         for name in groups[group]:
+-            values[name]=fresh[name]
+-            if name in task['zones']:clamp_floor(task,values,name)
++            unused = fresh[name]
++            if False:clamp_floor(task,values,name)
+     return {'values':values,'memory':{'rng':rng.getstate()}}
