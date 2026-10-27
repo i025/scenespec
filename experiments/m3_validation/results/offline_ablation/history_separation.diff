@@ -1,0 +1,27 @@
+--- M3.py
++++ history_separation.py
+@@ -452,7 +452,7 @@
+ 
+ 
+ def layout(packet):
+-    objective, status, evidence = _current_diagnosis(packet)
++    objective, status, evidence = _pooled_diagnosis(packet)
+     experiment = {'runtime': 'dense', 'reliability': 'random',
+                   'visibility': 'barriers', 'position': 'dense',
+                   'valid_position': 'dense', 'rotation': 'barriers',
+@@ -546,3 +546,15 @@
+                 '\nSelected example indices (zero-based): ' + str(indices))
+         prompt = guidance + '\n\n' + prompt[:max(0, 8000 - len(guidance) - len(tail) - 2)] + tail
+     return {'analysis': analysis, 'example_indices': indices, 'prompt': prompt[:8000]}
++
++
++def _pooled_diagnosis(packet):
++    # Ablation: remove only the boundary promoting history into current facts.
++    original = _current_diagnosis(packet)
++    if original[1] == 'observed':
++        return original
++    summary = packet.get('summary', {})
++    objective, risks, notes = _diagnose({'history': summary.get('history', {})})
++    if objective is None:
++        return original
++    return objective, 'observed', ['summary.history']

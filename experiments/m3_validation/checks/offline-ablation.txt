@@ -1,0 +1,826 @@
+pybullet build time: Jan 29 2025 23:17:20
+{
+  "comparisons": {
+    "actual_dev": {
+      "history_separation": {
+        "nontext_behavior_changed": true,
+        "changes": {
+          "choose_diagnosis": {
+            "full": {
+              "objective": "preference",
+              "status": "hypothesis",
+              "evidence": [
+                "summary.current.baseline.preference_error_m"
+              ],
+              "probe": "random",
+              "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+            },
+            "ablated": {
+              "objective": "rotation",
+              "status": "observed",
+              "evidence": [
+                "summary.history"
+              ],
+              "probe": "barriers",
+              "expected_observation": "Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation."
+            }
+          },
+          "probe": {
+            "full": "random",
+            "ablated": "barriers"
+          },
+          "propose_diagnosis": {
+            "full": {
+              "objective": "preference",
+              "status": "hypothesis",
+              "evidence": [
+                "summary.current.baseline.preference_error_m"
+              ],
+              "probe": "random",
+              "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+            },
+            "ablated": {
+              "objective": "rotation",
+              "status": "observed",
+              "evidence": [
+                "summary.history"
+              ],
+              "probe": "barriers",
+              "expected_observation": "Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation."
+            }
+          },
+          "delivered": {
+            "full": [
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                3,
+                1
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                3,
+                3
+              ]
+            ],
+            "ablated": [
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                4,
+                1
+              ],
+              [
+                4,
+                2
+              ],
+              [
+                4,
+                3
+              ]
+            ]
+          }
+        },
+        "prompt_changed": true,
+        "analysis_changed": true
+      },
+      "probe_delivery": {
+        "nontext_behavior_changed": false,
+        "changes": {},
+        "prompt_changed": false,
+        "analysis_changed": false
+      },
+      "constraint_margins": {
+        "nontext_behavior_changed": false,
+        "changes": {},
+        "prompt_changed": true,
+        "analysis_changed": false
+      }
+    },
+    "counterfactual_history_and_delivery": {
+      "history_separation": {
+        "nontext_behavior_changed": true,
+        "changes": {
+          "choose_diagnosis": {
+            "full": {
+              "objective": "preference",
+              "status": "hypothesis",
+              "evidence": [
+                "summary.current.baseline.preference_error_m"
+              ],
+              "probe": "random",
+              "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+            },
+            "ablated": {
+              "objective": "position",
+              "status": "observed",
+              "evidence": [
+                "summary.history"
+              ],
+              "probe": "dense",
+              "expected_observation": "Compare continuous u/v proposal spread with selected and final all-pair positional spread across four repeats; identify contraction without assuming a baseline retention ratio."
+            }
+          },
+          "probe": {
+            "full": "random",
+            "ablated": "dense"
+          },
+          "propose_diagnosis": {
+            "full": {
+              "objective": "preference",
+              "status": "hypothesis",
+              "evidence": [
+                "summary.current.baseline.preference_error_m"
+              ],
+              "probe": "random",
+              "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+            },
+            "ablated": {
+              "objective": "position",
+              "status": "observed",
+              "evidence": [
+                "summary.history"
+              ],
+              "probe": "dense",
+              "expected_observation": "Compare continuous u/v proposal spread with selected and final all-pair positional spread across four repeats; identify contraction without assuming a baseline retention ratio."
+            }
+          },
+          "delivered": {
+            "full": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                2,
+                3
+              ]
+            ],
+            "ablated": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                3,
+                1
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                3,
+                3
+              ]
+            ]
+          }
+        },
+        "prompt_changed": true,
+        "analysis_changed": true
+      },
+      "probe_delivery": {
+        "nontext_behavior_changed": true,
+        "changes": {
+          "delivered": {
+            "full": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                2,
+                3
+              ]
+            ],
+            "ablated": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ]
+            ]
+          }
+        },
+        "prompt_changed": false,
+        "analysis_changed": false
+      },
+      "constraint_margins": {
+        "nontext_behavior_changed": false,
+        "changes": {},
+        "prompt_changed": true,
+        "analysis_changed": false
+      }
+    },
+    "counterfactual_margin_boundary": {
+      "history_separation": {
+        "nontext_behavior_changed": false,
+        "changes": {},
+        "prompt_changed": false,
+        "analysis_changed": false
+      },
+      "probe_delivery": {
+        "nontext_behavior_changed": true,
+        "changes": {
+          "delivered": {
+            "full": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                2,
+                3
+              ]
+            ],
+            "ablated": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ]
+            ]
+          }
+        },
+        "prompt_changed": false,
+        "analysis_changed": false
+      },
+      "constraint_margins": {
+        "nontext_behavior_changed": true,
+        "changes": {
+          "choose_diagnosis": {
+            "full": {
+              "objective": "preference",
+              "status": "hypothesis",
+              "evidence": [
+                "summary.current.baseline.preference_error_m"
+              ],
+              "probe": "random",
+              "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+            },
+            "ablated": {
+              "objective": "rotation",
+              "status": "observed",
+              "evidence": [
+                "summary.current.baseline.diversity_rotation_deg",
+                "summary.current.candidate.diversity_rotation_deg"
+              ],
+              "probe": "barriers",
+              "expected_observation": "Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation."
+            }
+          },
+          "probe": {
+            "full": "random",
+            "ablated": "barriers"
+          },
+          "propose_diagnosis": {
+            "full": {
+              "objective": "preference",
+              "status": "hypothesis",
+              "evidence": [
+                "summary.current.baseline.preference_error_m"
+              ],
+              "probe": "random",
+              "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+            },
+            "ablated": {
+              "objective": "rotation",
+              "status": "observed",
+              "evidence": [
+                "summary.current.baseline.diversity_rotation_deg",
+                "summary.current.candidate.diversity_rotation_deg"
+              ],
+              "probe": "barriers",
+              "expected_observation": "Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation."
+            }
+          },
+          "delivered": {
+            "full": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                2,
+                3
+              ]
+            ],
+            "ablated": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                4,
+                1
+              ],
+              [
+                4,
+                2
+              ],
+              [
+                4,
+                3
+              ]
+            ]
+          }
+        },
+        "prompt_changed": true,
+        "analysis_changed": true
+      }
+    }
+  },
+  "external_constraint_packet_change": {
+    "nontext_behavior_changed": false,
+    "changes": {},
+    "prompt_changed": false,
+    "analysis_changed": false
+  },
+  "actual_dev": {
+    "full": {
+      "choose_diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      },
+      "probe": "random",
+      "propose_diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      },
+      "delivered": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "prompt": "Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.\n\nInspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.\n\nUse the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.\n\nChoose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.\n\nFrozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.\n\nCurrent diagnosis: Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.\nResearch observation: Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread.",
+      "analysis": "Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+      "choose_validation_error": null,
+      "propose_validation_error": null,
+      "example_count": 8,
+      "coding_model_calls": 0,
+      "coding_task_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/full/coding_task.json",
+      "choose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/full/choose/response.json",
+      "propose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/full/propose/response.json"
+    },
+    "history_separation": {
+      "choose_diagnosis": {
+        "objective": "rotation",
+        "status": "observed",
+        "evidence": [
+          "summary.history"
+        ],
+        "probe": "barriers",
+        "expected_observation": "Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation."
+      },
+      "probe": "barriers",
+      "propose_diagnosis": {
+        "objective": "rotation",
+        "status": "observed",
+        "evidence": [
+          "summary.history"
+        ],
+        "probe": "barriers",
+        "expected_observation": "Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation."
+      },
+      "delivered": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ]
+      ],
+      "prompt": "Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.\n\nInspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.\n\nUse the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.\n\nChoose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.\n\nFrozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.\n\nCurrent diagnosis: Current diagnosis: rotation (observed). Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation. Evidence: summary.history. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.\nResearch observation: Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation.",
+      "analysis": "Current diagnosis: rotation (observed). Compare yaw spread at initialization, proposals, projected incumbents and final outputs across four repeats; test whether projection or selection concentrates orientation. Evidence: summary.history. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+      "choose_validation_error": "ValueError: observed facts must cite current evidence, not history",
+      "propose_validation_error": "ValueError: observed facts must cite current evidence, not history",
+      "example_count": 8,
+      "coding_model_calls": 0,
+      "coding_task_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/history_separation/coding_task.json",
+      "choose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/history_separation/choose/response.json",
+      "propose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/history_separation/propose/response.json"
+    },
+    "probe_delivery": {
+      "choose_diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      },
+      "probe": "random",
+      "propose_diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      },
+      "delivered": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "prompt": "Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.\n\nInspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.\n\nUse the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.\n\nChoose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.\n\nFrozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.\n\nCurrent diagnosis: Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.\nResearch observation: Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread.",
+      "analysis": "Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+      "choose_validation_error": null,
+      "propose_validation_error": null,
+      "example_count": 8,
+      "coding_model_calls": 0,
+      "coding_task_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/probe_delivery/coding_task.json",
+      "choose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/probe_delivery/choose/response.json",
+      "propose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/probe_delivery/propose/response.json"
+    },
+    "constraint_margins": {
+      "choose_diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      },
+      "probe": "random",
+      "propose_diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      },
+      "delivered": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "prompt": "Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.\n\nInspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.\n\nUse the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.\n\nChoose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.\n\nNeither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.\n\nCurrent diagnosis: Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.\nResearch observation: Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread.",
+      "analysis": "Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+      "choose_validation_error": null,
+      "propose_validation_error": null,
+      "example_count": 8,
+      "coding_model_calls": 0,
+      "coding_task_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/constraint_margins/coding_task.json",
+      "choose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/constraint_margins/choose/response.json",
+      "propose_response_path": "/srv/lab-disks/disk2/users/xymo/rsi/m3_validation_run/live/offline_ablation/actual_dev/constraint_margins/propose/response.json"
+    }
+  },
+  "scope": "development and labelled synthetic counterfactuals only",
+  "coding_model_calls": 0,
+  "candidate_algorithm_executions": 0,
+  "frozen_policies_modified": false,
+  "formal_results_modified": false,
+  "margin_ablation": "direction-only comparisons; outer fixed acceptance constraints preserved",
+  "history_ablation": "retain original observed current diagnosis; otherwise promote historical risk into observed fact; original validation failures retained",
+  "probe_ablation": "remove probe priority; retain complete four-seed groups and eight-example cap"
+}

@@ -1,0 +1,95 @@
+diff --git a/algorithm.py b/algorithm.py
+index 3133e9a..9e0ab9a 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -1,4 +1,4 @@
+-"""Independent continuous placement with frozen yaw and one relation pass."""
++"""Independent placement with frozen yaw and bounded relation refinement."""
+ import math
+ import random
+ 
+@@ -37,6 +37,69 @@ def best_index(history):
+     return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])
+ 
+ 
++def refine_floor_relations(task, values):
++    rules = [rule for rule in task['relations']
++             if task['supports'][rule['a']] == 'floor'
++             and task['supports'][rule['b']] == 'floor'
++             and rule['a'] != rule['b']]
++    if not rules:
++        return
++    heights = {obj['id']: task['spec']['assets'][obj['asset']]['height'] / 2 + .003
++               for obj in task['spec']['required_objects']
++               if obj['id'] in task['zones']}
++    anchors = {name: point[:] for name, point in values.items()}
++
++    def residuals():
++        errors, violations = [], []
++        for rule in rules:
++            a, b = rule['a'], rule['b']
++            distance = math.sqrt((values[b][0] - values[a][0]) ** 2
++                                 + (values[b][1] - values[a][1]) ** 2
++                                 + (heights[b] - heights[a]) ** 2)
++            errors.append(abs(distance - rule['target']))
++            violations.append(max(rule['min'] - distance, 0.0,
++                                  distance - rule['max']))
++        return sum(errors), violations
++
++    # Every accepted step reduces aggregate preference error without increasing
++    # any floor-pair hard residual. Stay within 8 cm of the original proposal;
++    # keep its yaw, support offsets and random stream exactly intact.
++    score, violations = residuals()
++    for _ in range(4):
++        changed = False
++        for rule in rules:
++            a, b = rule['a'], rule['b']
++            dx = values[b][0] - values[a][0]
++            dy = values[b][1] - values[a][1]
++            planar = math.hypot(dx, dy)
++            if planar < 1e-8:
++                continue
++            dz = heights[b] - heights[a]
++            target = math.sqrt(max(0.0, rule['target'] ** 2 - dz ** 2))
++            amount = .5 * (target - planar) / planar
++            before_a, before_b = values[a][:], values[b][:]
++            for scale in (1.0, .5, .25):
++                for name, before, sign in ((a, before_a, -1), (b, before_b, 1)):
++                    x = before[0] + sign * scale * amount * dx
++                    y = before[1] + sign * scale * amount * dy
++                    ax, ay = anchors[name][:2]
++                    length = math.hypot(x - ax, y - ay)
++                    fraction = min(1.0, .08 / max(length, 1e-8))
++                    values[name] = [ax + fraction * (x - ax),
++                                    ay + fraction * (y - ay), before[2]]
++                    clamp_floor(task, values, name)
++                candidate, hard = residuals()
++                if (candidate < score - 1e-10
++                        and all(new <= old + 1e-12
++                                for new, old in zip(hard, violations))):
++                    score, violations = candidate, hard
++                    changed = True
++                    break
++                values[a], values[b] = before_a[:], before_b[:]
++        if not changed:
++            break
++
++
+ def layout(packet):
+     if packet['phase'] == 'final':
+         return {'index': best_index(packet['history'])}
+@@ -51,7 +114,7 @@ def layout(packet):
+     values = parameters(task, rng, yaws)
+     for name in task['zones']:
+         clamp_floor(task, values, name)
+-    # A single ordered half projection; later clamping is never revisited.
++    # Preserve the original random proposal and initial ordered projection.
+     for rule in task['relations']:
+         a, b = rule['a'], rule['b']
+         dx, dy = values[b][0] - values[a][0], values[b][1] - values[a][1]
+@@ -61,4 +124,5 @@ def layout(packet):
+         values[b][1] += amount * dy
+         if b in task['zones']:
+             clamp_floor(task, values, b)
++    refine_floor_relations(task, values)
+     return {'values': values, 'memory': {'rng': rng.getstate(), 'yaws': yaws}}

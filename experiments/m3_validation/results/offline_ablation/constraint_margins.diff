@@ -1,0 +1,28 @@
+--- M3.py
++++ constraint_margins.py
+@@ -334,11 +334,11 @@
+             record('reliability', 1.0, [prefix + key])
+     if compared:
+         for objective, metric, limit in (
+-            ('visibility', 'visibility_mean', 0.01),
+-            ('position', 'diversity_position_rms_m', 0.9),
+-            ('valid_position', 'valid_pair_diversity_m', 0.9),
+-            ('rotation', 'diversity_rotation_deg', 0.8),
+-            ('preference', 'preference_error_m', 0.01),
++            ('visibility', 'visibility_mean', 0.0),
++            ('position', 'diversity_position_rms_m', 1.0),
++            ('valid_position', 'valid_pair_diversity_m', 1.0),
++            ('rotation', 'diversity_rotation_deg', 1.0),
++            ('preference', 'preference_error_m', 0.0),
+         ):
+             old, new = baseline.get(metric), candidate.get(metric)
+             if not (_number(old) and _number(new)):
+@@ -488,7 +488,7 @@
+ 
+ Choose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.
+ 
+-Frozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.
++Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.
+ '''
+     prompt += '\nCurrent diagnosis: ' + analysis + '\nResearch observation: ' + expectations[objective]
+     if not indices:

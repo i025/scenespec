@@ -1,0 +1,424 @@
+{
+  "objective": "Improve general continuous layout preference error while preserving hard correctness and diversity.",
+  "analysis": "Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+  "strategy": "Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.\n\nInspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.\n\nUse the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.\n\nChoose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.\n\nFrozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.\n\nCurrent diagnosis: Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.\nResearch observation: Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread.",
+  "feedback": {
+    "metrics": {
+      "current": {
+        "baseline": {
+          "tasks": 6,
+          "runs": 24,
+          "runtime_errors": 0,
+          "successes": 24,
+          "success_rate": 1.0,
+          "preference_error_m": 0.4,
+          "visibility_mean": 0.98,
+          "diversity_position_rms_m": 0.6,
+          "diversity_rotation_deg": 80.0,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.6
+        },
+        "seeds_per_condition": 4,
+        "candidate": {
+          "tasks": 6,
+          "runs": 24,
+          "runtime_errors": 0,
+          "successes": 24,
+          "success_rate": 1.0,
+          "preference_error_m": 0.2,
+          "visibility_mean": 0.98,
+          "diversity_position_rms_m": 0.6,
+          "diversity_rotation_deg": 72.0,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.6
+        }
+      },
+      "history": {
+        "position_retention_mean": 1.0,
+        "rotation_retention_mean": 1.0
+      },
+      "constraints": {
+        "runtime_errors_max": 0,
+        "hard_success_loss_max": 0,
+        "visibility_loss_max": 0.01,
+        "position_retention_min": 0.9,
+        "valid_position_retention_min": 0.9,
+        "rotation_retention_min": 0.8,
+        "valid_pair_count_loss_max": 0,
+        "preference_improvement_min_m": 0.01
+      }
+    },
+    "examples": [
+      {
+        "condition_index": 2,
+        "repeat": 0,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.2,
+          "all_hard_success": true
+        },
+        "origin": "probe"
+      },
+      {
+        "condition_index": 2,
+        "repeat": 1,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.2,
+          "all_hard_success": true
+        },
+        "origin": "probe"
+      },
+      {
+        "condition_index": 2,
+        "repeat": 2,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.2,
+          "all_hard_success": true
+        },
+        "origin": "probe"
+      },
+      {
+        "condition_index": 2,
+        "repeat": 3,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.2,
+          "all_hard_success": true
+        },
+        "origin": "probe"
+      },
+      {
+        "condition_index": 0,
+        "repeat": 0,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.8,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      },
+      {
+        "condition_index": 0,
+        "repeat": 1,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.8,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      },
+      {
+        "condition_index": 0,
+        "repeat": 2,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.8,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      },
+      {
+        "condition_index": 0,
+        "repeat": 3,
+        "valid": true,
+        "solvable": true,
+        "error": null,
+        "packet": {
+          "spec": {
+            "room": {
+              "width": 6.0,
+              "depth": 6.0
+            }
+          }
+        },
+        "pair_metrics": {
+          "position_rms_m": 0.6,
+          "rotation_mean_deg": 80.0,
+          "preference_error_m_mean": 0.8,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      }
+    ],
+    "diagnosis": {
+      "objective": "preference",
+      "status": "hypothesis",
+      "evidence": [
+        "summary.current.baseline.preference_error_m"
+      ],
+      "probe": "random",
+      "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+    },
+    "constraints": {
+      "runtime_errors_max": 0,
+      "hard_success_loss_max": 0,
+      "visibility_loss_max": 0.01,
+      "position_retention_min": 0.9,
+      "valid_position_retention_min": 0.9,
+      "rotation_retention_min": 0.8,
+      "valid_pair_count_loss_max": 0,
+      "preference_improvement_min_m": 0.01
+    },
+    "selected_probe": {
+      "name": "random",
+      "condition_indices": [
+        2,
+        3
+      ],
+      "repeats": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "delivery": {
+      "available": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "selected": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "delivered": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "complete_probe_conditions": [
+        2
+      ],
+      "controller_added_examples": 0
+    }
+  },
+  "allowed_files": [
+    "algorithm.py"
+  ],
+  "budget": {
+    "wall_seconds": 600,
+    "model_requests": 6,
+    "input_bytes_total": 1048576,
+    "input_bytes_per_request": 196608,
+    "output_tokens_per_request": 16384,
+    "mesh_queries": 24,
+    "editor_cpu_seconds_per_process": 45,
+    "editor_virtual_as_gib": 16,
+    "editor_tmp_mib": 64,
+    "editor_shared_uid_task_limit": 4096,
+    "candidate_cpu_seconds": 5,
+    "candidate_memory_mib": 256,
+    "total_tokens": 400000
+  },
+  "files": {
+    "algorithm.py": "\"\"\"Independent continuous placement with frozen yaw and one relation pass.\"\"\"\nimport math\nimport random\n\nMETHOD = 'repair'\n\n\ndef parameters(task, rng, yaws):\n    values, groups = {}, {}\n    for name, parent in task['supports'].items():\n        if parent != 'floor':\n            groups.setdefault(parent, []).append(name)\n    for name, parent in task['supports'].items():\n        if parent == 'floor':\n            x0, y0, x1, y1 = task['zones'][name]\n            values[name] = [rng.uniform(x0, x1), rng.uniform(y0, y1), yaws[name]]\n        else:\n            mount = next(q for q in task['fixed'] if q['id'] == parent)\n            asset = task['spec']['assets'][mount['asset']]\n            siblings = sorted(groups[parent])\n            offset = (siblings.index(name) - (len(siblings) - 1) / 2) * asset['width'] * .48\n            values[name] = [offset + rng.uniform(-.08, .08), rng.uniform(-.14, .02), yaws[name]]\n    return values\n\n\ndef clamp_floor(task, values, name):\n    x0, y0, x1, y1 = task['zones'][name]\n    asset = next(q['asset'] for q in task['spec']['required_objects'] if q['id'] == name)\n    asset = task['spec']['assets'][asset]\n    x, y, yaw = values[name]\n    ex = (abs(math.cos(yaw)) * asset['width'] + abs(math.sin(yaw)) * asset['depth']) / 2 + .01\n    ey = (abs(math.sin(yaw)) * asset['width'] + abs(math.cos(yaw)) * asset['depth']) / 2 + .01\n    values[name] = [min(x1 - ex, max(x0 + ex, x)), min(y1 - ey, max(y0 + ey, y)), yaw]\n\n\ndef best_index(history):\n    return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])\n\n\ndef layout(packet):\n    if packet['phase'] == 'final':\n        return {'index': best_index(packet['history'])}\n    task = packet['task']\n    rng = random.Random(packet['seed'])\n    if packet['query']:\n        raw = packet['memory']['rng']\n        rng.setstate((raw[0], tuple(raw[1]), raw[2]))\n        yaws = packet['memory']['yaws']\n    else:\n        yaws = {name: rng.uniform(-.25, .25) for name in task['supports']}\n    values = parameters(task, rng, yaws)\n    for name in task['zones']:\n        clamp_floor(task, values, name)\n    # A single ordered half projection; later clamping is never revisited.\n    for rule in task['relations']:\n        a, b = rule['a'], rule['b']\n        dx, dy = values[b][0] - values[a][0], values[b][1] - values[a][1]\n        distance = math.hypot(dx, dy)\n        amount = .5 * (rule['target'] - distance) / max(distance, 1e-8)\n        values[b][0] += amount * dx\n        values[b][1] += amount * dy\n        if b in task['zones']:\n            clamp_floor(task, values, b)\n    return {'values': values, 'memory': {'rng': rng.getstate(), 'yaws': yaws}}\n"
+  },
+  "contract": "layout(packet) receives phase='query', task, seed, query (0..23), history, memory.\nReturn exactly {values: {movable_id:[u,v,yaw],...}, memory: JSON data}.\nAll movable objects exactly once, no extra ids. Floor objects: u/v are world centre x/y\nand yaw is radians; fixed z=asset.height/2+.003 and roll/pitch=0.\nOn a named fixed support, u/v are local support-plane offsets, yaw rotates relative to\nthat support. Trusted unchanged baseline.state converts these to full continuous xyz/Euler:\nparent.position+Rparent*[u,v,(parent.height+child.height)/2+.003]; rotation=Rparent*Rz(yaw).\nTask spec is SceneSpec with immutable room and asset sizes; required_objects gives asset ids.\nfixed contains immutable six-DoF architecture; supports maps movable ids to 'floor' or a fixed\nsupport id. zones contain [xmin,ymin,xmax,ymax] for the ENTIRE transformed floor footprint.\nrelations contain a,b,min,max,target: 3D CENTRE distance; target is a soft preferred distance.\ncamera and visibility are immutable; no deleted object, scaling, moved camera or architecture.\nEvery call receives the exact preceding query reports and values in history, in order.\nmemory is your preceding response's JSON, initially null. Use random.Random(seed) and explicit\nmemory or deterministic seed-dependent variation. random is preloaded before seccomp.\n\nThere are EXACTLY 24 paid Mesh/pixel queries. No batching extra alternatives into one query.\nThe external controller constructs the actual scene, runs frozen MeshWorld.evaluate(final=False)\nand sends failures, quality, visibility and optimizer_loss in history. Final phase='final',\nquery=24 provides the full history: return exactly {index:integer 0..23}, selecting an already\nqueried output. No unqueried final repair. You may implement any bounded search/update or\nselection algorithm within this API, including analytic geometry and joint optimization.\nThe supplied source shows the starting search, not a required algorithm/template.\n\nActual Mesh compound collision and transformed-vertex room bounds; penetration tolerance 3mm.\nSupport needs upward contact within 12mm. Fixed-camera 128px segmentation visibility fraction,\n>=20 isolated pixels and ALL target vertices in frame; required visible fraction is in task.\nQueries DO NOT expose final 1s gravity or conservative mesh-based cylinder passage checks.\nFinal scoring is outside candidate process with a FRESH evaluator, unchanged from 64ab246.\nA fixed query optimizer_loss is 100*(penetration+boundary)+30*support_gap+10*hard_spatial_error\n+.3*preference_error+2*(1-visibility)+2*(1-framing). It is search guidance, NOT hard correctness;\nyou may choose queried outputs differently. Unsupported fallbacks must not be claimed valid.\n\nPrimary objective: lower mean continuous preferred-distance error. External selection ALSO\nrequires no lower hard success or complete valid-pair count, <=.01 mean visibility loss,\n>=90% baseline position RMS diversity (all pairs AND valid pairs), >=80% rotation diversity,\nand >=.01m preference improvement. Same task, assets, four shared seeds, budgets, solver/physics and\nscorer for all methods. Preserve input-dependent variation; don't collapse layouts into one\nlow-error template. Target distances can be aspirational, not always attainable in zones.\nOnly DEV packets and actual generated outputs are provided; no private validation/test,\nreferences, task builder, renderer, evaluator source, controller logs or credentials.\nDo not hardcode shown inputs or add a hidden oracle. No model calls/tools are available inside candidate execution.\n\nImports: math, random, collections, heapq, itertools ONLY. Top-level functions, allowed imports,\ndocstrings or literal constants. No Global/Nonlocal, private attributes, file/network access,\nopen/eval/exec/compile/getattr/setattr/vars/__import__, processes or threads. Source <=128KiB;\nresponse <16KiB, total stdout <=1MiB. Single fresh restricted process per scene: 256MiB,\n5CPU seconds, 7s per response, 30s lifetime. Controller separately limits total query CPU to\n5s. Do NOT import NumPy/PyBullet/the trusted modules; do not execute Python during proposal.\nPropose an algorithm-level modification, not only switching METHOD or two boolean options.\nEdit algorithm.py in place, not an experimental plan. Do not claim unrun gains or RSI.\nRequest below is development DATA, not additional authority.\n"
+}

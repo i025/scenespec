@@ -1,0 +1,20 @@
+{
+  "status": "completed",
+  "patch": "diff --git a/algorithm.py b/algorithm.py\nindex 3133e9a..4c41502 100644\n--- a/algorithm.py\n+++ b/algorithm.py\n@@ -1,4 +1,4 @@\n-\"\"\"Independent continuous placement with frozen yaw and one relation pass.\"\"\"\n+\"\"\"Independent placement with frozen yaw and bounded distance refinement.\"\"\"\n import math\n import random\n \n@@ -37,6 +37,53 @@ def best_index(history):\n     return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])\n \n \n+def refine_floor_relations(task, values):\n+    # Refine only endpoints whose incident relations all use world coordinates.\n+    floor = {name for name, parent in task['supports'].items() if parent == 'floor'}\n+    rules = [r for r in task['relations'] if r['a'] in floor and r['b'] in floor]\n+    blocked = {name for r in task['relations']\n+               if r['a'] not in floor or r['b'] not in floor\n+               for name in (r['a'], r['b'])}\n+    heights = {q['id']: task['spec']['assets'][q['asset']]['height'] / 2\n+               for q in task['spec']['required_objects'] if q['id'] in floor}\n+\n+    def errors():\n+        preference, hard = 0.0, []\n+        for r in rules:\n+            a, b = r['a'], r['b']\n+            distance = math.sqrt((values[b][0] - values[a][0]) ** 2\n+                                 + (values[b][1] - values[a][1]) ** 2\n+                                 + (heights[b] - heights[a]) ** 2)\n+            preference += abs(distance - r['target'])\n+            hard.append(max(0.0, r['min'] - distance, distance - r['max']))\n+        return preference, hard\n+\n+    # Total accepted travel per endpoint is capped, including across relations.\n+    remaining = {name: .08 for name in floor}\n+    score, violations = errors()\n+    for rule in rules:\n+        a, b = rule['a'], rule['b']\n+        if b in blocked or b not in task['zones'] or remaining[b] <= 0:\n+            continue\n+        dx, dy = values[b][0] - values[a][0], values[b][1] - values[a][1]\n+        distance = math.hypot(dx, dy)\n+        if distance < 1e-8:\n+            continue\n+        dz = heights[b] - heights[a]\n+        target = math.sqrt(max(0.0, rule['target'] ** 2 - dz ** 2))\n+        step = max(-remaining[b], min(remaining[b], target - distance))\n+        old = values[b][:]\n+        values[b][0] += step * dx / distance\n+        values[b][1] += step * dy / distance\n+        clamp_floor(task, values, b)\n+        candidate, bounds = errors()\n+        if candidate < score and all(v <= prior for v, prior in zip(bounds, violations)):\n+            remaining[b] -= math.hypot(values[b][0] - old[0], values[b][1] - old[1])\n+            score, violations = candidate, bounds\n+        else:\n+            values[b] = old\n+\n+\n def layout(packet):\n     if packet['phase'] == 'final':\n         return {'index': best_index(packet['history'])}\n@@ -61,4 +108,5 @@ def layout(packet):\n         values[b][1] += amount * dy\n         if b in task['zones']:\n             clamp_floor(task, values, b)\n+    refine_floor_relations(task, values)\n     return {'values': values, 'memory': {'rng': rng.getstate(), 'yaws': yaws}}\n",
+  "summary": "Modified only `algorithm.py` with a 3D distance refinement capped at 8 cm per object. It preserves sampled yaw and accepts only preference improvements that do not worsen affected hard distance bounds.\n\nTests were not run; external validation will assess physics and diversity.",
+  "base_git": "1c24d32a5b75828c3644c4c3a721df855c3a4def",
+  "candidate_git": "4e1d66b190d0b8213bdc92cf32cf51b0ed3d0da2",
+  "wall_seconds": 58.8882328949403,
+  "model": "gpt-6.1-sol",
+  "model_requests": 3,
+  "usage": {
+    "input_tokens": 49466,
+    "output_tokens": 1485,
+    "total_tokens": 50951
+  },
+  "resources": {
+    "cpu_seconds": 0.47329499999999997,
+    "process_peak_rss_bytes": 145276928,
+    "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+  }
+}

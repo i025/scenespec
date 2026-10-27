@@ -1,0 +1,143 @@
+{
+  "formal_coding_slots": 8,
+  "K": 1,
+  "model_samples_per_policy_per_initial": 2,
+  "infrastructure_failure_count": 3,
+  "policies": {
+    "M2": {
+      "trajectories": 4,
+      "completed_candidate_count": 3,
+      "evaluated_candidate_count": 3,
+      "candidate_completion_rate": 0.75,
+      "candidate_evaluation_rate": 0.75,
+      "infrastructure_failure_count": 1,
+      "selection_acceptance_rate": 0.0,
+      "raw_test_multiobjective_rate": 0.0,
+      "selected_complete_effective_improvement_count": 0,
+      "selected_complete_effective_improvement_rate": 0.0,
+      "MetaImp@1_preference_m": {
+        "count": 4,
+        "mean": 0.0,
+        "sample_stdev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "compliant_preference_improvement_m": {
+        "count": 4,
+        "mean": 0.0,
+        "sample_stdev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens_per_effective_improvement": null,
+      "tokens_per_effective_improvement_known_lower_bound": null,
+      "conditional_on_backend_completion": {
+        "trajectories": 3,
+        "selection_acceptance_rate": 0.0,
+        "selected_complete_effective_improvement_rate": 0.0
+      },
+      "conditional_on_candidate_evaluation": {
+        "trajectories": 3,
+        "selection_acceptance_rate": 0.0,
+        "raw_test_multiobjective_rate": 0.0,
+        "selected_complete_effective_improvement_rate": 0.0
+      },
+      "coding_wall_seconds_per_effective_improvement": null,
+      "coding_and_evaluation_wall_seconds_per_effective_improvement": null
+    },
+    "M3": {
+      "trajectories": 4,
+      "completed_candidate_count": 2,
+      "evaluated_candidate_count": 2,
+      "candidate_completion_rate": 0.5,
+      "candidate_evaluation_rate": 0.5,
+      "infrastructure_failure_count": 2,
+      "selection_acceptance_rate": 0.0,
+      "raw_test_multiobjective_rate": 0.5,
+      "selected_complete_effective_improvement_count": 0,
+      "selected_complete_effective_improvement_rate": 0.0,
+      "MetaImp@1_preference_m": {
+        "count": 4,
+        "mean": 0.0,
+        "sample_stdev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "compliant_preference_improvement_m": {
+        "count": 4,
+        "mean": 0.0,
+        "sample_stdev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens_per_effective_improvement": null,
+      "tokens_per_effective_improvement_known_lower_bound": null,
+      "conditional_on_backend_completion": {
+        "trajectories": 2,
+        "selection_acceptance_rate": 0.0,
+        "selected_complete_effective_improvement_rate": 0.0
+      },
+      "conditional_on_candidate_evaluation": {
+        "trajectories": 2,
+        "selection_acceptance_rate": 0.0,
+        "raw_test_multiobjective_rate": 1.0,
+        "selected_complete_effective_improvement_rate": 0.0
+      },
+      "coding_wall_seconds_per_effective_improvement": null,
+      "coding_and_evaluation_wall_seconds_per_effective_improvement": null
+    }
+  },
+  "paired_trajectories": [
+    {
+      "initial": "sequential_projection",
+      "repeat": 0,
+      "both_backends_completed": true,
+      "both_candidates_evaluated": true,
+      "M3_minus_M2_selected_preference_improvement_m": 0.0,
+      "M3_minus_M2_compliant_preference_improvement_m": 0.0,
+      "M2_effective": false,
+      "M3_effective": false
+    },
+    {
+      "initial": "sequential_projection",
+      "repeat": 1,
+      "both_backends_completed": true,
+      "both_candidates_evaluated": true,
+      "M3_minus_M2_selected_preference_improvement_m": 0.0,
+      "M3_minus_M2_compliant_preference_improvement_m": 0.0,
+      "M2_effective": false,
+      "M3_effective": false
+    },
+    {
+      "initial": "shared_shift",
+      "repeat": 0,
+      "both_backends_completed": false,
+      "both_candidates_evaluated": false,
+      "M3_minus_M2_selected_preference_improvement_m": 0.0,
+      "M3_minus_M2_compliant_preference_improvement_m": 0.0,
+      "M2_effective": false,
+      "M3_effective": false
+    },
+    {
+      "initial": "shared_shift",
+      "repeat": 1,
+      "both_backends_completed": false,
+      "both_candidates_evaluated": false,
+      "M3_minus_M2_selected_preference_improvement_m": 0.0,
+      "M3_minus_M2_compliant_preference_improvement_m": 0.0,
+      "M2_effective": false,
+      "M3_effective": false
+    }
+  ],
+  "metric_definitions": {
+    "MetaImp@1_preference_m": "Original selected-version preference improvement; may include heldout constraint regressions.",
+    "compliant_preference_improvement_m": "Descriptive report metric: selected improvement if the unchanged heldout guard passes, otherwise zero. Not a changed scorer or selection rule.",
+    "complete_effective_improvement": "Selected by validation and independently passes the unchanged heldout multiobjective guard.",
+    "cost_per_effective_improvement": "All formal coding cost of a policy divided by its complete effective improvements; null if zero.",
+    "known_usage_lower_bound": "Sum of request-level reported usage only; unreported requests including HTTP 429 have unknown usage, not assumed zero.",
+    "conditional_rates": "Completion/evaluation subsets describe algorithm outcomes separately from all-attempt operational rates; infrastructure failures are not algorithm-quality observations.",
+    "coding_and_evaluation_wall_seconds_per_effective_improvement": "Sum of per-trajectory coding and dev/selection/test evaluation wall times divided by complete effective improvements; trajectories can overlap. Excludes shared baselines, M3 creation and preparation; not total elapsed time."
+  },
+  "sample_limit": "Two initial generators and two model samples per policy/initial; no statistical significance claim.",
+  "M4_generated": false
+}

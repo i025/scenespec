@@ -1,0 +1,85 @@
+diff --git a/algorithm.py b/algorithm.py
+index 3133e9a..c36035d 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -1,4 +1,4 @@
+-"""Independent continuous placement with frozen yaw and one relation pass."""
++"""Independent placement with frozen yaw and bounded relation refinement."""
+ import math
+ import random
+ 
+@@ -37,6 +37,59 @@ def best_index(history):
+     return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])
+ 
+ 
++def refine_floor_relations(task, values):
++    assets = {q['id']: task['spec']['assets'][q['asset']]
++              for q in task['spec']['required_objects']}
++    rules = [rule for rule in task['relations']
++             if task['supports'][rule['a']] == 'floor'
++             and task['supports'][rule['b']] == 'floor']
++    anchors = {name: values[name][:2] for name in task['zones']}
++
++    def error():
++        total = 0.0
++        for rule in rules:
++            a, b = rule['a'], rule['b']
++            dz = (assets[b]['height'] - assets[a]['height']) / 2
++            distance = math.sqrt((values[b][0] - values[a][0]) ** 2
++                                 + (values[b][1] - values[a][1]) ** 2 + dz * dz)
++            total += abs(distance - rule['target'])
++        return total
++
++    # Refine the original proposal, preserving yaw and a 15cm translation radius.
++    score = error()
++    for _ in range(4):
++        improved = False
++        for rule in rules:
++            a, b = rule['a'], rule['b']
++            if b not in anchors:
++                continue
++            dx = values[b][0] - values[a][0]
++            dy = values[b][1] - values[a][1]
++            distance = math.hypot(dx, dy)
++            if distance < 1e-8:
++                continue
++            dz = (assets[b]['height'] - assets[a]['height']) / 2
++            target = math.sqrt(max(0.0, rule['target'] ** 2 - dz * dz))
++            amount = (target - distance) / distance
++            previous = values[b][:]
++            for fraction in (1.0, .5, .25):
++                x = previous[0] + fraction * amount * dx
++                y = previous[1] + fraction * amount * dy
++                ax, ay = anchors[b]
++                offset = math.hypot(x - ax, y - ay)
++                scale = min(1.0, .15 / max(offset, 1e-8))
++                values[b] = [ax + scale * (x - ax), ay + scale * (y - ay), previous[2]]
++                clamp_floor(task, values, b)
++                candidate_score = error()
++                if candidate_score < score - 1e-10:
++                    score = candidate_score
++                    improved = True
++                    break
++                values[b] = previous[:]
++        if not improved:
++            break
++
++
+ def layout(packet):
+     if packet['phase'] == 'final':
+         return {'index': best_index(packet['history'])}
+@@ -51,7 +104,7 @@ def layout(packet):
+     values = parameters(task, rng, yaws)
+     for name in task['zones']:
+         clamp_floor(task, values, name)
+-    # A single ordered half projection; later clamping is never revisited.
++    # Keep the original randomized proposal as the refinement anchor.
+     for rule in task['relations']:
+         a, b = rule['a'], rule['b']
+         dx, dy = values[b][0] - values[a][0], values[b][1] - values[a][1]
+@@ -61,4 +114,5 @@ def layout(packet):
+         values[b][1] += amount * dy
+         if b in task['zones']:
+             clamp_floor(task, values, b)
++    refine_floor_relations(task, values)
+     return {'values': values, 'memory': {'rng': rng.getstate(), 'yaws': yaws}}

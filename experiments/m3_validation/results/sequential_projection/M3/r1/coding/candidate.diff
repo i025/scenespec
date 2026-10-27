@@ -1,0 +1,70 @@
+diff --git a/algorithm.py b/algorithm.py
+index 3133e9a..4c41502 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -1,4 +1,4 @@
+-"""Independent continuous placement with frozen yaw and one relation pass."""
++"""Independent placement with frozen yaw and bounded distance refinement."""
+ import math
+ import random
+ 
+@@ -37,6 +37,53 @@ def best_index(history):
+     return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])
+ 
+ 
++def refine_floor_relations(task, values):
++    # Refine only endpoints whose incident relations all use world coordinates.
++    floor = {name for name, parent in task['supports'].items() if parent == 'floor'}
++    rules = [r for r in task['relations'] if r['a'] in floor and r['b'] in floor]
++    blocked = {name for r in task['relations']
++               if r['a'] not in floor or r['b'] not in floor
++               for name in (r['a'], r['b'])}
++    heights = {q['id']: task['spec']['assets'][q['asset']]['height'] / 2
++               for q in task['spec']['required_objects'] if q['id'] in floor}
++
++    def errors():
++        preference, hard = 0.0, []
++        for r in rules:
++            a, b = r['a'], r['b']
++            distance = math.sqrt((values[b][0] - values[a][0]) ** 2
++                                 + (values[b][1] - values[a][1]) ** 2
++                                 + (heights[b] - heights[a]) ** 2)
++            preference += abs(distance - r['target'])
++            hard.append(max(0.0, r['min'] - distance, distance - r['max']))
++        return preference, hard
++
++    # Total accepted travel per endpoint is capped, including across relations.
++    remaining = {name: .08 for name in floor}
++    score, violations = errors()
++    for rule in rules:
++        a, b = rule['a'], rule['b']
++        if b in blocked or b not in task['zones'] or remaining[b] <= 0:
++            continue
++        dx, dy = values[b][0] - values[a][0], values[b][1] - values[a][1]
++        distance = math.hypot(dx, dy)
++        if distance < 1e-8:
++            continue
++        dz = heights[b] - heights[a]
++        target = math.sqrt(max(0.0, rule['target'] ** 2 - dz ** 2))
++        step = max(-remaining[b], min(remaining[b], target - distance))
++        old = values[b][:]
++        values[b][0] += step * dx / distance
++        values[b][1] += step * dy / distance
++        clamp_floor(task, values, b)
++        candidate, bounds = errors()
++        if candidate < score and all(v <= prior for v, prior in zip(bounds, violations)):
++            remaining[b] -= math.hypot(values[b][0] - old[0], values[b][1] - old[1])
++            score, violations = candidate, bounds
++        else:
++            values[b] = old
++
++
+ def layout(packet):
+     if packet['phase'] == 'final':
+         return {'index': best_index(packet['history'])}
+@@ -61,4 +108,5 @@ def layout(packet):
+         values[b][1] += amount * dy
+         if b in task['zones']:
+             clamp_floor(task, values, b)
++    refine_floor_relations(task, values)
+     return {'values': values, 'memory': {'rng': rng.getstate(), 'yaws': yaws}}

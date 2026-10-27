@@ -27,12 +27,23 @@ def spread(values):
 def cost(folder, record, scope):
     result = read(folder / 'backend_result.json') if (folder / 'backend_result.json').exists() else {}
     requests = read(folder / 'model_calls.json')['requests'] if (folder / 'model_calls.json').exists() else []
+    unknown = sum(r.get('usage') is None for r in requests)
+    lower_bound = {k: sum((r.get('usage') or {}).get(k, 0) for r in requests)
+                   for k in ('input_tokens', 'output_tokens', 'total_tokens')}
+    http_429 = sum(r.get('http_status') == 429 for r in requests)
+    infrastructure_failure = result.get('status') != 'completed' and bool(http_429)
     return {**{k: record.get(k) for k in ('initial', 'policy', 'repeat')}, 'scope': scope,
             'candidate_status': record.get('status'), 'backend_status': result.get('status'),
             'model': result.get('model'), 'service_requests': len(requests), 'usage': result.get('usage'),
-            'missing_usage_requests': sum(r.get('usage') is None for r in requests),
+            'missing_usage_requests': unknown, 'unknown_usage_requests': unknown,
+            'known_usage_lower_bound': lower_bound, 'http_429_requests': http_429,
+            'infrastructure_failure': infrastructure_failure,
+            'failure_classification': ('infrastructure_http_429' if infrastructure_failure else
+                                       'coding_backend_failure_other' if result.get('status') not in (None, 'completed') else None),
             'coding_wall_seconds': result.get('wall_seconds'),
-            'evaluation_wall_seconds_sum': sum(record.get('evaluation_wall_seconds', {}).values()),
+            'evaluation_wall_seconds_sum': (None if record.get('status') == 'evaluated' and
+                                             'evaluation_wall_seconds' not in record else
+                                             sum(record.get('evaluation_wall_seconds', {}).values())),
             'resources': result.get('resources')}
 
 
@@ -45,8 +56,14 @@ def cost_group(rows):
             'completed': sum(r['backend_status'] == 'completed' for r in rows),
             'service_requests': sum(r['service_requests'] for r in rows), 'usage': usage,
             'missing_usage_requests': sum(r['missing_usage_requests'] for r in rows),
+            'unknown_usage_requests': sum(r['unknown_usage_requests'] for r in rows),
+            'known_usage_lower_bound': {k: sum(r['known_usage_lower_bound'][k] for r in rows)
+                                        for k in ('input_tokens', 'output_tokens', 'total_tokens')},
+            'http_429_requests': sum(r['http_429_requests'] for r in rows),
+            'infrastructure_failure_count': sum(r['infrastructure_failure'] for r in rows),
             'coding_wall_seconds_sum': sum(r['coding_wall_seconds'] or 0 for r in rows),
-            'evaluation_wall_seconds_sum': sum(r['evaluation_wall_seconds_sum'] for r in rows)}
+            'evaluation_wall_seconds_sum': (None if any(r['evaluation_wall_seconds_sum'] is None for r in rows) else
+                                            sum(r['evaluation_wall_seconds_sum'] for r in rows))}
 
 
 def changes(before, after):
@@ -107,7 +124,7 @@ def main():
         hidden_seeds.extend(s for split in ('selection', 'test') for c in cases[split]
                             for s in (c['seed'], *c['algorithm_seeds']))
         save(dest / 'dev_cases.json', [{'task': c['task'], 'algorithm_seeds': c['algorithm_seeds']} for c in cases['dev']])
-        for name in ('preflight.json', 'reference_acceptance.json'):
+        for name in ('preflight.json', 'reference_acceptance.json', 'evidence_budget.json'):
             if (source / name).exists():
                 shutil.copyfile(source / name, dest / name)
         baseline = dest / 'baseline'; baseline.mkdir()
@@ -140,9 +157,13 @@ def main():
         rows = [r for r in trajectories if r['policy'] == policy]
         effective = sum(r['complete_effective_improvement'] for r in rows)
         total_usage = groups[policy]['usage']
+        completed = [r for r in rows if r['coding_cost']['backend_status'] == 'completed']
+        evaluated = [r for r in rows if r['status'] == 'evaluated']
         policies[policy] = {'trajectories': len(rows),
-            'candidate_completion_rate': sum(r['coding_cost']['backend_status'] == 'completed' for r in rows) / len(rows),
-            'candidate_evaluation_rate': sum(r['status'] == 'evaluated' for r in rows) / len(rows),
+            'completed_candidate_count': len(completed), 'evaluated_candidate_count': len(evaluated),
+            'candidate_completion_rate': len(completed) / len(rows),
+            'candidate_evaluation_rate': len(evaluated) / len(rows),
+            'infrastructure_failure_count': groups[policy]['infrastructure_failure_count'],
             'selection_acceptance_rate': sum(r['selected'] for r in rows) / len(rows),
             'raw_test_multiobjective_rate': sum(r['test']['heldout_multiobjective_guard'] for r in rows) / len(rows),
             'selected_complete_effective_improvement_count': effective,
@@ -150,23 +171,37 @@ def main():
             'MetaImp@1_preference_m': spread([r['test']['selected_preference_improvement_m'] for r in rows]),
             'compliant_preference_improvement_m': spread([r['compliant_preference_improvement_m'] for r in rows]),
             'tokens_per_effective_improvement': total_usage['total_tokens'] / effective if effective and total_usage else None,
+            'tokens_per_effective_improvement_known_lower_bound': groups[policy]['known_usage_lower_bound']['total_tokens'] / effective if effective else None,
+            'conditional_on_backend_completion': {'trajectories': len(completed),
+                'selection_acceptance_rate': sum(r['selected'] for r in completed) / len(completed) if completed else None,
+                'selected_complete_effective_improvement_rate': sum(r['complete_effective_improvement'] for r in completed) / len(completed) if completed else None},
+            'conditional_on_candidate_evaluation': {'trajectories': len(evaluated),
+                'selection_acceptance_rate': sum(r['selected'] for r in evaluated) / len(evaluated) if evaluated else None,
+                'raw_test_multiobjective_rate': sum(r['test']['heldout_multiobjective_guard'] for r in evaluated) / len(evaluated) if evaluated else None,
+                'selected_complete_effective_improvement_rate': sum(r['complete_effective_improvement'] for r in evaluated) / len(evaluated) if evaluated else None},
             'coding_wall_seconds_per_effective_improvement': groups[policy]['coding_wall_seconds_sum'] / effective if effective else None,
             'coding_and_evaluation_wall_seconds_per_effective_improvement': (
-                groups[policy]['coding_wall_seconds_sum'] + groups[policy]['evaluation_wall_seconds_sum']) / effective if effective else None}
+                groups[policy]['coding_wall_seconds_sum'] + groups[policy]['evaluation_wall_seconds_sum']) / effective
+                if effective and groups[policy]['evaluation_wall_seconds_sum'] is not None else None}
     paired = []
     for initial in initials:
         for repeat in (0, 1):
             pair = {r['policy']: r for r in trajectories if r['initial'] == initial and r['repeat'] == repeat}
             paired.append({'initial': initial, 'repeat': repeat,
+                'both_backends_completed': all(r['coding_cost']['backend_status'] == 'completed' for r in pair.values()),
+                'both_candidates_evaluated': all(r['status'] == 'evaluated' for r in pair.values()),
                 'M3_minus_M2_selected_preference_improvement_m': pair['M3']['test']['selected_preference_improvement_m'] - pair['M2']['test']['selected_preference_improvement_m'],
                 'M3_minus_M2_compliant_preference_improvement_m': pair['M3']['compliant_preference_improvement_m'] - pair['M2']['compliant_preference_improvement_m'],
                 'M2_effective': pair['M2']['complete_effective_improvement'], 'M3_effective': pair['M3']['complete_effective_improvement']})
     save(out / 'summary.json', {'formal_coding_slots': 8, 'K': 1, 'model_samples_per_policy_per_initial': 2,
+        'infrastructure_failure_count': sum(r['infrastructure_failure'] for r in costs),
         'policies': policies, 'paired_trajectories': paired,
         'metric_definitions': {'MetaImp@1_preference_m': 'Original selected-version preference improvement; may include heldout constraint regressions.',
             'compliant_preference_improvement_m': 'Descriptive report metric: selected improvement if the unchanged heldout guard passes, otherwise zero. Not a changed scorer or selection rule.',
             'complete_effective_improvement': 'Selected by validation and independently passes the unchanged heldout multiobjective guard.',
             'cost_per_effective_improvement': 'All formal coding cost of a policy divided by its complete effective improvements; null if zero.',
+            'known_usage_lower_bound': 'Sum of request-level reported usage only; unreported requests including HTTP 429 have unknown usage, not assumed zero.',
+            'conditional_rates': 'Completion/evaluation subsets describe algorithm outcomes separately from all-attempt operational rates; infrastructure failures are not algorithm-quality observations.',
             'coding_and_evaluation_wall_seconds_per_effective_improvement': 'Sum of per-trajectory coding and dev/selection/test evaluation wall times divided by complete effective improvements; trajectories can overlap. Excludes shared baselines, M3 creation and preparation; not total elapsed time.'},
         'sample_limit': 'Two initial generators and two model samples per policy/initial; no statistical significance claim.',
         'M4_generated': False})

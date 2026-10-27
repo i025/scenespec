@@ -1,0 +1,416 @@
+{
+  "phase": "propose",
+  "summary": {
+    "current": {
+      "baseline": {
+        "tasks": 6,
+        "runs": 24,
+        "runtime_errors": 0,
+        "successes": 24,
+        "success_rate": 1.0,
+        "preference_error_m": 0.4,
+        "visibility_mean": 0.98,
+        "diversity_position_rms_m": 0.6,
+        "diversity_rotation_deg": 80.0,
+        "valid_pair_count": 36,
+        "valid_pair_diversity_m": 0.6
+      },
+      "seeds_per_condition": 4,
+      "candidate": {
+        "tasks": 6,
+        "runs": 24,
+        "runtime_errors": 0,
+        "successes": 24,
+        "success_rate": 1.0,
+        "preference_error_m": 0.2,
+        "visibility_mean": 0.98,
+        "diversity_position_rms_m": 0.6,
+        "diversity_rotation_deg": 72.0,
+        "valid_pair_count": 36,
+        "valid_pair_diversity_m": 0.6
+      }
+    },
+    "history": {
+      "position_retention_mean": 1.0,
+      "rotation_retention_mean": 1.0
+    },
+    "constraints": {
+      "runtime_errors_max": 0,
+      "hard_success_loss_max": 0,
+      "visibility_loss_max": 0.01,
+      "position_retention_min": 0.9,
+      "valid_position_retention_min": 0.9,
+      "rotation_retention_min": 0.8,
+      "valid_pair_count_loss_max": 0,
+      "preference_improvement_min_m": 0.01
+    }
+  },
+  "source": "\"\"\"Independent continuous placement with frozen yaw and one relation pass.\"\"\"\nimport math\nimport random\n\nMETHOD = 'repair'\n\n\ndef parameters(task, rng, yaws):\n    values, groups = {}, {}\n    for name, parent in task['supports'].items():\n        if parent != 'floor':\n            groups.setdefault(parent, []).append(name)\n    for name, parent in task['supports'].items():\n        if parent == 'floor':\n            x0, y0, x1, y1 = task['zones'][name]\n            values[name] = [rng.uniform(x0, x1), rng.uniform(y0, y1), yaws[name]]\n        else:\n            mount = next(q for q in task['fixed'] if q['id'] == parent)\n            asset = task['spec']['assets'][mount['asset']]\n            siblings = sorted(groups[parent])\n            offset = (siblings.index(name) - (len(siblings) - 1) / 2) * asset['width'] * .48\n            values[name] = [offset + rng.uniform(-.08, .08), rng.uniform(-.14, .02), yaws[name]]\n    return values\n\n\ndef clamp_floor(task, values, name):\n    x0, y0, x1, y1 = task['zones'][name]\n    asset = next(q['asset'] for q in task['spec']['required_objects'] if q['id'] == name)\n    asset = task['spec']['assets'][asset]\n    x, y, yaw = values[name]\n    ex = (abs(math.cos(yaw)) * asset['width'] + abs(math.sin(yaw)) * asset['depth']) / 2 + .01\n    ey = (abs(math.sin(yaw)) * asset['width'] + abs(math.cos(yaw)) * asset['depth']) / 2 + .01\n    values[name] = [min(x1 - ex, max(x0 + ex, x)), min(y1 - ey, max(y0 + ey, y)), yaw]\n\n\ndef best_index(history):\n    return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])\n\n\ndef layout(packet):\n    if packet['phase'] == 'final':\n        return {'index': best_index(packet['history'])}\n    task = packet['task']\n    rng = random.Random(packet['seed'])\n    if packet['query']:\n        raw = packet['memory']['rng']\n        rng.setstate((raw[0], tuple(raw[1]), raw[2]))\n        yaws = packet['memory']['yaws']\n    else:\n        yaws = {name: rng.uniform(-.25, .25) for name in task['supports']}\n    values = parameters(task, rng, yaws)\n    for name in task['zones']:\n        clamp_floor(task, values, name)\n    # A single ordered half projection; later clamping is never revisited.\n    for rule in task['relations']:\n        a, b = rule['a'], rule['b']\n        dx, dy = values[b][0] - values[a][0], values[b][1] - values[a][1]\n        distance = math.hypot(dx, dy)\n        amount = .5 * (rule['target'] - distance) / max(distance, 1e-8)\n        values[b][0] += amount * dx\n        values[b][1] += amount * dy\n        if b in task['zones']:\n            clamp_floor(task, values, b)\n    return {'values': values, 'memory': {'rng': rng.getstate(), 'yaws': yaws}}\n",
+  "examples": [
+    {
+      "condition_index": 0,
+      "repeat": 0,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 0,
+      "repeat": 1,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 0,
+      "repeat": 2,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 0,
+      "repeat": 3,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 1,
+      "repeat": 0,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 1,
+      "repeat": 1,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 1,
+      "repeat": 2,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 1,
+      "repeat": 3,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.8,
+        "all_hard_success": true
+      },
+      "origin": "common"
+    },
+    {
+      "condition_index": 4,
+      "repeat": 0,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    },
+    {
+      "condition_index": 4,
+      "repeat": 1,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    },
+    {
+      "condition_index": 4,
+      "repeat": 2,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    },
+    {
+      "condition_index": 4,
+      "repeat": 3,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    },
+    {
+      "condition_index": 5,
+      "repeat": 0,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    },
+    {
+      "condition_index": 5,
+      "repeat": 1,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    },
+    {
+      "condition_index": 5,
+      "repeat": 2,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    },
+    {
+      "condition_index": 5,
+      "repeat": 3,
+      "valid": true,
+      "solvable": true,
+      "error": null,
+      "packet": {
+        "spec": {
+          "room": {
+            "width": 6.0,
+            "depth": 6.0
+          }
+        }
+      },
+      "pair_metrics": {
+        "position_rms_m": 0.6,
+        "rotation_mean_deg": 80.0,
+        "preference_error_m_mean": 0.2,
+        "all_hard_success": true
+      },
+      "origin": "probe"
+    }
+  ],
+  "selected_probe": {
+    "name": "barriers",
+    "condition_indices": [
+      4,
+      5
+    ],
+    "repeats": [
+      0,
+      1,
+      2,
+      3
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "status": "completed",
+  "patch": "diff --git a/algorithm.py b/algorithm.py\nindex 57df702..3adca67 100644\n--- a/algorithm.py\n+++ b/algorithm.py\n@@ -39,6 +39,36 @@ def best_index(history):\n     return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])\n \n \n+def refine_floor_relations(task, values):\n+    # Opposing displacements can improve distances that a shared shift cannot.\n+    assets = {q['id']: task['spec']['assets'][q['asset']]\n+              for q in task['spec']['required_objects']}\n+    shifts = {name: [0., 0.] for name in values\n+              if task['supports'][name] == 'floor'}\n+    for relation in task['relations']:\n+        a, b = relation['a'], relation['b']\n+        if a not in shifts or b not in shifts or a == b:\n+            continue\n+        dx = values[b][0] - values[a][0]\n+        dy = values[b][1] - values[a][1]\n+        dz = (assets[b]['height'] - assets[a]['height']) / 2\n+        distance = math.sqrt(dx * dx + dy * dy + dz * dz)\n+        if distance < 1e-9:\n+            continue\n+        target = min(relation['max'], max(relation['min'], relation['target']))\n+        gain = .5 * (distance - target) / distance\n+        shifts[a][0] += gain * dx\n+        shifts[a][1] += gain * dy\n+        shifts[b][0] -= gain * dx\n+        shifts[b][1] -= gain * dy\n+    for name, (dx, dy) in shifts.items():\n+        # Bound the joint correction even for objects in many relations.\n+        length = math.hypot(dx, dy)\n+        scale = min(1., .12 / length) if length else 0.\n+        values[name][0] += scale * dx\n+        values[name][1] += scale * dy\n+\n+\n def layout(packet):\n     history = packet['history']\n     if packet['phase'] == 'final':\n@@ -48,7 +78,7 @@ def layout(packet):\n         values = parameters(task, random.Random(packet['seed']))\n     else:\n         values = {name: list(v) for name, v in history[best_index(history)]['values'].items()}\n-        # Alternate shared translations and a common yaw turn; never isolate one object.\n+        # Keep shared exploration, with relative floor motion on translation trials.\n         direction = (packet['query'] - 1) % 6\n         dx, dy, turn = ((.2, 0., 0.), (-.2, 0., 0.), (0., .2, 0.),\n                         (0., -.2, 0.), (0., 0., .16), (0., 0., -.16))[direction]\n@@ -57,6 +87,8 @@ def layout(packet):\n             values[name][0] += scale * dx\n             values[name][1] += scale * dy\n             values[name][2] += turn\n+        if direction < 4:\n+            refine_floor_relations(task, values)\n     for name in task['zones']:\n         clamp_floor(task, values, name)\n     return {'values': values, 'memory': {}}\n",
+  "summary": "Modified only `algorithm.py`: added bounded floor-object corrections toward preferred 3D distances, preserving seeded initialization, yaw exploration, boundary clamping, and query budget.\n\nTests were not run, as instructed.",
+  "base_git": "9b25d4c472c6a18943068f50c2cfde45337a8d28",
+  "candidate_git": "aac1ef29ed587dd15c09e2bf35c3b5dc811663ac",
+  "wall_seconds": 55.69423714489676,
+  "model": "gpt-6.1-sol",
+  "model_requests": 3,
+  "usage": {
+    "input_tokens": 48829,
+    "output_tokens": 1243,
+    "total_tokens": 50072
+  },
+  "resources": {
+    "cpu_seconds": 0.436535,
+    "process_peak_rss_bytes": 145752064,
+    "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+  }
+}
