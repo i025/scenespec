@@ -1,0 +1,339 @@
+{
+  "M2": {
+    "choose": {
+      "experiment": "barriers",
+      "analysis": "Measured acceptance bottleneck: rotation. Deficits: position=0.1798,rotation=0.3214. Prioritize hard success and runtime, then visibility and paired positional/rotation diversity before further preference optimization. Repeated-seed probes expose output spread under constrained conditions; broad probes diagnose reliability or preference. Historical acceptance rejection is not proof of a physically unsolvable output. /current/baseline: tasks=24; /current/common: tasks=8, valid=8, solvable=8, solvable_rate=1.0"
+    },
+    "propose": {
+      "analysis": "Acceptance diagnosis: prioritize rotation. Measured deficits: position=0.1798,rotation=0.3214. Historical valid/solvable flags describe runnable code and joint acceptance, not scene physics. Compare baseline/candidate hard success, runtime, visibility, ALL-pair and VALID-pair position spread, rotation spread, valid-pair count and preference separately. Preserve no hard-success loss, zero runtime errors, visibility loss <=0.01, position retention >=90% for both pair populations, rotation retention >=80%, no valid-pair count loss, and preference improvement >=0.01m. Do not infer retention from an absolute pair metric without its baseline. Query-only selector replays are mechanism clues, not validated replacements. For diversity deficits, trace both proposal spread and final selection concentration before choosing the repair; improving preference alone can fail joint acceptance. Use repeated-condition examples to inspect seed-dependent position and orientation variation. Do not increase query or execution budgets.  Summary: /current/baseline: tasks=24; /current/common: tasks=8, valid=8, solvable=8, solvable_rate=1.0. Example outcomes: success:long=16",
+      "example_indices": [
+        12,
+        13,
+        14,
+        15,
+        0,
+        1,
+        2,
+        3
+      ],
+      "prompt": "Acceptance diagnosis: prioritize rotation. Measured deficits: position=0.1798,rotation=0.3214. Historical valid/solvable flags describe runnable code and joint acceptance, not scene physics. Compare baseline/candidate hard success, runtime, visibility, ALL-pair and VALID-pair position spread, rotation spread, valid-pair count and preference separately. Preserve no hard-success loss, zero runtime errors, visibility loss <=0.01, position retention >=90% for both pair populations, rotation retention >=80%, no valid-pair count loss, and preference improvement >=0.01m. Do not infer retention from an absolute pair metric without its baseline. Query-only selector replays are mechanism clues, not validated replacements. For diversity deficits, trace both proposal spread and final selection concentration before choosing the repair; improving preference alone can fail joint acceptance. Use repeated-condition examples to inspect seed-dependent position and orientation variation. Do not increase query or execution budgets. \n\nProduce one complete replacement of the supplied INITIAL GENERATOR algorithm. This is a single algorithm-patch opportunity. Inspect its actual source and the trusted task contract before deciding what to change. Use the measurements and selected examples below as diagnostic evidence. Do not patch this meta-policy, controller, solver, physics, validator, evaluation tasks, budgets, or model.\n\nResearch objective: improve transferable first-output validity and solvability per unit computation across unseen initial generators and input conditions, while preserving meaningful task difficulty and output diversity. Do not optimize a handful of displayed boards. Preserve the required API, obstacle/geometry requirements, minimum distances, random-input semantics, allowed imports and execution limits exactly as specified by the trusted contract. Distinguish constraints actually supplied by the task from assumptions suggested by examples.\n\nUse this decision process internally, then return the required complete source:\n1. Trace how the current source converts packet inputs into outputs. Identify the earliest broken invariant that plausibly explains the dominant measured failures. Separate malformed output or exceptions from valid-but-unsolvable scenes. An error label alone does not establish its mechanism. Do not infer crate or agent positions from packet.sample unless the current source actually uses that mapping.\n2. Compare selected failures against successful examples, especially matching dimensions and density. Identify whether the likely mechanism is boundary/deadlock placement, disconnected access, inability to reach a required interaction side, an invalid constructive transition, fragile fallback, or excessive computation. Inspect existing safeguards before adding new machinery. A strong existing construction should receive a targeted repair, rather than wholesale replacement merely because another method is familiar.\n3. Choose one coherent repair with a clear invariant and bounded cost. Where appropriate, construct from a feasible terminal configuration through legal reversible operations, or maintain another local feasibility certificate. Such a certificate must respect the actual physics, required support/access cells and agent connectivity at every transition. Mere geometric proximity or connectivity without the occupied movable object is insufficient. Treat this as an option, not a mandatory algorithm or an assumption about the task's mechanics.\n4. Check initialization, every update, endpoint selection, optional agent relocation and all fallbacks against the same invariant. Do not replace a failed construction with an arbitrary valid-looking configuration and claim guaranteed solvability. Handle cramped and disconnected inputs, empty candidate sets, collisions and boundary checks explicitly. If the allowed input geometry makes a guarantee impossible, preserve validity and make the best bounded contract-compliant attempt without inventing obstacles or relaxing constraints.\n5. Keep computation predictable: reuse static adjacency and cheap connectivity information where helpful, bound walks and retries, and avoid combinatorial candidate enumeration or large per-state caches. Do not introduce a hidden solver, exhaustive joint-state search, external oracle or repeated solver-based rejection. Respect any stricter search restrictions in the task. A feasible constructive route does not prove shortest-path difficulty.\n6. Once reliability is addressed, retain input-dependent variation in geometry, object locations and construction choices. Avoid a universal corridor, a fixed template, seed lists, hardcoded boards, condition-specific patches or a constant short solution. Use bounded diversity in feasible path length, turns and approach navigation when supported by the mechanics. Do not sacrifice reliability to chase noisy difficulty statistics. If reliability is already strong, target the demonstrated quality, diversity or runtime weakness with the smallest justified change.\n7. Audit the final source for contract compliance, invariant preservation, finite loops and worst-case memory. Reason through a failure and a success from the evidence and a generic edge case. If tools are available, perform only permitted checks within the existing budget; do not assume extra evaluations exist. Do not report unrun tests or unseen validation gains.\n\nEvidence is descriptive and limited to development inputs. The selected probe tested the initial generator, not your proposed patch. There is no validation data, frozen chosen implementation, or blind generalization result here. The training trace is evidence that a repair worked on one generator, not a reference implementation to reproduce. Do not embed memorized scenes or seeds. Return the complete generator replacement in the outer controller's required format, not individual scene edits or an experimental plan.\n\nObserved summary: /current/baseline: tasks=24; /current/common: tasks=8, valid=8, solvable=8, solvable_rate=1.0\nExample outcome counts: success:long=16\nSelected example indices (zero-based): [12, 13, 14, 15, 0, 1, 2, 3]\nSelection emphasizes diagnostic coverage; counts above describe all supplied examples, not just the selected subset.\nObserved summary: /current/baseline: tasks=24; /current/common: tasks=8, valid=8, solvable=8, solvable_rate=1.0\nExample outcome counts: success:long=16\nSelected example indices (zero-based): [12, 13, 14, 15, 0, 1, 2, 3]"
+    },
+    "current": {
+      "baseline": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 96,
+        "success_rate": 1,
+        "preference_error_m": 0.23497707708446086,
+        "visibility_mean": 0.9687354421611454,
+        "diversity_position_rms_m": 0.38924496766224703,
+        "diversity_rotation_deg": 9.561725658980802,
+        "valid_pair_count": 144,
+        "valid_pair_diversity_m": 0.38924496766224703,
+        "failures": {},
+        "generation_wall_seconds_mean": 1.3845679455310649,
+        "controller_cpu_seconds_total": 91.797026461,
+        "runtime_cpu_seconds_total": 61.671178,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      },
+      "common": {
+        "tasks": 8,
+        "valid": 8,
+        "valid_rate": 1.0,
+        "solvable": 8,
+        "solvable_rate": 1.0,
+        "preference_error_m_mean": 0.010756487957157557,
+        "visibility_mean": 1.0
+      },
+      "seeds_per_condition": 4
+    },
+    "history": {
+      "attempts": 4,
+      "dev_accepted": 0,
+      "position_retention_mean": 0.738175688349991,
+      "rotation_retention_mean": 0.542852890828193
+    },
+    "constraints": {
+      "runtime_errors_max": 0,
+      "hard_success_loss_max": 0,
+      "visibility_loss_max": 0.01,
+      "position_retention_min": 0.9,
+      "valid_position_retention_min": 0.9,
+      "rotation_retention_min": 0.8,
+      "valid_pair_count_loss_max": 0,
+      "preference_improvement_min_m": 0.01
+    },
+    "probe": {
+      "name": "barriers",
+      "condition_indices": [
+        4,
+        5
+      ],
+      "repeats": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "delivered_groups": [
+      {
+        "dev_condition_index": 0,
+        "family": "inclined",
+        "repeats": 4,
+        "pair_metrics": {
+          "position_rms_m": 0.36106643580409625,
+          "rotation_mean_deg": 9.302811667772586,
+          "preference_error_m_mean": 0.005317826469048437,
+          "all_hard_success": true
+        }
+      },
+      {
+        "dev_condition_index": 5,
+        "family": "doorway",
+        "repeats": 4,
+        "pair_metrics": {
+          "position_rms_m": 0.3461045037786905,
+          "rotation_mean_deg": 8.959355080170539,
+          "preference_error_m_mean": 0.05329925727787432,
+          "all_hard_success": true
+        }
+      }
+    ],
+    "actual_task_matches": true,
+    "successful_read_commands": [
+      "/bin/bash -lc 'cat algorithm.py TASK.json CONTRACT.md'"
+    ],
+    "code": "experiments/m3_reliable/results/elite_centroid/M2/r1/coding/attempt0/candidate.py",
+    "function_lines": {
+      "parameters": 7,
+      "clamp_floor": 25,
+      "best_index": 35,
+      "refine_relations": 39,
+      "layout": 69
+    },
+    "diff": "experiments/m3_reliable/results/elite_centroid/M2/r1/coding/attempt0/candidate.diff",
+    "budget": {
+      "wall_seconds": 600,
+      "model_requests": 6,
+      "input_bytes_total": 1048576,
+      "input_bytes_per_request": 196608,
+      "output_tokens_per_request": 16384,
+      "mesh_queries": 24,
+      "editor_cpu_seconds_per_process": 45,
+      "editor_virtual_as_gib": 16,
+      "editor_tmp_mib": 64,
+      "editor_shared_uid_task_limit": 4096,
+      "candidate_cpu_seconds": 5,
+      "candidate_memory_mib": 256,
+      "total_tokens": 400000
+    },
+    "coding_cost": {
+      "attempts": [
+        {
+          "directory": "attempt0",
+          "status": "completed",
+          "service_requests": 3,
+          "charged_tokens": 50220,
+          "usage": {
+            "input_tokens": 48897,
+            "output_tokens": 1323,
+            "total_tokens": 50220
+          },
+          "capacity_retry_eligible": false,
+          "within_budget": true
+        }
+      ],
+      "service_requests": 3,
+      "input_bytes_total": 237792,
+      "known_tokens": 50220,
+      "unknown_usage_requests": 0,
+      "charged_tokens": 50220,
+      "retry_wait_seconds": 0,
+      "status": "completed",
+      "wall_seconds": 71.61808371311054,
+      "budget_compliant": true,
+      "actual_total_tokens": 50220
+    }
+  },
+  "M3": {
+    "choose": {
+      "experiment": "random",
+      "analysis": "Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+      "diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      }
+    },
+    "propose": {
+      "analysis": "Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+      "prompt": "Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.\n\nInspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.\n\nUse the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.\n\nChoose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.\n\nFrozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.\n\nCurrent diagnosis: Current diagnosis: preference (hypothesis). Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread. Evidence: summary.current.baseline.preference_error_m. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.\nResearch observation: Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread.",
+      "example_indices": [
+        8,
+        9,
+        10,
+        11,
+        4,
+        5,
+        6,
+        7
+      ],
+      "diagnosis": {
+        "objective": "preference",
+        "status": "hypothesis",
+        "evidence": [
+          "summary.current.baseline.preference_error_m"
+        ],
+        "probe": "random",
+        "expected_observation": "Compare continuous u/v/yaw preference residuals on feasible outputs and identify a bounded local improvement that preserves seed-dependent spread."
+      }
+    },
+    "current": {
+      "baseline": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 96,
+        "success_rate": 1,
+        "preference_error_m": 0.23497707708446086,
+        "visibility_mean": 0.9687354421611454,
+        "diversity_position_rms_m": 0.38924496766224703,
+        "diversity_rotation_deg": 9.561725658980802,
+        "valid_pair_count": 144,
+        "valid_pair_diversity_m": 0.38924496766224703,
+        "failures": {},
+        "generation_wall_seconds_mean": 1.3845679455310649,
+        "controller_cpu_seconds_total": 91.797026461,
+        "runtime_cpu_seconds_total": 61.671178,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      },
+      "common": {
+        "tasks": 8,
+        "valid": 8,
+        "valid_rate": 1.0,
+        "solvable": 8,
+        "solvable_rate": 1.0,
+        "preference_error_m_mean": 0.010756487957157557,
+        "visibility_mean": 1.0
+      },
+      "seeds_per_condition": 4
+    },
+    "history": {
+      "attempts": 4,
+      "dev_accepted": 0,
+      "position_retention_mean": 0.738175688349991,
+      "rotation_retention_mean": 0.542852890828193
+    },
+    "constraints": {
+      "runtime_errors_max": 0,
+      "hard_success_loss_max": 0,
+      "visibility_loss_max": 0.01,
+      "position_retention_min": 0.9,
+      "valid_position_retention_min": 0.9,
+      "rotation_retention_min": 0.8,
+      "valid_pair_count_loss_max": 0,
+      "preference_improvement_min_m": 0.01
+    },
+    "probe": {
+      "name": "random",
+      "condition_indices": [
+        2,
+        3
+      ],
+      "repeats": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "delivered_groups": [
+      {
+        "dev_condition_index": 1,
+        "family": "doorway",
+        "repeats": 4,
+        "pair_metrics": {
+          "position_rms_m": 0.33445913688602835,
+          "rotation_mean_deg": 10.03575190365245,
+          "preference_error_m_mean": 0.016195149445266677,
+          "all_hard_success": true
+        }
+      },
+      {
+        "dev_condition_index": 2,
+        "family": "occlusion",
+        "repeats": 4,
+        "pair_metrics": {
+          "position_rms_m": 0.47217756352534807,
+          "rotation_mean_deg": 7.909395814567012,
+          "preference_error_m_mean": 0.016819089296964074,
+          "all_hard_success": true
+        }
+      }
+    ],
+    "actual_task_matches": true,
+    "successful_read_commands": [
+      "/bin/bash -lc 'cat algorithm.py TASK.json CONTRACT.md'"
+    ],
+    "code": "experiments/m3_reliable/results/elite_centroid/M3/r1/coding/attempt0/candidate.py",
+    "function_lines": {
+      "parameters": 7,
+      "clamp_floor": 25,
+      "best_index": 35,
+      "floor_preference_error": 39,
+      "polish_floor_relations": 47,
+      "layout": 103
+    },
+    "diff": "experiments/m3_reliable/results/elite_centroid/M3/r1/coding/attempt0/candidate.diff",
+    "budget": {
+      "wall_seconds": 600,
+      "model_requests": 6,
+      "input_bytes_total": 1048576,
+      "input_bytes_per_request": 196608,
+      "output_tokens_per_request": 16384,
+      "mesh_queries": 24,
+      "editor_cpu_seconds_per_process": 45,
+      "editor_virtual_as_gib": 16,
+      "editor_tmp_mib": 64,
+      "editor_shared_uid_task_limit": 4096,
+      "candidate_cpu_seconds": 5,
+      "candidate_memory_mib": 256,
+      "total_tokens": 400000
+    },
+    "coding_cost": {
+      "attempts": [
+        {
+          "directory": "attempt0",
+          "status": "completed",
+          "service_requests": 3,
+          "charged_tokens": 52754,
+          "usage": {
+            "input_tokens": 50363,
+            "output_tokens": 2391,
+            "total_tokens": 52754
+          },
+          "capacity_retry_eligible": false,
+          "within_budget": true
+        }
+      ],
+      "service_requests": 3,
+      "input_bytes_total": 249330,
+      "known_tokens": 52754,
+      "unknown_usage_requests": 0,
+      "charged_tokens": 52754,
+      "retry_wait_seconds": 0,
+      "status": "completed",
+      "wall_seconds": 99.95384491607547,
+      "budget_compliant": true,
+      "actual_total_tokens": 52754
+    }
+  }
+}

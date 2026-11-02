@@ -1,8 +1,11 @@
 """Balanced frozen M2/M3 experiment; bounded capacity retries, no scoring changes."""
 import argparse
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import json
+import math
 from pathlib import Path
 import secrets
 import subprocess
@@ -44,7 +47,46 @@ def capacity_only(result,folder,source,requests):
     return all(e['type'] in ('thread.started','turn.started','error','turn.failed') for e in events)
 
 
-def run_logical(task,directory,backend,*,sleep=time.sleep,clock=time.monotonic):
+def stream_overload(result,folder,source,requests):
+    """Future runs only: a failed first response, with no generated items or edits."""
+    if result['status']!='failed' or result.get('patch') or len(requests)!=1:return None
+    row=requests[0]
+    if row.get('index')!=0 or row.get('http_status')!=200 or row.get('usage') is not None:return None
+    if (folder/'candidate.diff').exists() and (folder/'candidate.diff').read_text().strip():return None
+    if (folder/'candidate.py').exists() and (folder/'candidate.py').read_text() not in ('',source):return None
+    try:
+        events=[json.loads(line) for line in (folder/'events.jsonl').read_text().splitlines()]
+        packets=[json.loads(line[6:]) for line in (folder/'response_0.sse').read_text().splitlines() if line.startswith('data: {')]
+    except (OSError,ValueError):return None
+    if any(e['type'] not in ('thread.started','turn.started','error','turn.failed') for e in events):return None
+    if any(p.get('type','').startswith(('response.output','response.function_call','response.reasoning'))
+           or p.get('response',{}).get('output') for p in packets):return None
+    failed=[p['response'] for p in packets if p.get('type')=='response.failed' and isinstance(p.get('response'),dict)]
+    if len(failed)!=1 or failed[0].get('error',{}).get('code')!='server_is_overloaded':return None
+    error=failed[0]['error']
+    return {'code':error['code'],'headers':{k:v for k,v in error.get('headers',{}).items()
+                                           if k.lower() in ('retry-after','retry-after-ms')}}
+
+
+def retry_after_seconds(headers,now):
+    """Read service error headers; never wait less than either Retry-After value."""
+    headers={k.lower():v for k,v in headers.items()}
+    delays=[]
+    for key in ('retry-after','retry-after-ms'):
+        if key not in headers:continue
+        raw=str(headers[key])
+        try:value=float(raw)/(1000 if key.endswith('-ms') else 1)
+        except ValueError:
+            if key.endswith('-ms'):return None
+            try:value=parsedate_to_datetime(raw).timestamp()-now.timestamp()
+            except (ValueError,TypeError,OverflowError):return None
+        if not math.isfinite(value) or value<0:return None
+        delays.append(value)
+    return max(delays) if delays else None
+
+
+def run_logical(task,directory,backend,*,sleep=time.sleep,clock=time.monotonic,
+                retry_stream_overload=False,utcnow=lambda:datetime.now(timezone.utc)):
     directory.mkdir(parents=True,exist_ok=False);started=clock()
     record={'attempts':[],'service_requests':0,'input_bytes_total':0,'known_tokens':0,
             'unknown_usage_requests':0,'charged_tokens':0,'retry_wait_seconds':0,'status':'failed'}
@@ -73,19 +115,37 @@ def run_logical(task,directory,backend,*,sleep=time.sleep,clock=time.monotonic):
         within=(record['service_requests']<=BUDGET['model_requests'] and record['charged_tokens']<=BUDGET['total_tokens']
                 and record['input_bytes_total']<=BUDGET['input_bytes_total'] and clock()-started<=BUDGET['wall_seconds'])
         retryable=capacity_only(result,folder,task['files']['algorithm.py'],requests) if requests else False
+        overload=stream_overload(result,folder,task['files']['algorithm.py'],requests) if retry_stream_overload else None
+        retryable=retryable or overload is not None
+        delay=BACKOFF[min(attempt,1)]
+        if overload:
+            requested=retry_after_seconds(overload['headers'],utcnow())
+            delay=max(delay,requested) if requested is not None else None
         record['attempts'].append({'directory':folder.name,'status':result['status'],'service_requests':len(requests),
             'charged_tokens':charge,'usage':result.get('usage'),'capacity_retry_eligible':retryable,'within_budget':within})
+        if overload:
+            record['attempts'][-1].update(service_capacity_failure=overload['code'],retry_after_headers=overload['headers'],
+                                         planned_wait_seconds=delay,retried=False)
         record.update(wall_seconds=clock()-started,budget_compliant=within)
         save(directory/'logical.json',record)
         if not within:
             result=dict(result,status='budget_exhausted',patch='');break
         if result['status']=='completed':break
-        if not retryable or attempt==2:break
-        delay=BACKOFF[attempt]
+        if not retryable:break
+        if overload and (attempt==2 or delay is None):
+            record['attempts'][-1]['retry_stop_reason']='retry_limit' if attempt==2 else 'missing_or_invalid_retry_after'
+            result=dict(result,status='service_capacity_failed');break
+        if attempt==2:break
         if (clock()-started+delay>=BUDGET['wall_seconds'] or record['charged_tokens']>=BUDGET['total_tokens'] or
                 record['service_requests']>=BUDGET['model_requests'] or record['input_bytes_total']>=BUDGET['input_bytes_total']):
-            result=dict(result,status='budget_exhausted');break
-        sleep(delay);record['retry_wait_seconds']+=delay
+            if overload:record['attempts'][-1]['retry_stop_reason']='cumulative_budget_cannot_fit_retry'
+            result=dict(result,status='service_capacity_failed' if overload else 'budget_exhausted');break
+        # Short waits keep the controller responsive while honoring the full server delay.
+        left=delay
+        while left>0:
+            interval=min(left,30) if overload else left
+            sleep(interval);record['retry_wait_seconds']+=interval;left-=interval
+        if overload:record['attempts'][-1]['retried']=True
     record.update(status=result['status'],wall_seconds=clock()-started,
                   actual_total_tokens=None if record['unknown_usage_requests'] else record['known_tokens'])
     save(directory/'logical.json',record)
@@ -182,7 +242,8 @@ def execute(run,geometry,backend):
     for c in calls:
         folder=run/c['initial']/c['policy']/f'r{c["repeat"]}'
         try:
-            result,source=candidate(read(folder/'task.json'),folder,partial(run_logical,backend=backend))
+            result,source=candidate(read(folder/'task.json'),folder,partial(run_logical,backend=backend,
+                retry_stream_overload=frozen.get('retry_stream_overload',False)))
             if source is None:c.update(status='candidate_failed',error=result['status'])
             else:(folder/'source.py').write_text(source);c.update(status='coded',static_audit=True)
         except Exception as error:c.update(status='candidate_failed',error=type(error).__name__+': '+str(error)[:300])
@@ -218,7 +279,9 @@ def execute(run,geometry,backend):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--phase',choices=('prepare','freeze','execute','worker'),required=True)
     for key in ('run','geometry','guard','security','editor-security','job'):p.add_argument('--'+key,type=Path)
+    p.add_argument('--retry-stream-overload',action='store_true',help='Opt in at freeze for future runs only')
     args=p.parse_args()
+    if args.retry_stream_overload and args.phase!='freeze':p.error('--retry-stream-overload is recorded only at freeze')
     if args.phase=='worker':evaluate_job(args.job);return
     assert all(x['passed'] for x in read(args.security/'acceptance.json'))
     assert read(args.editor_security/'acceptance.json')['native_patch_applied']
@@ -226,7 +289,8 @@ def main():
     elif args.phase=='freeze':
         assert (args.run/'prepared.json').exists() and not git(ROOT,'status','--porcelain')
         assert read(args.run.parent/'checks/scheduler_acceptance.json')['passed']
-        save(args.run/'frozen.json',{'git':git(ROOT,'rev-parse','HEAD'),'stage1_passed':True,'stage2_offline_tests_passed':True})
+        save(args.run/'frozen.json',{'git':git(ROOT,'rev-parse','HEAD'),'stage1_passed':True,'stage2_offline_tests_passed':True,
+                                   'retry_stream_overload':args.retry_stream_overload})
     else:
         backend=partial(run_codex,runtime=args.run.parent/'runtime',guard=args.guard,parent_git=git(ROOT,'rev-parse','HEAD'))
         execute(args.run,args.geometry,backend)
