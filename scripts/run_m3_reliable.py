@@ -35,7 +35,8 @@ def capacity_only(result,folder,source,requests):
     if result['status']!='failed' or result.get('patch') or len(requests)!=1:return False
     row=requests[0]
     if row.get('index')!=0 or row.get('http_status')!=429 or row.get('usage') is not None:return False
-    error=read(folder/'response_0.sse').get('error',{})
+    try:error=read(folder/'response_0.sse').get('error',{})
+    except (OSError,ValueError):return False
     if error.get('code')!='turn_rate_limit_exceeded' or 'at capacity' not in error.get('message',''):return False
     if (folder/'candidate.diff').exists() and (folder/'candidate.diff').read_text().strip():return False
     if (folder/'candidate.py').exists() and (folder/'candidate.py').read_text() not in ('',source):return False
@@ -81,12 +82,15 @@ def run_logical(task,directory,backend,*,sleep=time.sleep,clock=time.monotonic):
         if result['status']=='completed':break
         if not retryable or attempt==2:break
         delay=BACKOFF[attempt]
-        if clock()-started+delay>=BUDGET['wall_seconds']:
+        if (clock()-started+delay>=BUDGET['wall_seconds'] or record['charged_tokens']>=BUDGET['total_tokens'] or
+                record['service_requests']>=BUDGET['model_requests'] or record['input_bytes_total']>=BUDGET['input_bytes_total']):
             result=dict(result,status='budget_exhausted');break
         sleep(delay);record['retry_wait_seconds']+=delay
     record.update(status=result['status'],wall_seconds=clock()-started,
                   actual_total_tokens=None if record['unknown_usage_requests'] else record['known_tokens'])
     save(directory/'logical.json',record)
+    result=dict(result,wall_seconds=record['wall_seconds'],model_requests=record['service_requests'],
+                usage=None if record['unknown_usage_requests'] else result.get('usage'))
     save(directory/'backend_result.json',result)
     return result
 
@@ -114,9 +118,8 @@ def run_jobs(run,geometry,jobs):
     with ThreadPoolExecutor(max_workers=2) as pool:return list(pool.map(launch,paths))
 
 
-def prepare(run,geometry):
-    run.mkdir(exist_ok=False);run.chmod(0o700)
-    rng=secrets.SystemRandom();used=set();cases={};references=[]
+def make_cases(run,geometry):
+    rng=secrets.SystemRandom();used=set();cases={};references=[];rejected=[];attempts=0
     def fresh(bits):
         while True:
             value=rng.getrandbits(bits)
@@ -124,14 +127,29 @@ def prepare(run,geometry):
     for split in ('dev','selection','test'):
         cases[split]=[]
         for i in range(24):
-            seed=fresh(64);task,reference=make_task(seed,FAMILIES[i%4],f'reliable_{split}_{i}')
-            world=MeshWorld(task,geometry)
-            try:report=world.evaluate(reference,final=True)
-            finally:world.close()
+            while True:
+                attempts+=1
+                if attempts>128:raise RuntimeError('reference sampling cap exceeded; no algorithm scores used')
+                seed=fresh(64);task,reference=make_task(seed,FAMILIES[i%4],f'reliable_{split}_{i}')
+                world=MeshWorld(task,geometry)
+                try:report=world.evaluate(reference,final=True)
+                finally:world.close()
+                if report['success']:break
+                rejected.append({'split':split,'seed':seed,'task':task,'reference':reference,'report':report})
+                save(run/'rejected_references.json',rejected)
             references.append({'split':split,'success':report['success']})
             cases[split].append({'seed':seed,'task':task,'reference':reference,'algorithm_seeds':[fresh(32) for _ in range(4)]})
     save(run/'private_tasks.json',cases);save(run/'reference_acceptance.json',references)
-    assert all(r['success'] for r in references),'invalid reference; no score-dependent resampling'
+    save(run/'reference_sampling.json',{'attempts':attempts,'accepted':72,'rejected':len(rejected),
+         'excluded': [{'split':r['split'],'family':r['task']['family'],'failures':[f['type'] for f in r['report']['failures']]} for r in rejected],
+         'criterion':'Unchanged provided reference passes unchanged MeshWorld; no initial/candidate algorithm scores',
+         'task_generation_cap':128})
+    return cases,references,used
+
+
+def prepare(run,geometry):
+    run.mkdir(exist_ok=False);run.chmod(0o700)
+    cases,references,used=make_cases(run,geometry)
     jobs=[(f'baseline_{name}_{split}',EXP/f'initial_{name}.py',split,run/name/'baseline'/split)
           for name in INITIALS for split in ('dev','selection')]
     results=run_jobs(run,geometry,jobs)
