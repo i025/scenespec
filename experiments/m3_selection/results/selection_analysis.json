@@ -1,0 +1,2309 @@
+{
+  "scope": "Post-hoc only; original selection and private-test usage unchanged",
+  "new_model_calls": 0,
+  "candidate_executions": 0,
+  "thresholds": {
+    "runtime_errors_max": 0,
+    "hard_success_loss_max": 0,
+    "visibility_loss_max": 0.01,
+    "position_retention_min": 0.9,
+    "valid_position_retention_min": 0.9,
+    "rotation_retention_min": 0.8,
+    "valid_pair_count_loss_max": 0,
+    "preference_improvement_min_m": 0.01
+  },
+  "score_audit": {
+    "saved_summary_recomputations": 14,
+    "all_summary_fields_match": true,
+    "four_seed_condition_aggregation_matches": true,
+    "original_decisions_match": true,
+    "geometry_or_physics_rescoring_performed": false
+  },
+  "baselines": {
+    "sequential_projection": {
+      "selection": {
+        "distribution": {
+          "conditions": 6,
+          "runs": 24,
+          "family_counts": {
+            "inclined": 2,
+            "doorway": 2,
+            "occlusion": 1,
+            "paired": 1
+          },
+          "room_width_m": {
+            "mean": 8.272896132088475,
+            "sample_stdev": 0.3475418247661645
+          },
+          "room_depth_m": {
+            "mean": 6.603120746970608,
+            "sample_stdev": 0.49296130091589935
+          }
+        },
+        "metrics": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.2563408494120203,
+          "visibility_mean": 0.980991498201188,
+          "diversity_position_rms_m": 0.45682737711736837,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.4568273771173683,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.4116922026926961,
+          "controller_cpu_seconds_total": 23.885544273999976,
+          "runtime_cpu_seconds_total": 14.977798999999997,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "by_family": {
+          "doorway": {
+            "conditions": 2,
+            "runtime_errors": 0.0,
+            "successes": 8.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.4353934795958627,
+            "diversity_rotation_deg": 10.132610199708942,
+            "valid_pair_count": 12.0,
+            "valid_pair_diversity_m": 0.4353934795958627,
+            "preference_error_m": 0.3099980728183781
+          },
+          "inclined": {
+            "conditions": 2,
+            "runtime_errors": 0.0,
+            "successes": 8.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.4683581985961822,
+            "diversity_rotation_deg": 9.829398326722806,
+            "valid_pair_count": 12.0,
+            "valid_pair_diversity_m": 0.4683581985961823,
+            "preference_error_m": 0.22337853740099367
+          },
+          "occlusion": {
+            "conditions": 1,
+            "runtime_errors": 0.0,
+            "successes": 4.0,
+            "visibility_mean": 0.8859489892071282,
+            "diversity_position_rms_m": 0.38795328653912603,
+            "diversity_rotation_deg": 11.402938406852451,
+            "valid_pair_count": 6.0,
+            "valid_pair_diversity_m": 0.38795328653912603,
+            "preference_error_m": 0.08096949460799774
+          },
+          "paired": {
+            "conditions": 1,
+            "runtime_errors": 0.0,
+            "successes": 4.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.5455076197809943,
+            "diversity_rotation_deg": 7.918523973238955,
+            "valid_pair_count": 6.0,
+            "valid_pair_diversity_m": 0.5455076197809944,
+            "preference_error_m": 0.39032238142538045
+          }
+        }
+      },
+      "test": {
+        "distribution": {
+          "conditions": 12,
+          "runs": 48,
+          "family_counts": {
+            "inclined": 3,
+            "doorway": 3,
+            "occlusion": 3,
+            "paired": 3
+          },
+          "room_width_m": {
+            "mean": 7.622028211602644,
+            "sample_stdev": 0.6595589855744239
+          },
+          "room_depth_m": {
+            "mean": 6.083802114899478,
+            "sample_stdev": 0.19491900524040276
+          }
+        },
+        "metrics": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 45,
+          "success_rate": 0.9375,
+          "preference_error_m": 0.09113877014998495,
+          "visibility_mean": 0.9767511260075527,
+          "diversity_position_rms_m": 0.48981443544318176,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 66,
+          "valid_pair_diversity_m": 0.4905751176570562,
+          "failures": {
+            "mesh_passage": 3
+          },
+          "generation_wall_seconds_mean": 1.387553069294275,
+          "controller_cpu_seconds_total": 46.71980254899961,
+          "runtime_cpu_seconds_total": 29.835935000000006,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "by_family": {
+          "doorway": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 12.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.46505742864261945,
+            "diversity_rotation_deg": 9.914541460858006,
+            "valid_pair_count": 18.0,
+            "valid_pair_diversity_m": 0.4650574286426195,
+            "preference_error_m": 0.022928162125794887
+          },
+          "inclined": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 12.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.5091881644717134,
+            "diversity_rotation_deg": 9.403755382528708,
+            "valid_pair_count": 18.0,
+            "valid_pair_diversity_m": 0.5091881644717133,
+            "preference_error_m": 0.05122509895656113
+          },
+          "occlusion": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 12.0,
+            "visibility_mean": 0.9070045040302106,
+            "diversity_position_rms_m": 0.541580732149137,
+            "diversity_rotation_deg": 9.2655811012861,
+            "valid_pair_count": 18.0,
+            "valid_pair_diversity_m": 0.541580732149137,
+            "preference_error_m": 0.20879075547199277
+          },
+          "paired": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 9.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.44343141650925705,
+            "diversity_rotation_deg": 9.56870695860251,
+            "valid_pair_count": 12.0,
+            "valid_pair_diversity_m": 0.4244236592186043,
+            "preference_error_m": 0.081611064045591
+          }
+        }
+      }
+    },
+    "shared_shift": {
+      "selection": {
+        "distribution": {
+          "conditions": 6,
+          "runs": 24,
+          "family_counts": {
+            "inclined": 2,
+            "doorway": 2,
+            "occlusion": 1,
+            "paired": 1
+          },
+          "room_width_m": {
+            "mean": 8.052967127079595,
+            "sample_stdev": 0.6060599277750796
+          },
+          "room_depth_m": {
+            "mean": 6.549701913495967,
+            "sample_stdev": 0.6005133415703107
+          }
+        },
+        "metrics": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 1.51855560882179,
+          "visibility_mean": 0.9752982073001687,
+          "diversity_position_rms_m": 0.46477067150416357,
+          "diversity_rotation_deg": 16.579395796944677,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.46477067150416357,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.2455366403931596,
+          "controller_cpu_seconds_total": 20.34492143800002,
+          "runtime_cpu_seconds_total": 14.722273,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "by_family": {
+          "doorway": {
+            "conditions": 2,
+            "runtime_errors": 0.0,
+            "successes": 8.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.44638362355858785,
+            "diversity_rotation_deg": 19.760503990500013,
+            "valid_pair_count": 12.0,
+            "valid_pair_diversity_m": 0.44638362355858785,
+            "preference_error_m": 1.0532807184947444
+          },
+          "inclined": {
+            "conditions": 2,
+            "runtime_errors": 0.0,
+            "successes": 8.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.5903038108480442,
+            "diversity_rotation_deg": 15.743073408213455,
+            "valid_pair_count": 12.0,
+            "valid_pair_diversity_m": 0.5903038108480442,
+            "preference_error_m": 1.7198817256657721
+          },
+          "occlusion": {
+            "conditions": 1,
+            "runtime_errors": 0.0,
+            "successes": 4.0,
+            "visibility_mean": 0.8517892438010122,
+            "diversity_position_rms_m": 0.32400174205845966,
+            "diversity_rotation_deg": 11.264467497356259,
+            "valid_pair_count": 6.0,
+            "valid_pair_diversity_m": 0.3240017420584596,
+            "preference_error_m": 2.0442905617245106
+          },
+          "paired": {
+            "conditions": 1,
+            "runtime_errors": 0.0,
+            "successes": 4.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.3912474181532575,
+            "diversity_rotation_deg": 17.204752486884882,
+            "valid_pair_count": 6.0,
+            "valid_pair_diversity_m": 0.3912474181532575,
+            "preference_error_m": 1.5207182028851955
+          }
+        }
+      },
+      "test": {
+        "distribution": {
+          "conditions": 12,
+          "runs": 48,
+          "family_counts": {
+            "inclined": 3,
+            "doorway": 3,
+            "occlusion": 3,
+            "paired": 3
+          },
+          "room_width_m": {
+            "mean": 7.861326673894212,
+            "sample_stdev": 0.5144264603937777
+          },
+          "room_depth_m": {
+            "mean": 6.411374206749965,
+            "sample_stdev": 0.582350245837109
+          }
+        },
+        "metrics": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 47,
+          "success_rate": 0.9791666666666666,
+          "preference_error_m": 1.1420812461447527,
+          "visibility_mean": 0.9670454434076842,
+          "diversity_position_rms_m": 0.40568999360190455,
+          "diversity_rotation_deg": 14.443701296907603,
+          "valid_pair_count": 69,
+          "valid_pair_diversity_m": 0.39840058088476366,
+          "failures": {
+            "mesh_passage": 1
+          },
+          "generation_wall_seconds_mean": 1.2260252052316598,
+          "controller_cpu_seconds_total": 41.412186224999914,
+          "runtime_cpu_seconds_total": 25.80218599999995,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "by_family": {
+          "doorway": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 11.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.4507857095184842,
+            "diversity_rotation_deg": 16.171665677311264,
+            "valid_pair_count": 15.0,
+            "valid_pair_diversity_m": 0.426273554202952,
+            "preference_error_m": 1.5379737868633032
+          },
+          "inclined": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 12.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.49029001490036617,
+            "diversity_rotation_deg": 17.097478378621176,
+            "valid_pair_count": 18.0,
+            "valid_pair_diversity_m": 0.49029001490036617,
+            "preference_error_m": 0.7158174109579029
+          },
+          "occlusion": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 12.0,
+            "visibility_mean": 0.8681817736307367,
+            "diversity_position_rms_m": 0.3457620772626823,
+            "diversity_rotation_deg": 11.822759121704587,
+            "valid_pair_count": 18.0,
+            "valid_pair_diversity_m": 0.34576207726268227,
+            "preference_error_m": 1.3056352031550467
+          },
+          "paired": {
+            "conditions": 3,
+            "runtime_errors": 0.0,
+            "successes": 12.0,
+            "visibility_mean": 1.0,
+            "diversity_position_rms_m": 0.3359221727260855,
+            "diversity_rotation_deg": 12.682902009993384,
+            "valid_pair_count": 18.0,
+            "valid_pair_diversity_m": 0.33592217272608554,
+            "preference_error_m": 1.0088985836027577
+          }
+        }
+      }
+    }
+  },
+  "candidates": [
+    {
+      "initial": "sequential_projection",
+      "policy": "M2",
+      "repeat": 0,
+      "selection": {
+        "baseline": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.2563408494120203,
+          "visibility_mean": 0.980991498201188,
+          "diversity_position_rms_m": 0.45682737711736837,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.4568273771173683,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.4116922026926961,
+          "controller_cpu_seconds_total": 23.885544273999976,
+          "runtime_cpu_seconds_total": 14.977798999999997,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.21702468655146578,
+          "visibility_mean": 0.9833825035913715,
+          "diversity_position_rms_m": 0.34393425447372517,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.34393425447372517,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.353362641336086,
+          "controller_cpu_seconds_total": 22.35364006600001,
+          "runtime_cpu_seconds_total": 15.125343999999998,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.039316162860554504,
+          "position_retention": 0.7528757506697358,
+          "valid_position_retention": 0.7528757506697358,
+          "rotation_retention": 1.0,
+          "visibility_change": 0.0023910053901834427,
+          "hard_success_count_change": 0,
+          "valid_pair_count_change": 0
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.012391005390183452,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": -0.0672103849319064,
+            "unit": "m",
+            "passed": false
+          },
+          "rotation": {
+            "margin": 1.9748493144318298,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": -0.06721038493190634,
+            "unit": "m",
+            "passed": false
+          },
+          "preference": {
+            "margin": 0.029316162860554495,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [
+          "position",
+          "valid_position"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": true
+      },
+      "selection_bootstrap": {
+        "method": "Exhaustive ordinary paired condition-cluster bootstrap; all ordered draws equally weighted",
+        "conditions_per_draw": 6,
+        "seeds_per_condition_kept_together": 4,
+        "resamples": 46656,
+        "monte_carlo_sampling": false,
+        "accept_count": 5930,
+        "accept_frequency": 0.12710048010973937,
+        "intervals": {
+          "preference_improvement_m": {
+            "percentile_95": [
+              0.01822065541509138,
+              0.060540123049766636
+            ],
+            "bootstrap_mean": 0.039316162860554504
+          },
+          "position_retention": {
+            "percentile_95": [
+              0.45137088598868397,
+              0.9986872747866039
+            ],
+            "bootstrap_mean": 0.7462397623650193
+          },
+          "valid_position_retention": {
+            "percentile_95": [
+              0.45137088598868397,
+              0.9986872747866039
+            ],
+            "bootstrap_mean": 0.7462397623650192
+          },
+          "rotation_retention": {
+            "percentile_95": [
+              1.0,
+              1.0
+            ],
+            "bootstrap_mean": 1.0
+          },
+          "visibility_change": {
+            "percentile_95": [
+              0.0,
+              0.007173016170550217
+            ],
+            "bootstrap_mean": 0.0023910053901834883
+          },
+          "hard_success_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          },
+          "valid_pair_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          }
+        },
+        "failure_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.8728780864197531,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.8728780864197531,
+          "preference": 0.0013717421124828531
+        },
+        "sole_blocker_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.0,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.0,
+          "preference": 2.143347050754458e-05
+        },
+        "diagnostic_acceptance_ignoring_rule": {
+          "runtime": 0.12710048010973937,
+          "hard_success": 0.12710048010973937,
+          "visibility": 0.12710048010973937,
+          "position": 0.12710048010973937,
+          "rotation": 0.12710048010973937,
+          "valid_pairs": 0.12710048010973937,
+          "valid_position": 0.12710048010973937,
+          "preference": 0.1271219135802469
+        },
+        "diagnostic_acceptance_ignoring_position_pair": 0.9986282578875172,
+        "counterfactual_rule_omissions_are_not_selection_changes": true
+      },
+      "test": {
+        "baseline": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 45,
+          "success_rate": 0.9375,
+          "preference_error_m": 0.09113877014998495,
+          "visibility_mean": 0.9767511260075527,
+          "diversity_position_rms_m": 0.48981443544318176,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 66,
+          "valid_pair_diversity_m": 0.4905751176570562,
+          "failures": {
+            "mesh_passage": 3
+          },
+          "generation_wall_seconds_mean": 1.387553069294275,
+          "controller_cpu_seconds_total": 46.71980254899961,
+          "runtime_cpu_seconds_total": 29.835935000000006,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 48,
+          "success_rate": 1,
+          "preference_error_m": 0.02344220580741409,
+          "visibility_mean": 0.9790250448778064,
+          "diversity_position_rms_m": 0.43999869706831846,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 72,
+          "valid_pair_diversity_m": 0.43999869706831846,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.4245697653920313,
+          "controller_cpu_seconds_total": 48.74764057399966,
+          "runtime_cpu_seconds_total": 29.024804000000017,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.06769656434257086,
+          "position_retention": 0.8982967124482759,
+          "valid_position_retention": 0.8969038200912303,
+          "rotation_retention": 1.0,
+          "visibility_change": 0.002273918870253744,
+          "hard_success_count_change": 3,
+          "valid_pair_count_change": 6
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 3.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.012273918870253753,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": -0.0008342948305451459,
+            "unit": "m",
+            "passed": false
+          },
+          "rotation": {
+            "margin": 1.9076292451637658,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 6.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": -0.001518908823032128,
+            "unit": "m",
+            "passed": false
+          },
+          "preference": {
+            "margin": 0.057696564342570866,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [
+          "position",
+          "valid_position"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": true
+      },
+      "selection_test_disagreement": false,
+      "family_shift": {
+        "selection_family_means": {
+          "doorway": {
+            "conditions": 2,
+            "preference_improvement_m": 0.050622869232579026,
+            "position_retention": 0.42349282169831043,
+            "valid_position_retention": 0.42349282169831043,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 2,
+            "preference_improvement_m": 0.02437911362596412,
+            "position_retention": 0.7414495510450317,
+            "valid_position_retention": 0.7414495510450317,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 1,
+            "preference_improvement_m": 0.08096949460799763,
+            "position_retention": 1.2105751941573504,
+            "valid_position_retention": 1.2105751941573506,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.014346032341100545,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 1,
+            "preference_improvement_m": 0.004923516838243103,
+            "position_retention": 0.9727800379366238,
+            "valid_position_retention": 0.9727800379366234,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          }
+        },
+        "test_family_means": {
+          "doorway": {
+            "conditions": 3,
+            "preference_improvement_m": 0.022928162125794776,
+            "position_retention": 0.9745132328450687,
+            "valid_position_retention": 0.9745132328450686,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 3,
+            "preference_improvement_m": 0.051225098956560945,
+            "position_retention": 0.849282606114039,
+            "valid_position_retention": 0.8492826061140393,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 3,
+            "preference_improvement_m": 0.17729270929546903,
+            "position_retention": 0.6802952494789882,
+            "valid_position_retention": 0.6802952494789883,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.009095675481014975,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 3,
+            "preference_improvement_m": 0.01934028699245867,
+            "position_retention": 1.1408995857698938,
+            "valid_position_retention": 1.191994622411456,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 3.0,
+            "valid_pair_count_change": 6.0
+          }
+        },
+        "selection_gain_under_equal_family_weights_m": 0.04022374857619597,
+        "test_gain_under_equal_family_weights_m": 0.06769656434257085,
+        "test_minus_selection_gain_composition_component_m": 0.0009075857156414672,
+        "test_minus_selection_gain_within_family_component_m": 0.027472815766374885,
+        "decomposition_reference": "Selection family effects; descriptive identity, not causal attribution"
+      }
+    },
+    {
+      "initial": "sequential_projection",
+      "policy": "M3",
+      "repeat": 0,
+      "selection": {
+        "baseline": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.2563408494120203,
+          "visibility_mean": 0.980991498201188,
+          "diversity_position_rms_m": 0.45682737711736837,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.4568273771173683,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.4116922026926961,
+          "controller_cpu_seconds_total": 23.885544273999976,
+          "runtime_cpu_seconds_total": 14.977798999999997,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.24667559153644097,
+          "visibility_mean": 0.9829843557704034,
+          "diversity_position_rms_m": 0.44618656044474514,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.4461865604447451,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.4492869066501346,
+          "controller_cpu_seconds_total": 25.009971455999988,
+          "runtime_cpu_seconds_total": 14.30708,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.009665257875579314,
+          "position_retention": 0.9767071388326857,
+          "valid_position_retention": 0.9767071388326856,
+          "rotation_retention": 1.0,
+          "visibility_change": 0.0019928575692154116,
+          "hard_success_count_change": 0,
+          "valid_pair_count_change": 0
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.01199285756921542,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": 0.03504192103911358,
+            "unit": "m",
+            "passed": true
+          },
+          "rotation": {
+            "margin": 1.9748493144318298,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": 0.03504192103911358,
+            "unit": "m",
+            "passed": true
+          },
+          "preference": {
+            "margin": -0.00033474212442069495,
+            "unit": "m",
+            "passed": false
+          }
+        },
+        "rejected_by": [
+          "preference"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": "preference",
+        "only_position_distribution_blocked": false
+      },
+      "selection_bootstrap": {
+        "method": "Exhaustive ordinary paired condition-cluster bootstrap; all ordered draws equally weighted",
+        "conditions_per_draw": 6,
+        "seeds_per_condition_kept_together": 4,
+        "resamples": 46656,
+        "monte_carlo_sampling": false,
+        "accept_count": 13916,
+        "accept_frequency": 0.2982681755829904,
+        "intervals": {
+          "preference_improvement_m": {
+            "percentile_95": [
+              -0.002156019010006782,
+              0.02401269347871371
+            ],
+            "bootstrap_mean": 0.009665257875579314
+          },
+          "position_retention": {
+            "percentile_95": [
+              0.8374299194764329,
+              1.1608024638226109
+            ],
+            "bootstrap_mean": 0.980930562230338
+          },
+          "valid_position_retention": {
+            "percentile_95": [
+              0.8374299194764326,
+              1.1608024638226104
+            ],
+            "bootstrap_mean": 0.9809305622303378
+          },
+          "rotation_retention": {
+            "percentile_95": [
+              1.0,
+              1.0
+            ],
+            "bootstrap_mean": 1.0
+          },
+          "visibility_change": {
+            "percentile_95": [
+              0.0,
+              0.005978572707646124
+            ],
+            "bootstrap_mean": 0.001992857569215455
+          },
+          "hard_success_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          },
+          "valid_pair_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          }
+        },
+        "failure_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.15104166666666666,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.15104166666666666,
+          "preference": 0.5506901577503429
+        },
+        "sole_blocker_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.0,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.0,
+          "preference": 0.5506901577503429
+        },
+        "diagnostic_acceptance_ignoring_rule": {
+          "runtime": 0.2982681755829904,
+          "hard_success": 0.2982681755829904,
+          "visibility": 0.2982681755829904,
+          "position": 0.2982681755829904,
+          "rotation": 0.2982681755829904,
+          "valid_pairs": 0.2982681755829904,
+          "valid_position": 0.2982681755829904,
+          "preference": 0.8489583333333334
+        },
+        "diagnostic_acceptance_ignoring_position_pair": 0.4493098422496571,
+        "counterfactual_rule_omissions_are_not_selection_changes": true
+      },
+      "test": {
+        "baseline": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 45,
+          "success_rate": 0.9375,
+          "preference_error_m": 0.09113877014998495,
+          "visibility_mean": 0.9767511260075527,
+          "diversity_position_rms_m": 0.48981443544318176,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 66,
+          "valid_pair_diversity_m": 0.4905751176570562,
+          "failures": {
+            "mesh_passage": 3
+          },
+          "generation_wall_seconds_mean": 1.387553069294275,
+          "controller_cpu_seconds_total": 46.71980254899961,
+          "runtime_cpu_seconds_total": 29.835935000000006,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 46,
+          "success_rate": 0.9583333333333334,
+          "preference_error_m": 0.05029661726270703,
+          "visibility_mean": 0.97731680574693,
+          "diversity_position_rms_m": 0.46033144889037125,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 66,
+          "valid_pair_diversity_m": 0.44503658066089447,
+          "failures": {
+            "mesh_passage": 2
+          },
+          "generation_wall_seconds_mean": 1.378234474657802,
+          "controller_cpu_seconds_total": 45.916460363,
+          "runtime_cpu_seconds_total": 30.572823999999997,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.04084215288727792,
+          "position_retention": 0.9398078447276988,
+          "valid_position_retention": 0.9071731619539739,
+          "rotation_retention": 1.0,
+          "visibility_change": 0.0005656797393773783,
+          "hard_success_count_change": 1,
+          "valid_pair_count_change": 0
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 1.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.010565679739377387,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": 0.01949845699150765,
+            "unit": "m",
+            "passed": true
+          },
+          "rotation": {
+            "margin": 1.9076292451637658,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": 0.003518974769543881,
+            "unit": "m",
+            "passed": true
+          },
+          "preference": {
+            "margin": 0.030842152887277922,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [],
+        "accepted": true,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": false
+      },
+      "selection_test_disagreement": true,
+      "family_shift": {
+        "selection_family_means": {
+          "doorway": {
+            "conditions": 2,
+            "preference_improvement_m": 0.0130459762477666,
+            "position_retention": 0.9393025596396196,
+            "valid_position_retention": 0.9393025596396196,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 2,
+            "preference_improvement_m": 0.021086540297310885,
+            "position_retention": 0.8265459372181112,
+            "valid_position_retention": 0.826545937218111,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 1,
+            "preference_improvement_m": -0.010586046621652079,
+            "position_retention": 1.3932877044366612,
+            "valid_position_retention": 1.3932877044366612,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.011957145415292247,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 1,
+            "preference_improvement_m": 0.0003125607849729928,
+            "position_retention": 0.9980012135518062,
+            "valid_position_retention": 0.9980012135518058,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          }
+        },
+        "test_family_means": {
+          "doorway": {
+            "conditions": 3,
+            "preference_improvement_m": 0.022579856866393078,
+            "position_retention": 0.7921780086281807,
+            "valid_position_retention": 0.7921780086281806,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 3,
+            "preference_improvement_m": 0.039480272130459536,
+            "position_retention": 0.9431102202889062,
+            "valid_position_retention": 0.9431102202889066,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 3,
+            "preference_improvement_m": 0.08395013312223217,
+            "position_retention": 0.9860845178426696,
+            "valid_position_retention": 0.9860845178426696,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.002262718957509402,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 3,
+            "preference_improvement_m": 0.017358349430026898,
+            "position_retention": 1.0343258814511043,
+            "valid_position_retention": 0.8804678492635398,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 1.0,
+            "valid_pair_count_change": 0.0
+          }
+        },
+        "selection_gain_under_equal_family_weights_m": 0.0059647576770996,
+        "test_gain_under_equal_family_weights_m": 0.04084215288727792,
+        "test_minus_selection_gain_composition_component_m": -0.003700500198479714,
+        "test_minus_selection_gain_within_family_component_m": 0.03487739521017832,
+        "decomposition_reference": "Selection family effects; descriptive identity, not causal attribution"
+      }
+    },
+    {
+      "initial": "sequential_projection",
+      "policy": "M3",
+      "repeat": 1,
+      "selection": {
+        "baseline": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.2563408494120203,
+          "visibility_mean": 0.980991498201188,
+          "diversity_position_rms_m": 0.45682737711736837,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.4568273771173683,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.4116922026926961,
+          "controller_cpu_seconds_total": 23.885544273999976,
+          "runtime_cpu_seconds_total": 14.977798999999997,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.2526303546363654,
+          "visibility_mean": 0.9829843557704034,
+          "diversity_position_rms_m": 0.45836882119310923,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.4583688211931093,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.3648700059663195,
+          "controller_cpu_seconds_total": 22.76195233599995,
+          "runtime_cpu_seconds_total": 15.009602999999998,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.0037104947756548823,
+          "position_retention": 1.0033742375193613,
+          "valid_position_retention": 1.0033742375193615,
+          "rotation_retention": 1.0,
+          "visibility_change": 0.0019928575692154116,
+          "hard_success_count_change": 0,
+          "valid_pair_count_change": 0
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.01199285756921542,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": 0.04722418178747767,
+            "unit": "m",
+            "passed": true
+          },
+          "rotation": {
+            "margin": 1.9748493144318298,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": 0.04722418178747778,
+            "unit": "m",
+            "passed": true
+          },
+          "preference": {
+            "margin": -0.006289505224345127,
+            "unit": "m",
+            "passed": false
+          }
+        },
+        "rejected_by": [
+          "preference"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": "preference",
+        "only_position_distribution_blocked": false
+      },
+      "selection_bootstrap": {
+        "method": "Exhaustive ordinary paired condition-cluster bootstrap; all ordered draws equally weighted",
+        "conditions_per_draw": 6,
+        "seeds_per_condition_kept_together": 4,
+        "resamples": 46656,
+        "monte_carlo_sampling": false,
+        "accept_count": 7282,
+        "accept_frequency": 0.15607853223593965,
+        "intervals": {
+          "preference_improvement_m": {
+            "percentile_95": [
+              -0.013796879832580988,
+              0.02139425961884156
+            ],
+            "bootstrap_mean": 0.0037104947756549
+          },
+          "position_retention": {
+            "percentile_95": [
+              0.8664274725809584,
+              1.1886684050867793
+            ],
+            "bootstrap_mean": 1.0073258623821217
+          },
+          "valid_position_retention": {
+            "percentile_95": [
+              0.8664274725809583,
+              1.1886684050867793
+            ],
+            "bootstrap_mean": 1.0073258623821215
+          },
+          "rotation_retention": {
+            "percentile_95": [
+              1.0,
+              1.0
+            ],
+            "bootstrap_mean": 1.0
+          },
+          "visibility_change": {
+            "percentile_95": [
+              0.0,
+              0.005978572707646124
+            ],
+            "bootstrap_mean": 0.001992857569215455
+          },
+          "hard_success_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          },
+          "valid_pair_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          }
+        },
+        "failure_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.0718235596707819,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.0718235596707819,
+          "preference": 0.7720979080932785
+        },
+        "sole_blocker_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.0,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.0,
+          "preference": 0.7720979080932785
+        },
+        "diagnostic_acceptance_ignoring_rule": {
+          "runtime": 0.15607853223593965,
+          "hard_success": 0.15607853223593965,
+          "visibility": 0.15607853223593965,
+          "position": 0.15607853223593965,
+          "rotation": 0.15607853223593965,
+          "valid_pairs": 0.15607853223593965,
+          "valid_position": 0.15607853223593965,
+          "preference": 0.9281764403292181
+        },
+        "diagnostic_acceptance_ignoring_position_pair": 0.22790209190672153,
+        "counterfactual_rule_omissions_are_not_selection_changes": true
+      },
+      "test": {
+        "baseline": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 45,
+          "success_rate": 0.9375,
+          "preference_error_m": 0.09113877014998495,
+          "visibility_mean": 0.9767511260075527,
+          "diversity_position_rms_m": 0.48981443544318176,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 66,
+          "valid_pair_diversity_m": 0.4905751176570562,
+          "failures": {
+            "mesh_passage": 3
+          },
+          "generation_wall_seconds_mean": 1.387553069294275,
+          "controller_cpu_seconds_total": 46.71980254899961,
+          "runtime_cpu_seconds_total": 29.835935000000006,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 47,
+          "success_rate": 0.9791666666666666,
+          "preference_error_m": 0.055190124134950974,
+          "visibility_mean": 0.9763732075924143,
+          "diversity_position_rms_m": 0.4933047158156984,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 69,
+          "valid_pair_diversity_m": 0.48900965126845714,
+          "failures": {
+            "mesh_passage": 1
+          },
+          "generation_wall_seconds_mean": 1.4147529439942446,
+          "controller_cpu_seconds_total": 48.18389938700011,
+          "runtime_cpu_seconds_total": 29.09239900000003,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.035948646015033975,
+          "position_retention": 1.0071257197010919,
+          "valid_position_retention": 0.9968089160410833,
+          "rotation_retention": 1.0,
+          "visibility_change": -0.00037791841513834523,
+          "hard_success_count_change": 2,
+          "valid_pair_count_change": 3
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 2.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.009622081584861664,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": 0.0524717239168348,
+            "unit": "m",
+            "passed": true
+          },
+          "rotation": {
+            "margin": 1.9076292451637658,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 3.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": 0.04749204537710655,
+            "unit": "m",
+            "passed": true
+          },
+          "preference": {
+            "margin": 0.02594864601503398,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [],
+        "accepted": true,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": false
+      },
+      "selection_test_disagreement": true,
+      "family_shift": {
+        "selection_family_means": {
+          "doorway": {
+            "conditions": 2,
+            "preference_improvement_m": 0.006766293451011485,
+            "position_retention": 0.9827178604710753,
+            "valid_position_retention": 0.9827178604710753,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 2,
+            "preference_improvement_m": 0.0203617978587895,
+            "position_retention": 0.8509469139024993,
+            "valid_position_retention": 0.8509469139024993,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 1,
+            "preference_improvement_m": -0.03216032596591811,
+            "position_retention": 1.4249180296483894,
+            "valid_position_retention": 1.4249180296483894,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.011957145415292247,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 1,
+            "preference_improvement_m": 0.00016711200024555062,
+            "position_retention": 0.9982948906756298,
+            "valid_position_retention": 0.9982948906756294,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          }
+        },
+        "test_family_means": {
+          "doorway": {
+            "conditions": 3,
+            "preference_improvement_m": 0.022926499627093998,
+            "position_retention": 0.8967214150033014,
+            "valid_position_retention": 0.8967214150033013,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 3,
+            "preference_improvement_m": 0.03749275110642414,
+            "position_retention": 0.9805930427281824,
+            "valid_position_retention": 0.9805930427281826,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 3,
+            "preference_improvement_m": 0.06935457189180952,
+            "position_retention": 0.9286925457547541,
+            "valid_position_retention": 0.9286925457547541,
+            "rotation_retention": 1.0,
+            "visibility_change": -0.001511673660553381,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 3,
+            "preference_improvement_m": 0.014020761434808238,
+            "position_retention": 1.249175242839886,
+            "valid_position_retention": 1.287133751700492,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 2.0,
+            "valid_pair_count_change": 3.0
+          }
+        },
+        "selection_gain_under_equal_family_weights_m": -0.0012162806639678947,
+        "test_gain_under_equal_family_weights_m": 0.035948646015033975,
+        "test_minus_selection_gain_composition_component_m": -0.004926775439622795,
+        "test_minus_selection_gain_within_family_component_m": 0.03716492667900187,
+        "decomposition_reference": "Selection family effects; descriptive identity, not causal attribution"
+      }
+    },
+    {
+      "initial": "sequential_projection",
+      "policy": "M2",
+      "repeat": 1,
+      "selection": {
+        "baseline": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.2563408494120203,
+          "visibility_mean": 0.980991498201188,
+          "diversity_position_rms_m": 0.45682737711736837,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.4568273771173683,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.4116922026926961,
+          "controller_cpu_seconds_total": 23.885544273999976,
+          "runtime_cpu_seconds_total": 14.977798999999997,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.2254565824039297,
+          "visibility_mean": 0.9829843557704034,
+          "diversity_position_rms_m": 0.35120933060333803,
+          "diversity_rotation_deg": 9.874246572159151,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.351209330603338,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.3581223619209293,
+          "controller_cpu_seconds_total": 22.49472212499998,
+          "runtime_cpu_seconds_total": 15.057877000000019,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.030884267008090577,
+          "position_retention": 0.7688009698970057,
+          "valid_position_retention": 0.7688009698970057,
+          "rotation_retention": 1.0,
+          "visibility_change": 0.0019928575692154116,
+          "hard_success_count_change": 0,
+          "valid_pair_count_change": 0
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.01199285756921542,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": -0.05993530880229353,
+            "unit": "m",
+            "passed": false
+          },
+          "rotation": {
+            "margin": 1.9748493144318298,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": -0.05993530880229353,
+            "unit": "m",
+            "passed": false
+          },
+          "preference": {
+            "margin": 0.020884267008090568,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [
+          "position",
+          "valid_position"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": true
+      },
+      "selection_bootstrap": {
+        "method": "Exhaustive ordinary paired condition-cluster bootstrap; all ordered draws equally weighted",
+        "conditions_per_draw": 6,
+        "seeds_per_condition_kept_together": 4,
+        "resamples": 46656,
+        "monte_carlo_sampling": false,
+        "accept_count": 7738,
+        "accept_frequency": 0.16585219478737998,
+        "intervals": {
+          "preference_improvement_m": {
+            "percentile_95": [
+              0.015872838246125454,
+              0.04531006384952764
+            ],
+            "bootstrap_mean": 0.030884267008090566
+          },
+          "position_retention": {
+            "percentile_95": [
+              0.5009836603439605,
+              1.0247701144586323
+            ],
+            "bootstrap_mean": 0.7685251286530738
+          },
+          "valid_position_retention": {
+            "percentile_95": [
+              0.5009836603439605,
+              1.024770114458632
+            ],
+            "bootstrap_mean": 0.7685251286530737
+          },
+          "rotation_retention": {
+            "percentile_95": [
+              1.0,
+              1.0
+            ],
+            "bootstrap_mean": 1.0
+          },
+          "visibility_change": {
+            "percentile_95": [
+              0.0,
+              0.005978572707646124
+            ],
+            "bootstrap_mean": 0.001992857569215455
+          },
+          "hard_success_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          },
+          "valid_pair_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          }
+        },
+        "failure_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.83414780521262,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.83414780521262,
+          "preference": 0.0021433470507544582
+        },
+        "sole_blocker_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.0,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.0,
+          "preference": 0.0
+        },
+        "diagnostic_acceptance_ignoring_rule": {
+          "runtime": 0.16585219478737998,
+          "hard_success": 0.16585219478737998,
+          "visibility": 0.16585219478737998,
+          "position": 0.16585219478737998,
+          "rotation": 0.16585219478737998,
+          "valid_pairs": 0.16585219478737998,
+          "valid_position": 0.16585219478737998,
+          "preference": 0.16585219478737998
+        },
+        "diagnostic_acceptance_ignoring_position_pair": 0.9978566529492455,
+        "counterfactual_rule_omissions_are_not_selection_changes": true
+      },
+      "test": {
+        "baseline": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 45,
+          "success_rate": 0.9375,
+          "preference_error_m": 0.09113877014998495,
+          "visibility_mean": 0.9767511260075527,
+          "diversity_position_rms_m": 0.48981443544318176,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 66,
+          "valid_pair_diversity_m": 0.4905751176570562,
+          "failures": {
+            "mesh_passage": 3
+          },
+          "generation_wall_seconds_mean": 1.387553069294275,
+          "controller_cpu_seconds_total": 46.71980254899961,
+          "runtime_cpu_seconds_total": 29.835935000000006,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 46,
+          "success_rate": 0.9583333333333334,
+          "preference_error_m": 0.037035105239683,
+          "visibility_mean": 0.978720353270844,
+          "diversity_position_rms_m": 0.42391786478080246,
+          "diversity_rotation_deg": 9.538146225818831,
+          "valid_pair_count": 67,
+          "valid_pair_diversity_m": 0.41560087979335647,
+          "failures": {
+            "mesh_passage": 2
+          },
+          "generation_wall_seconds_mean": 1.432329558597606,
+          "controller_cpu_seconds_total": 50.31371605899977,
+          "runtime_cpu_seconds_total": 26.594966,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.05410366491030195,
+          "position_retention": 0.8654662543729312,
+          "valid_position_retention": 0.8471707284670895,
+          "rotation_retention": 1.0,
+          "visibility_change": 0.0019692272632912955,
+          "hard_success_count_change": 1,
+          "valid_pair_count_change": 1
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 1.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.011969227263291304,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": -0.016915127118061146,
+            "unit": "m",
+            "passed": false
+          },
+          "rotation": {
+            "margin": 1.9076292451637658,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 1.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": -0.025916726097994114,
+            "unit": "m",
+            "passed": false
+          },
+          "preference": {
+            "margin": 0.04410366491030195,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [
+          "position",
+          "valid_position"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": true
+      },
+      "selection_test_disagreement": false,
+      "family_shift": {
+        "selection_family_means": {
+          "doorway": {
+            "conditions": 2,
+            "preference_improvement_m": 0.044339964195539816,
+            "position_retention": 0.3492658727161875,
+            "valid_position_retention": 0.3492658727161875,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 2,
+            "preference_improvement_m": 0.021237263359416947,
+            "position_retention": 0.9481848276635926,
+            "valid_position_retention": 0.9481848276635924,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 1,
+            "preference_improvement_m": 0.04996985214584815,
+            "position_retention": 1.3133933474953965,
+            "valid_position_retention": 1.3133933474953965,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.011957145415292247,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 1,
+            "preference_improvement_m": 0.004181294792781731,
+            "position_retention": 0.7431688584108992,
+            "valid_position_retention": 0.7431688584108991,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          }
+        },
+        "test_family_means": {
+          "doorway": {
+            "conditions": 3,
+            "preference_improvement_m": 0.019796003313981497,
+            "position_retention": 0.9443688901686728,
+            "valid_position_retention": 0.9443688901686726,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 3,
+            "preference_improvement_m": 0.0442288545374658,
+            "position_retention": 0.8716703024162227,
+            "valid_position_retention": 0.8716703024162229,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 3,
+            "preference_improvement_m": 0.13601815471691803,
+            "position_retention": 0.7574758880702426,
+            "valid_position_retention": 0.7574758880702426,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.007876909053165071,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 3,
+            "preference_improvement_m": 0.01637164707284247,
+            "position_retention": 0.9074845151497343,
+            "valid_position_retention": 0.8276384248446306,
+            "rotation_retention": 1.0,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 1.0,
+            "valid_pair_count_change": 1.0
+          }
+        },
+        "selection_gain_under_equal_family_weights_m": 0.02993209362339666,
+        "test_gain_under_equal_family_weights_m": 0.05410366491030195,
+        "test_minus_selection_gain_composition_component_m": -0.0009521733846939049,
+        "test_minus_selection_gain_within_family_component_m": 0.024171571286905287,
+        "decomposition_reference": "Selection family effects; descriptive identity, not causal attribution"
+      }
+    },
+    {
+      "initial": "shared_shift",
+      "policy": "M2",
+      "repeat": 0,
+      "selection": {
+        "baseline": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 1.51855560882179,
+          "visibility_mean": 0.9752982073001687,
+          "diversity_position_rms_m": 0.46477067150416357,
+          "diversity_rotation_deg": 16.579395796944677,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.46477067150416357,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.2455366403931596,
+          "controller_cpu_seconds_total": 20.34492143800002,
+          "runtime_cpu_seconds_total": 14.722273,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 6,
+          "runs": 24,
+          "successes": 24,
+          "success_rate": 1,
+          "preference_error_m": 0.3256779279353669,
+          "visibility_mean": 0.9727433591990383,
+          "diversity_position_rms_m": 0.1682960813500661,
+          "diversity_rotation_deg": 12.648845836246018,
+          "valid_pair_count": 36,
+          "valid_pair_diversity_m": 0.1682960813500661,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.1306409634707961,
+          "controller_cpu_seconds_total": 17.71717762999998,
+          "runtime_cpu_seconds_total": 13.671298999999976,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 1.192877680886423,
+          "position_retention": 0.3621056397672426,
+          "valid_position_retention": 0.3621056397672426,
+          "rotation_retention": 0.7629256211240824,
+          "visibility_change": -0.0025548481011303803,
+          "hard_success_count_change": 0,
+          "valid_pair_count_change": 0
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.007445151898869629,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": -0.24999752300368114,
+            "unit": "m",
+            "passed": false
+          },
+          "rotation": {
+            "margin": -0.6146708013097246,
+            "unit": "deg",
+            "passed": false
+          },
+          "valid_pairs": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": -0.24999752300368114,
+            "unit": "m",
+            "passed": false
+          },
+          "preference": {
+            "margin": 1.1828776808864232,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [
+          "position",
+          "rotation",
+          "valid_position"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": false
+      },
+      "selection_bootstrap": {
+        "method": "Exhaustive ordinary paired condition-cluster bootstrap; all ordered draws equally weighted",
+        "conditions_per_draw": 6,
+        "seeds_per_condition_kept_together": 4,
+        "resamples": 46656,
+        "monte_carlo_sampling": false,
+        "accept_count": 1,
+        "accept_frequency": 2.143347050754458e-05,
+        "intervals": {
+          "preference_improvement_m": {
+            "percentile_95": [
+              0.9554206226775208,
+              1.4122911448913353
+            ],
+            "bootstrap_mean": 1.192877680886423
+          },
+          "position_retention": {
+            "percentile_95": [
+              0.23507149199035454,
+              0.5964711999175496
+            ],
+            "bootstrap_mean": 0.37205349936442106
+          },
+          "valid_position_retention": {
+            "percentile_95": [
+              0.2350714919903546,
+              0.5964711999175494
+            ],
+            "bootstrap_mean": 0.37205349936442106
+          },
+          "rotation_retention": {
+            "percentile_95": [
+              0.6385503754242196,
+              0.9442280805786215
+            ],
+            "bootstrap_mean": 0.7728748196480685
+          },
+          "visibility_change": {
+            "percentile_95": [
+              -0.007664544303391363,
+              0.0
+            ],
+            "bootstrap_mean": -0.0025548481011304362
+          },
+          "hard_success_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          },
+          "valid_pair_count_change": {
+            "percentile_95": [
+              0.0,
+              0.0
+            ],
+            "bootstrap_mean": 0.0
+          }
+        },
+        "failure_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0087019890260631,
+          "position": 0.9999785665294925,
+          "rotation": 0.6541709533607681,
+          "valid_pairs": 0.0,
+          "valid_position": 0.9999785665294925,
+          "preference": 0.0
+        },
+        "sole_blocker_frequency": {
+          "runtime": 0.0,
+          "hard_success": 0.0,
+          "visibility": 0.0,
+          "position": 0.0,
+          "rotation": 0.0,
+          "valid_pairs": 0.0,
+          "valid_position": 0.0,
+          "preference": 0.0
+        },
+        "diagnostic_acceptance_ignoring_rule": {
+          "runtime": 2.143347050754458e-05,
+          "hard_success": 2.143347050754458e-05,
+          "visibility": 2.143347050754458e-05,
+          "position": 2.143347050754458e-05,
+          "rotation": 2.143347050754458e-05,
+          "valid_pairs": 2.143347050754458e-05,
+          "valid_position": 2.143347050754458e-05,
+          "preference": 2.143347050754458e-05
+        },
+        "diagnostic_acceptance_ignoring_position_pair": 0.33712705761316875,
+        "counterfactual_rule_omissions_are_not_selection_changes": true
+      },
+      "test": {
+        "baseline": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 47,
+          "success_rate": 0.9791666666666666,
+          "preference_error_m": 1.1420812461447527,
+          "visibility_mean": 0.9670454434076842,
+          "diversity_position_rms_m": 0.40568999360190455,
+          "diversity_rotation_deg": 14.443701296907603,
+          "valid_pair_count": 69,
+          "valid_pair_diversity_m": 0.39840058088476366,
+          "failures": {
+            "mesh_passage": 1
+          },
+          "generation_wall_seconds_mean": 1.2260252052316598,
+          "controller_cpu_seconds_total": 41.412186224999914,
+          "runtime_cpu_seconds_total": 25.80218599999995,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "candidate": {
+          "tasks": 12,
+          "runs": 48,
+          "successes": 48,
+          "success_rate": 1,
+          "preference_error_m": 0.16125299288072026,
+          "visibility_mean": 0.9660817313727837,
+          "diversity_position_rms_m": 0.20125634873111176,
+          "diversity_rotation_deg": 12.753727488519113,
+          "valid_pair_count": 72,
+          "valid_pair_diversity_m": 0.20125634873111176,
+          "failures": {},
+          "generation_wall_seconds_mean": 1.1740170867512159,
+          "controller_cpu_seconds_total": 37.90856672699954,
+          "runtime_cpu_seconds_total": 27.01783000000006,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "changes": {
+          "preference_improvement_m": 0.9808282532640324,
+          "position_retention": 0.49608408367252105,
+          "valid_position_retention": 0.5051607813526874,
+          "rotation_retention": 0.8829957935539477,
+          "visibility_change": -0.0009637120349004213,
+          "hard_success_count_change": 1,
+          "valid_pair_count_change": 3
+        },
+        "checks": {
+          "runtime": {
+            "margin": 0.0,
+            "unit": "count",
+            "passed": true
+          },
+          "hard_success": {
+            "margin": 1.0,
+            "unit": "count",
+            "passed": true
+          },
+          "visibility": {
+            "margin": 0.009036287965099588,
+            "unit": "fraction",
+            "passed": true
+          },
+          "position": {
+            "margin": -0.16386464551060237,
+            "unit": "m",
+            "passed": false
+          },
+          "rotation": {
+            "margin": 1.1987664509930287,
+            "unit": "deg",
+            "passed": true
+          },
+          "valid_pairs": {
+            "margin": 3.0,
+            "unit": "count",
+            "passed": true
+          },
+          "valid_position": {
+            "margin": -0.15730417406517555,
+            "unit": "m",
+            "passed": false
+          },
+          "preference": {
+            "margin": 0.9708282532640324,
+            "unit": "m",
+            "passed": true
+          }
+        },
+        "rejected_by": [
+          "position",
+          "valid_position"
+        ],
+        "accepted": false,
+        "sole_blocking_metric": null,
+        "only_position_distribution_blocked": true
+      },
+      "selection_test_disagreement": false,
+      "family_shift": {
+        "selection_family_means": {
+          "doorway": {
+            "conditions": 2,
+            "preference_improvement_m": 1.0521255835789916,
+            "position_retention": 0.5024886104932194,
+            "valid_position_retention": 0.5024886104932194,
+            "rotation_retention": 0.6907189329521786,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "inclined": {
+            "conditions": 2,
+            "preference_improvement_m": 1.3532280775907692,
+            "position_retention": 0.22013503618959174,
+            "valid_position_retention": 0.22013503618959174,
+            "rotation_retention": 0.7726559728158584,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 1,
+            "preference_improvement_m": 1.588331870202862,
+            "position_retention": 0.5658391058915606,
+            "valid_position_retention": 0.5658391058915607,
+            "rotation_retention": 1.1239128908813907,
+            "visibility_change": -0.015329088606782393,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 1,
+            "preference_improvement_m": 0.7582268927761544,
+            "position_retention": 0.30145925971321413,
+            "valid_position_retention": 0.3014592597132142,
+            "rotation_retention": 0.6746349264036632,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          }
+        },
+        "test_family_means": {
+          "doorway": {
+            "conditions": 3,
+            "preference_improvement_m": 1.4419058633945085,
+            "position_retention": 0.3412143043651151,
+            "valid_position_retention": 0.3608352682790454,
+            "rotation_retention": 0.698446603687879,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 1.0,
+            "valid_pair_count_change": 3.0
+          },
+          "inclined": {
+            "conditions": 3,
+            "preference_improvement_m": 0.631511955041293,
+            "position_retention": 0.5957102181183241,
+            "valid_position_retention": 0.5957102181183241,
+            "rotation_retention": 1.0184112716456561,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "occlusion": {
+            "conditions": 3,
+            "preference_improvement_m": 1.183838210559955,
+            "position_retention": 0.504634032208966,
+            "valid_position_retention": 0.504634032208966,
+            "rotation_retention": 0.9770313984354188,
+            "visibility_change": -0.0038548481396015744,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          },
+          "paired": {
+            "conditions": 3,
+            "preference_improvement_m": 0.666056984060373,
+            "position_retention": 0.5497010756488074,
+            "valid_position_retention": 0.5497010756488073,
+            "rotation_retention": 0.8481019093072943,
+            "visibility_change": 0.0,
+            "hard_success_count_change": 0.0,
+            "valid_pair_count_change": 0.0
+          }
+        },
+        "selection_gain_under_equal_family_weights_m": 1.1879781060371943,
+        "test_gain_under_equal_family_weights_m": 0.9808282532640323,
+        "test_minus_selection_gain_composition_component_m": -0.004899574849228636,
+        "test_minus_selection_gain_within_family_component_m": -0.20714985277316192,
+        "decomposition_reference": "Selection family effects; descriptive identity, not causal attribution"
+      }
+    }
+  ],
+  "limitations": "Six observed selection conditions; bootstrap frequencies are sensitivity under their empirical distribution, not probabilities of true validity. Singleton families cannot estimate within-family uncertainty. Test diagnoses cannot be reused for selection or policy training."
+}
