@@ -1,0 +1,109 @@
+import math
+import random
+
+METHOD = 'repair'
+
+
+def parameters(task, rng, yaws):
+    values, groups = {}, {}
+    for name, parent in task['supports'].items():
+        if parent != 'floor':
+            groups.setdefault(parent, []).append(name)
+    for name, parent in task['supports'].items():
+        if parent == 'floor':
+            x0, y0, x1, y1 = task['zones'][name]
+            values[name] = [rng.uniform(x0, x1), rng.uniform(y0, y1), yaws[name]]
+        else:
+            mount = next(q for q in task['fixed'] if q['id'] == parent)
+            asset = task['spec']['assets'][mount['asset']]
+            siblings = sorted(groups[parent])
+            offset = (siblings.index(name) - (len(siblings) - 1) / 2) * asset['width'] * .48
+            values[name] = [offset + rng.uniform(-.08, .08), rng.uniform(-.14, .02), yaws[name]]
+    return values
+
+
+def floor_bounds(task, values, name):
+    x0, y0, x1, y1 = task['zones'][name]
+    asset = next(q['asset'] for q in task['spec']['required_objects'] if q['id'] == name)
+    asset = task['spec']['assets'][asset]
+    x, y, yaw = values[name]
+    ex = (abs(math.cos(yaw)) * asset['width'] + abs(math.sin(yaw)) * asset['depth']) / 2 + .01
+    ey = (abs(math.sin(yaw)) * asset['width'] + abs(math.cos(yaw)) * asset['depth']) / 2 + .01
+    return x0 + ex, y0 + ey, x1 - ex, y1 - ey
+
+
+def clamp_floor(task, values, name):
+    x0, y0, x1, y1 = floor_bounds(task, values, name)
+    x, y, yaw = values[name]
+    values[name] = [min(x1, max(x0, x)), min(y1, max(y0, y)), yaw]
+
+
+def project_relation(task, values, rule):
+    a, b = rule['a'], rule['b']
+    ab, bb = floor_bounds(task, values, a), floor_bounds(task, values, b)
+    if any(bounds[k] > bounds[k + 2] for bounds in (ab, bb) for k in (0, 1)):
+        return
+    assets = {q['id']: task['spec']['assets'][q['asset']]
+              for q in task['spec']['required_objects']}
+    dz = (assets[b]['height'] - assets[a]['height']) / 2
+    radius = math.sqrt(max(0., rule['target'] ** 2 - dz ** 2))
+    dx, dy = values[b][0] - values[a][0], values[b][1] - values[a][1]
+    lo = [bb[k] - ab[k + 2] for k in (0, 1)]
+    hi = [bb[k + 2] - ab[k] for k in (0, 1)]
+    # The reachable relative positions form a rectangle. Find the nearest
+    # preferred-distance circle point, including all rectangle-edge crossings.
+    candidates = [(dx, dy)]
+    length = math.hypot(dx, dy)
+    if length > 1e-12:
+        candidates.append((dx * radius / length, dy * radius / length))
+    else:
+        candidates.append((radius, 0.))
+    candidates.append(tuple(min(hi[k], max(lo[k], 0.)) for k in (0, 1)))
+    for x in (lo[0], hi[0]):
+        for y in (lo[1], hi[1]):
+            candidates.append((x, y))
+        if abs(x) <= radius:
+            y = math.sqrt(max(0., radius * radius - x * x))
+            candidates.extend(((x, y), (x, -y)))
+    for y in (lo[1], hi[1]):
+        if abs(y) <= radius:
+            x = math.sqrt(max(0., radius * radius - y * y))
+            candidates.extend(((x, y), (-x, y)))
+    feasible = [p for p in candidates
+                if all(lo[k] <= p[k] <= hi[k] for k in (0, 1))]
+    if not feasible:
+        return
+    error = lambda p: abs(math.sqrt(p[0] ** 2 + p[1] ** 2 + dz ** 2) - rule['target'])
+    best_error = min(error(p) for p in feasible)
+    # Resolve equivalent target solutions by the smallest change in relative
+    # position; retain the sampled pair midpoint wherever the zones permit it.
+    target = min((p for p in feasible if error(p) <= best_error + 1e-10),
+                 key=lambda p: (p[0] - dx) ** 2 + (p[1] - dy) ** 2)
+    for k in (0, 1):
+        lower = max(ab[k], bb[k] - target[k])
+        upper = min(ab[k + 2], bb[k + 2] - target[k])
+        centre = (values[a][k] + values[b][k] - target[k]) / 2
+        values[a][k] = min(upper, max(lower, centre))
+        values[b][k] = values[a][k] + target[k]
+
+
+def best_index(history):
+    return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])
+
+
+def layout(packet):
+    history=packet['history']
+    if packet['phase']=='final':return {'index':best_index(history)}
+    task=packet['task'];rng=random.Random(packet['seed'])
+    if packet['query']:
+        raw=packet['memory']['rng'];rng.setstate((raw[0],tuple(raw[1]),raw[2]))
+        yaws=packet['memory']['yaws']
+    else:yaws={name:rng.uniform(-.25,.25) for name in task['supports']}
+    values=parameters(task,rng,yaws)
+    for name in task['zones']:clamp_floor(task,values,name)
+    for rule in task['relations']:
+        a,b=rule['a'],rule['b']
+        if task['supports'][a]=='floor' and task['supports'][b]=='floor':
+            project_relation(task,values,rule)
+    for name in task['zones']:clamp_floor(task,values,name)
+    return {'values':values,'memory':{'rng':rng.getstate(),'yaws':yaws}}

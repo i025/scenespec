@@ -1,0 +1,2290 @@
+{
+  "objective": "Improve general continuous layout preference error while preserving hard correctness and diversity.",
+  "analysis": "Current diagnosis: reliability (observed). Compare all four repeats for failed hard constraints and locate the first proposal, projection or fallback that breaks feasibility. Evidence: examples.12.pair_metrics.all_hard_success. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.",
+  "strategy": "Edit the supplied INITIAL GENERATOR in place using the trusted contract and actual source. Make one coherent, bounded algorithm-level improvement. Preserve its API, allowed imports, continuous Mesh physics, assets, camera constraints, random-input semantics and all execution/query limits. The upstream meta-policy and controller are fixed.\n\nInspect the selected complete four-repeat condition groups, including the chosen probe. Trace continuous u/v/yaw initialization, proposal generation, Mesh queries, projection, incumbent updates, final selection and fallbacks. Compare outcomes within each condition across all four seeds; pair_metrics summarizes six seed pairs. Packet room geometry is context, not evidence of generated positions. Historical acceptance rejection does not imply physical failure. Query-only selector replays do not validate final physics or adaptive incumbent history.\n\nUse the current diagnosis below to locate the earliest demonstrated mechanism. Separate hard failure, visibility, all-pair positional spread, valid-pair spread and counts, yaw diversity, preference and runtime. If only a baseline exists, comparative retention and preference improvement remain unknown; do not claim collapse from an absolute pair metric. Historical ablations may suggest hypotheses but cannot replace current evidence. Inspect existing safeguards before replacing any construction.\n\nChoose one bounded repair with an explicit invariant in the existing continuous u/v/yaw search. For diversity, distinguish contracted proposals from contracted final selection before changing either; a scalar per-layout optimizer_loss supplies no cross-seed guarantee. Preserve useful seed-dependent translation and yaw while improving preference within feasible outputs. Verify initialization, updates, endpoint selection and every fallback against the same invariant. Avoid discrete board/deadlock assumptions unless the actual source and physics establish them. Do not increase query counts or execution budgets.\n\nFrozen joint acceptance requires zero runtime errors, no hard-success count loss, visibility loss <=0.01, ALL-pair and VALID-pair positional retention >=90%, rotation retention >=80%, no valid-pair count loss and preference improvement >=0.01m. Neither policy nor generator may alter thresholds, oracle, tasks or resources. Treat these as separate measured objectives; a lower optimizer_loss alone is insufficient. Explain the expected mechanism and unresolved margins, with no claims of unseen gains.\n\nCurrent diagnosis: Current diagnosis: reliability (observed). Compare all four repeats for failed hard constraints and locate the first proposal, projection or fallback that breaks feasibility. Evidence: examples.12.pair_metrics.all_hard_success. Historical failed improvements do not establish a current violation. Without a measured candidate comparison, retention and improvement margins are unknown. Single-layout optimizer_loss does not constrain cross-seed diversity.\nResearch observation: Compare all four repeats for failed hard constraints and locate the first proposal, projection or fallback that breaks feasibility.",
+  "feedback": {
+    "metrics": {
+      "current": {
+        "baseline": {
+          "tasks": 24,
+          "runs": 96,
+          "successes": 92,
+          "success_rate": 0.9583333333333334,
+          "preference_error_m": 0.16117856524081164,
+          "visibility_mean": 0.9742094408069927,
+          "diversity_position_rms_m": 0.43764108173035915,
+          "diversity_rotation_deg": 9.561725658980803,
+          "valid_pair_count": 132,
+          "valid_pair_diversity_m": 0.4251592089574521,
+          "failures": {
+            "mesh_passage": 4
+          },
+          "generation_wall_seconds_mean": 1.3673538872923625,
+          "controller_cpu_seconds_total": 90.48520187199996,
+          "runtime_cpu_seconds_total": 61.121983,
+          "runtime_errors": 0,
+          "queries_min": 24,
+          "queries_max": 24
+        },
+        "common": {
+          "tasks": 8,
+          "valid": 8,
+          "valid_rate": 1.0,
+          "solvable": 8,
+          "solvable_rate": 1.0,
+          "preference_error_m_mean": 0.014272939292049036,
+          "visibility_mean": 1.0
+        },
+        "seeds_per_condition": 4
+      },
+      "history": {
+        "attempts": 4,
+        "dev_accepted": 0,
+        "position_retention_mean": 0.738175688349991,
+        "rotation_retention_mean": 0.542852890828193
+      },
+      "constraints": {
+        "runtime_errors_max": 0,
+        "hard_success_loss_max": 0,
+        "visibility_loss_max": 0.01,
+        "position_retention_min": 0.9,
+        "valid_position_retention_min": 0.9,
+        "rotation_retention_min": 0.8,
+        "valid_pair_count_loss_max": 0,
+        "preference_improvement_min_m": 0.01
+      }
+    },
+    "examples": [
+      {
+        "packet": {
+          "family": "paired",
+          "spec": {
+            "scene_id": "reliable_dev_3",
+            "room": {
+              "width": 7.4097236200715635,
+              "depth": 5.619042928560561,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount_0",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "mount_1",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount_0",
+            "box_1": "mount_1",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              0.65,
+              2.1,
+              2.85
+            ],
+            "rover": [
+              5.009723620071563,
+              0.65,
+              7.059723620071564,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 7.0,
+              "target": 4.3
+            }
+          ],
+          "camera": {
+            "position": [
+              4.445834172042938,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.445834172042938,
+              3.483806615707548,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            6.9097236200715635,
+            5.119042928560561
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_3",
+          "objects": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                2.0035903859346087,
+                3.6672904030662092,
+                0.9724594326549187
+              ],
+              "rotation": [
+                0.021651580259763315,
+                0.10975196568821205,
+                0.41912013337535264
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.482526503432244,
+                3.5899207922841745,
+                0.9844297571611644
+              ],
+              "rotation": [
+                -0.020506613277445174,
+                0.1280445576676522,
+                -0.15977580676598158
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                1.4313203638236813,
+                1.1183234481133912,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.18229373968984103
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                5.729447565452398,
+                1.245219305489773,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.17188016951408386
+              ]
+            }
+          ]
+        },
+        "solvable": true,
+        "valid": true,
+        "error": null,
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999993807907988,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.0046486500061755365,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": 44,
+        "condition_index": 3,
+        "repeat": 0,
+        "pair_metrics": {
+          "position_rms_m": 0.5576912972461657,
+          "rotation_mean_deg": 12.588199885919305,
+          "preference_error_m_mean": 0.0035998181789624883,
+          "all_hard_success": false
+        },
+        "origin": "probe"
+      },
+      {
+        "packet": {
+          "family": "paired",
+          "spec": {
+            "scene_id": "reliable_dev_3",
+            "room": {
+              "width": 7.4097236200715635,
+              "depth": 5.619042928560561,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount_0",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "mount_1",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount_0",
+            "box_1": "mount_1",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              0.65,
+              2.1,
+              2.85
+            ],
+            "rover": [
+              5.009723620071563,
+              0.65,
+              7.059723620071564,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 7.0,
+              "target": 4.3
+            }
+          ],
+          "camera": {
+            "position": [
+              4.445834172042938,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.445834172042938,
+              3.483806615707548,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            6.9097236200715635,
+            5.119042928560561
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_3",
+          "objects": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                2.0883159307632724,
+                3.7044432624941823,
+                0.962253282358356
+              ],
+              "rotation": [
+                0.003336550029051035,
+                0.11180927881912166,
+                0.2538272642649689
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.4202390727650185,
+                3.6497568142979007,
+                0.9925560538540128
+              ],
+              "rotation": [
+                0.017728654072403482,
+                0.12845641098418303,
+                0.13701123445028737
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                1.3818555111223294,
+                1.94829874446703,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.21893609450276996
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                5.678170130884543,
+                2.1262894409021724,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                -0.09723965225692432
+              ]
+            }
+          ]
+        },
+        "solvable": true,
+        "valid": true,
+        "error": null,
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999998017257296,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.004648650006177313,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": 44,
+        "condition_index": 3,
+        "repeat": 1,
+        "pair_metrics": {
+          "position_rms_m": 0.5576912972461657,
+          "rotation_mean_deg": 12.588199885919305,
+          "preference_error_m_mean": 0.0035998181789624883,
+          "all_hard_success": false
+        },
+        "origin": "probe"
+      },
+      {
+        "packet": {
+          "family": "paired",
+          "spec": {
+            "scene_id": "reliable_dev_3",
+            "room": {
+              "width": 7.4097236200715635,
+              "depth": 5.619042928560561,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount_0",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "mount_1",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount_0",
+            "box_1": "mount_1",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              0.65,
+              2.1,
+              2.85
+            ],
+            "rover": [
+              5.009723620071563,
+              0.65,
+              7.059723620071564,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 7.0,
+              "target": 4.3
+            }
+          ],
+          "camera": {
+            "position": [
+              4.445834172042938,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.445834172042938,
+              3.483806615707548,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            6.9097236200715635,
+            5.119042928560561
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_3",
+          "objects": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                2.117936310731304,
+                3.6173881210221666,
+                0.9611806798765834
+              ],
+              "rotation": [
+                -0.027549846681070307,
+                0.10842684933501813,
+                -0.025417831945627148
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.529806882250201,
+                3.6268486010662055,
+                0.9782669609865633
+              ],
+              "rotation": [
+                0.027436674202149507,
+                0.12674735098188533,
+                0.21326223482414813
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                1.2977208923628047,
+                2.0179321411334445,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                -0.0958790848369136
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                5.553963905094998,
+                2.576376128220716,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.2441565943562834
+              ]
+            }
+          ]
+        },
+        "solvable": true,
+        "valid": true,
+        "error": null,
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999995188681003,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.0026212326412808906,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": 44,
+        "condition_index": 3,
+        "repeat": 2,
+        "pair_metrics": {
+          "position_rms_m": 0.5576912972461657,
+          "rotation_mean_deg": 12.588199885919305,
+          "preference_error_m_mean": 0.0035998181789624883,
+          "all_hard_success": false
+        },
+        "origin": "probe"
+      },
+      {
+        "packet": {
+          "family": "paired",
+          "spec": {
+            "scene_id": "reliable_dev_3",
+            "room": {
+              "width": 7.4097236200715635,
+              "depth": 5.619042928560561,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount_0",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "mount_1",
+                "asset": "narrow_bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount_0",
+            "box_1": "mount_1",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              0.65,
+              2.1,
+              2.85
+            ],
+            "rover": [
+              5.009723620071563,
+              0.65,
+              7.059723620071564,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 7.0,
+              "target": 4.3
+            }
+          ],
+          "camera": {
+            "position": [
+              4.445834172042938,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.445834172042938,
+              3.483806615707548,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            6.9097236200715635,
+            5.119042928560561
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_3",
+          "objects": [
+            {
+              "id": "mount_0",
+              "asset": "narrow_bench",
+              "position": [
+                2.0006253774193223,
+                3.708568332849971,
+                0.3901194950897326
+              ],
+              "rotation": [
+                -0.003995511578048783,
+                0.1117877646207158,
+                0.1881309937402315
+              ]
+            },
+            {
+              "id": "mount_1",
+              "asset": "narrow_bench",
+              "position": [
+                5.409098242652242,
+                3.708568332849971,
+                0.41111940278260756
+              ],
+              "rotation": [
+                0.011645947163717182,
+                0.12914623581287504,
+                0.08966361019200275
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                2.043985813928373,
+                3.6550813858416817,
+                0.9683397429634064
+              ],
+              "rotation": [
+                -0.016887876256925803,
+                0.11058193542068803,
+                0.07206630352060266
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.496644899680925,
+                3.7193886026658465,
+                0.982597558134477
+              ],
+              "rotation": [
+                0.022603996588274246,
+                0.12769286099906726,
+                0.17517735371665977
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                1.1919869693936245,
+                1.101579315177374,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.22945855333069637
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                5.488978966009114,
+                1.1864338944807145,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                -0.20156019556950677
+              ]
+            }
+          ]
+        },
+        "solvable": false,
+        "valid": true,
+        "error": "mesh_passage",
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999995920725337,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.0024807400622162135,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": null,
+        "condition_index": 3,
+        "repeat": 3,
+        "pair_metrics": {
+          "position_rms_m": 0.5576912972461657,
+          "rotation_mean_deg": 12.588199885919305,
+          "preference_error_m_mean": 0.0035998181789624883,
+          "all_hard_success": false
+        },
+        "origin": "probe"
+      },
+      {
+        "packet": {
+          "family": "inclined",
+          "spec": {
+            "scene_id": "reliable_dev_0",
+            "room": {
+              "width": 7.9733884458936135,
+              "depth": 5.834274852451165,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount",
+                "asset": "bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount",
+            "box_1": "mount",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              3.5842748524511654,
+              2.1,
+              5.584274852451165
+            ],
+            "rover": [
+              0.35,
+              0.65,
+              2.55,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 5.8,
+              "target": 2.2
+            }
+          ],
+          "camera": {
+            "position": [
+              4.784033067536168,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.784033067536168,
+              3.6172504085197223,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            7.4733884458936135,
+            5.334274852451165
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_0",
+          "objects": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                4.2878868298375,
+                3.540873647781715,
+                1.1135253528557834
+              ],
+              "rotation": [
+                0.0012496339311852656,
+                0.1367561345344336,
+                -0.055963189559373426
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.488894109849593,
+                3.7762625928952067,
+                0.9507004101016825
+              ],
+              "rotation": [
+                -0.0017573881472898833,
+                0.13675060113097848,
+                -0.07801965060109611
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                1.4827738402187547,
+                4.069661702797804,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                -0.2177653085473692
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                1.5853338886199764,
+                1.8279796135540387,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                -0.008524434460509545
+              ]
+            }
+          ]
+        },
+        "solvable": true,
+        "valid": true,
+        "error": null,
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999997349122986,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.05292191448446637,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": 47,
+        "condition_index": 0,
+        "repeat": 0,
+        "pair_metrics": {
+          "position_rms_m": 0.41719413212099776,
+          "rotation_mean_deg": 9.302811667772586,
+          "preference_error_m_mean": 0.019182577397614864,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      },
+      {
+        "packet": {
+          "family": "inclined",
+          "spec": {
+            "scene_id": "reliable_dev_0",
+            "room": {
+              "width": 7.9733884458936135,
+              "depth": 5.834274852451165,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount",
+                "asset": "bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount",
+            "box_1": "mount",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              3.5842748524511654,
+              2.1,
+              5.584274852451165
+            ],
+            "rover": [
+              0.35,
+              0.65,
+              2.55,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 5.8,
+              "target": 2.2
+            }
+          ],
+          "camera": {
+            "position": [
+              4.784033067536168,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.784033067536168,
+              3.6172504085197223,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            7.4733884458936135,
+            5.334274852451165
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_0",
+          "objects": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                4.251004796404525,
+                3.5949877457447545,
+                1.1190750190893066
+              ],
+              "rotation": [
+                -0.007807302641222523,
+                0.13654017983890454,
+                -0.12242512903667847
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.41028631228785,
+                3.6696167129219286,
+                0.9605403442937829
+              ],
+              "rotation": [
+                0.021163957491490807,
+                0.13512442084150517,
+                0.09072336922053613
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                1.0635963156939925,
+                4.001562386925109,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                -0.11473208684183678
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                1.9936741634603177,
+                2.0078334191126928,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.21877619533695863
+              ]
+            }
+          ]
+        },
+        "solvable": true,
+        "valid": true,
+        "error": null,
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999997594767338,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.009072203437452409,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": 47,
+        "condition_index": 0,
+        "repeat": 1,
+        "pair_metrics": {
+          "position_rms_m": 0.41719413212099776,
+          "rotation_mean_deg": 9.302811667772586,
+          "preference_error_m_mean": 0.019182577397614864,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      },
+      {
+        "packet": {
+          "family": "inclined",
+          "spec": {
+            "scene_id": "reliable_dev_0",
+            "room": {
+              "width": 7.9733884458936135,
+              "depth": 5.834274852451165,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount",
+                "asset": "bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount",
+            "box_1": "mount",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              3.5842748524511654,
+              2.1,
+              5.584274852451165
+            ],
+            "rover": [
+              0.35,
+              0.65,
+              2.55,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 5.8,
+              "target": 2.2
+            }
+          ],
+          "camera": {
+            "position": [
+              4.784033067536168,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.784033067536168,
+              3.6172504085197223,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            7.4733884458936135,
+            5.334274852451165
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_0",
+          "objects": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                4.324897144663647,
+                3.6648589206162585,
+                1.1095532698230302
+              ],
+              "rotation": [
+                -0.0071268204209386146,
+                0.13657715867761572,
+                -0.1174265388989556
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.421865251178649,
+                3.6928945762930603,
+                0.9591587139010314
+              ],
+              "rotation": [
+                -0.0064290270289521344,
+                0.13661156236181818,
+                -0.11230212466593952
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                1.2227759978524193,
+                4.121104209927949,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.22050620977440238
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                2.1565465045951986,
+                2.129102041069357,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.1637786979209423
+              ]
+            }
+          ]
+        },
+        "solvable": true,
+        "valid": true,
+        "error": null,
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999998505836155,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.009072203437451964,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": 47,
+        "condition_index": 0,
+        "repeat": 2,
+        "pair_metrics": {
+          "position_rms_m": 0.41719413212099776,
+          "rotation_mean_deg": 9.302811667772586,
+          "preference_error_m_mean": 0.019182577397614864,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      },
+      {
+        "packet": {
+          "family": "inclined",
+          "spec": {
+            "scene_id": "reliable_dev_0",
+            "room": {
+              "width": 7.9733884458936135,
+              "depth": 5.834274852451165,
+              "height": 3.8
+            },
+            "required_objects": [
+              {
+                "id": "mount",
+                "asset": "bench"
+              },
+              {
+                "id": "box_0",
+                "asset": "box"
+              },
+              {
+                "id": "box_1",
+                "asset": "box"
+              },
+              {
+                "id": "storage",
+                "asset": "cabinet"
+              },
+              {
+                "id": "rover",
+                "asset": "robot"
+              }
+            ],
+            "assets": {
+              "bench": {
+                "width": 2.6,
+                "depth": 1.25,
+                "height": 0.55
+              },
+              "narrow_bench": {
+                "width": 2.0,
+                "depth": 1.15,
+                "height": 0.55
+              },
+              "box": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.6
+              },
+              "cabinet": {
+                "width": 1.1,
+                "depth": 0.65,
+                "height": 1.3
+              },
+              "robot": {
+                "width": 0.6,
+                "depth": 0.6,
+                "height": 0.9
+              }
+            },
+            "regions": [],
+            "constraints": [],
+            "access_paths": []
+          },
+          "meshes": {
+            "bench": "obstacle",
+            "narrow_bench": "obstacle",
+            "box": "crate",
+            "cabinet": "obstacle",
+            "robot": "agent"
+          },
+          "fixed": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            }
+          ],
+          "supports": {
+            "box_0": "mount",
+            "box_1": "mount",
+            "storage": "floor",
+            "rover": "floor"
+          },
+          "zones": {
+            "storage": [
+              0.25,
+              3.5842748524511654,
+              2.1,
+              5.584274852451165
+            ],
+            "rover": [
+              0.35,
+              0.65,
+              2.55,
+              2.95
+            ]
+          },
+          "relations": [
+            {
+              "a": "storage",
+              "b": "rover",
+              "min": 1.0,
+              "max": 5.8,
+              "target": 2.2
+            }
+          ],
+          "camera": {
+            "position": [
+              4.784033067536168,
+              -1.5,
+              3.2
+            ],
+            "target": [
+              4.784033067536168,
+              3.6172504085197223,
+              0.9
+            ],
+            "fov": 65.0
+          },
+          "visibility": {
+            "box_0": 0.55,
+            "box_1": 0.55
+          },
+          "entry": [
+            0.5,
+            0.5
+          ],
+          "goal": [
+            7.4733884458936135,
+            5.334274852451165
+          ]
+        },
+        "generated": {
+          "scene_id": "reliable_dev_0",
+          "objects": [
+            {
+              "id": "mount",
+              "asset": "bench",
+              "position": [
+                4.784033067536168,
+                3.733935905568746,
+                0.46367140078999647
+              ],
+              "rotation": [
+                0.021177233276977396,
+                0.135122358640899,
+                0.09082192921570931
+              ]
+            },
+            {
+              "id": "box_0",
+              "asset": "box",
+              "position": [
+                4.325399893560859,
+                3.6387682117762603,
+                1.1092505385672982
+              ],
+              "rotation": [
+                0.033983103244446394,
+                0.13249793198640417,
+                0.18673754739355355
+              ]
+            },
+            {
+              "id": "box_1",
+              "asset": "box",
+              "position": [
+                5.4493330480621935,
+                3.7028849726481843,
+                0.9554760674603865
+              ],
+              "rotation": [
+                0.012175435446572683,
+                0.13622214819738065,
+                0.024292451134086797
+              ]
+            },
+            {
+              "id": "storage",
+              "asset": "cabinet",
+              "position": [
+                0.8321705158529886,
+                4.2470837596305415,
+                0.653
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.07275854873980309
+              ]
+            },
+            {
+              "id": "rover",
+              "asset": "robot",
+              "position": [
+                0.9465291258723598,
+                2.0534849500726247,
+                0.453
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.13606723187958775
+              ]
+            }
+          ]
+        },
+        "solvable": true,
+        "valid": true,
+        "error": null,
+        "quality": {
+          "penetration_m": 0.0,
+          "boundary_excess_m": 0.0,
+          "support_gap_m": 0.005999990075421371,
+          "relation_error_m": 0.0,
+          "preference_error_m": 0.005663988231088712,
+          "visibility_mean": 1.0,
+          "framing_mean": 1.0
+        },
+        "shortest_actions": 47,
+        "condition_index": 0,
+        "repeat": 3,
+        "pair_metrics": {
+          "position_rms_m": 0.41719413212099776,
+          "rotation_mean_deg": 9.302811667772586,
+          "preference_error_m_mean": 0.019182577397614864,
+          "all_hard_success": true
+        },
+        "origin": "common"
+      }
+    ],
+    "diagnosis": {
+      "objective": "reliability",
+      "status": "observed",
+      "evidence": [
+        "examples.12.pair_metrics.all_hard_success"
+      ],
+      "probe": "random",
+      "expected_observation": "Compare all four repeats for failed hard constraints and locate the first proposal, projection or fallback that breaks feasibility."
+    },
+    "constraints": {
+      "runtime_errors_max": 0,
+      "hard_success_loss_max": 0,
+      "visibility_loss_max": 0.01,
+      "position_retention_min": 0.9,
+      "valid_position_retention_min": 0.9,
+      "rotation_retention_min": 0.8,
+      "valid_pair_count_loss_max": 0,
+      "preference_improvement_min_m": 0.01
+    },
+    "selected_probe": {
+      "name": "random",
+      "condition_indices": [
+        2,
+        3
+      ],
+      "repeats": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "delivery": {
+      "available": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "selected": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "delivered": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "complete_probe_conditions": [
+        3
+      ],
+      "controller_added_examples": 0
+    }
+  },
+  "allowed_files": [
+    "algorithm.py"
+  ],
+  "budget": {
+    "wall_seconds": 600,
+    "model_requests": 6,
+    "input_bytes_total": 1048576,
+    "input_bytes_per_request": 196608,
+    "output_tokens_per_request": 16384,
+    "mesh_queries": 24,
+    "editor_cpu_seconds_per_process": 45,
+    "editor_virtual_as_gib": 16,
+    "editor_tmp_mib": 64,
+    "editor_shared_uid_task_limit": 4096,
+    "candidate_cpu_seconds": 5,
+    "candidate_memory_mib": 256,
+    "total_tokens": 400000
+  }
+}

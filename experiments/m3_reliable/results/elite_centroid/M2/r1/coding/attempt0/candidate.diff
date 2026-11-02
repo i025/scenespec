@@ -1,0 +1,55 @@
+diff --git a/algorithm.py b/algorithm.py
+index 61f5a7e..f20634e 100644
+--- a/algorithm.py
++++ b/algorithm.py
+@@ -36,6 +36,36 @@ def best_index(history):
+     return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])
+ 
+ 
++def refine_relations(task, values, rng):
++    assets = {q['id']: task['spec']['assets'][q['asset']]
++              for q in task['spec']['required_objects']}
++    # Preserve each pair's midpoint and direction while reducing distance error.
++    # Repeated projection redistributes motion when a zone blocks one endpoint.
++    for _ in range(8):
++        for relation in task['relations']:
++            a, b = relation['a'], relation['b']
++            if task['supports'].get(a) != 'floor' or task['supports'].get(b) != 'floor' or a == b:
++                continue
++            dx = values[b][0] - values[a][0]
++            dy = values[b][1] - values[a][1]
++            distance = math.hypot(dx, dy)
++            dz = (assets[b]['height'] - assets[a]['height']) / 2
++            target = min(relation['max'], max(relation['min'], relation['target']))
++            planar_target = math.sqrt(max(0., target * target - dz * dz))
++            if distance > 1e-12:
++                ux, uy = dx / distance, dy / distance
++            else:
++                angle = rng.uniform(-math.pi, math.pi)
++                ux, uy = math.cos(angle), math.sin(angle)
++            step = (distance - planar_target) / 2
++            values[a][0] += step * ux
++            values[a][1] += step * uy
++            values[b][0] -= step * ux
++            values[b][1] -= step * uy
++            clamp_floor(task, values, a)
++            clamp_floor(task, values, b)
++
++
+ def layout(packet):
+     history=packet['history']
+     if packet['phase']=='final':return {'index':best_index(history)}
+@@ -48,10 +78,12 @@ def layout(packet):
+         values=parameters(task,rng,yaws)
+     else:
+         elite=sorted(history,key=lambda row:row['report']['optimizer_loss'])[:3]
+-        values={name:[sum(row['values'][name][axis] for row in elite)/len(elite) for axis in range(3)] for name in task['supports']}
++        parent=rng.choice(elite)
++        values={name:list(parent['values'][name]) for name in task['supports']}
+         for name in values:
+             scale=(.18 if task['supports'][name]=='floor' else .025)*(1.-packet['query']/32.)
+             values[name][0]+=rng.uniform(-scale,scale)
+             values[name][1]+=rng.uniform(-scale,scale)
+     for name in task['zones']:clamp_floor(task,values,name)
++    if packet['query']>=8:refine_relations(task,values,rng)
+     return {'values':values,'memory':{'rng':rng.getstate(),'yaws':yaws}}

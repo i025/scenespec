@@ -1,0 +1,1 @@
+Modified only `algorithm.py`: replaced elite-position averaging with individual-parent sampling and added bounded, height-aware floor-distance corrections. Yaw variation and query budgets remain unchanged. Tests were not run; external validation is pending.

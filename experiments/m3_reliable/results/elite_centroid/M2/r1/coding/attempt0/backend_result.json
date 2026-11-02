@@ -1,0 +1,20 @@
+{
+  "status": "completed",
+  "patch": "diff --git a/algorithm.py b/algorithm.py\nindex 61f5a7e..f20634e 100644\n--- a/algorithm.py\n+++ b/algorithm.py\n@@ -36,6 +36,36 @@ def best_index(history):\n     return min(range(len(history)), key=lambda i: history[i]['report']['optimizer_loss'])\n \n \n+def refine_relations(task, values, rng):\n+    assets = {q['id']: task['spec']['assets'][q['asset']]\n+              for q in task['spec']['required_objects']}\n+    # Preserve each pair's midpoint and direction while reducing distance error.\n+    # Repeated projection redistributes motion when a zone blocks one endpoint.\n+    for _ in range(8):\n+        for relation in task['relations']:\n+            a, b = relation['a'], relation['b']\n+            if task['supports'].get(a) != 'floor' or task['supports'].get(b) != 'floor' or a == b:\n+                continue\n+            dx = values[b][0] - values[a][0]\n+            dy = values[b][1] - values[a][1]\n+            distance = math.hypot(dx, dy)\n+            dz = (assets[b]['height'] - assets[a]['height']) / 2\n+            target = min(relation['max'], max(relation['min'], relation['target']))\n+            planar_target = math.sqrt(max(0., target * target - dz * dz))\n+            if distance > 1e-12:\n+                ux, uy = dx / distance, dy / distance\n+            else:\n+                angle = rng.uniform(-math.pi, math.pi)\n+                ux, uy = math.cos(angle), math.sin(angle)\n+            step = (distance - planar_target) / 2\n+            values[a][0] += step * ux\n+            values[a][1] += step * uy\n+            values[b][0] -= step * ux\n+            values[b][1] -= step * uy\n+            clamp_floor(task, values, a)\n+            clamp_floor(task, values, b)\n+\n+\n def layout(packet):\n     history=packet['history']\n     if packet['phase']=='final':return {'index':best_index(history)}\n@@ -48,10 +78,12 @@ def layout(packet):\n         values=parameters(task,rng,yaws)\n     else:\n         elite=sorted(history,key=lambda row:row['report']['optimizer_loss'])[:3]\n-        values={name:[sum(row['values'][name][axis] for row in elite)/len(elite) for axis in range(3)] for name in task['supports']}\n+        parent=rng.choice(elite)\n+        values={name:list(parent['values'][name]) for name in task['supports']}\n         for name in values:\n             scale=(.18 if task['supports'][name]=='floor' else .025)*(1.-packet['query']/32.)\n             values[name][0]+=rng.uniform(-scale,scale)\n             values[name][1]+=rng.uniform(-scale,scale)\n     for name in task['zones']:clamp_floor(task,values,name)\n+    if packet['query']>=8:refine_relations(task,values,rng)\n     return {'values':values,'memory':{'rng':rng.getstate(),'yaws':yaws}}\n",
+  "summary": "Modified only `algorithm.py`: replaced elite-position averaging with individual-parent sampling and added bounded, height-aware floor-distance corrections. Yaw variation and query budgets remain unchanged. Tests were not run; external validation is pending.",
+  "base_git": "48e1d3169a14328b7eea41b71a9a897c71e6d862",
+  "candidate_git": "f506c2ac0bd05f34b6fd0a253ae17329e141e703",
+  "wall_seconds": 71.5863892189227,
+  "model": "gpt-6.1-sol",
+  "model_requests": 3,
+  "usage": {
+    "input_tokens": 48897,
+    "output_tokens": 1323,
+    "total_tokens": 50220
+  },
+  "resources": {
+    "cpu_seconds": 0.49488499999999996,
+    "process_peak_rss_bytes": 145289216,
+    "scope": "fresh bridge and waited CLI/helpers; peak is per process, not aggregate RSS"
+  }
+}

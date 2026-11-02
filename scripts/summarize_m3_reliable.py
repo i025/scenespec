@@ -18,6 +18,8 @@ from scene_rsi.continuous.meta_experiment import eligible
 from scene_rsi.meta.coding import save
 from summarize_native_continuous import copy_coding
 
+CREDENTIAL=re.compile(r'(?<![A-Za-z0-9_-])(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|sk-(?:proj-)?[A-Za-z0-9_-]{35,})')
+
 
 def read(path):return json.loads(path.read_text())
 
@@ -33,11 +35,32 @@ def cluster_statistics(before,after,indices):
 
 
 def coding_cost(folder):
-    ledger=read(folder/'logical.json');resources=[]
+    ledger=read(folder/'logical.json');resources=[];failures=[]
     for record in ledger['attempts']:
-        result=read(folder/record['directory']/'backend_result.json') if (folder/record['directory']/'backend_result.json').exists() else {}
+        attempt=folder/record['directory']
+        result=read(attempt/'backend_result.json') if (attempt/'backend_result.json').exists() else {}
         resources.append(result.get('resources'))
-    return {**ledger,'editor_resources_per_attempt':resources}
+        if result.get('status')!='completed':
+            events=[json.loads(line) for line in (attempt/'events.jsonl').read_text().splitlines()] if (attempt/'events.jsonl').exists() else []
+            messages=[e['message'] for e in events if e['type']=='error']
+            requests=read(attempt/'model_calls.json')['requests'] if (attempt/'model_calls.json').exists() else []
+            wire_errors=[]
+            for request in requests:
+                response=attempt/f'response_{request["index"]}.sse'
+                if not response.exists():continue
+                text=response.read_text()
+                packets=([json.loads(text)] if text.lstrip().startswith('{') else
+                         [json.loads(line[6:]) for line in text.splitlines() if line.startswith('data: {')])
+                for packet in packets:
+                    error=packet.get('error') or packet.get('response',{}).get('error')
+                    if error and error not in wire_errors:wire_errors.append(error)
+            failures.append({'attempt':record['directory'],'backend_status':record['status'],'cli_errors':messages,
+                'server_errors':wire_errors,
+                'capacity_error_reported':any('at capacity' in message.lower() for message in messages),
+                'requests':[{'index':r['index'],'http_status':r.get('http_status'),'response_status':r.get('response_status'),
+                             'usage_known':r.get('usage') is not None} for r in requests],
+                'retry_eligible_under_frozen_rule':record['capacity_retry_eligible']})
+    return {**ledger,'editor_resources_per_attempt':resources,'failed_attempt_details':failures}
 
 
 def publish_candidate(source,dest):
@@ -141,7 +164,7 @@ def main():
     for path in files:
         text=path.read_text()
         assert not any(str(seed) in text for seed in seeds),path
-        assert not re.search(r'github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|sk-(?:proj-)?[A-Za-z0-9_-]{35,}',text),path
+        assert not CREDENTIAL.search(text),path
         if path.suffix=='.json':
             assert all(packet in dev for packet in task_packets(json.loads(text))),path
             assert '"reference":' not in text,path

@@ -1,0 +1,21 @@
+pybullet build time: Jan 29 2025 23:17:20
+test_each_attempt_raw_evidence_and_unknown_cost_survive_export (tests.test_m3_reliable_publication.ReliablePublicationTests.test_each_attempt_raw_evidence_and_unknown_cost_survive_export) ... ERROR
+test_http_200_capacity_failure_is_reported_without_reclassifying_retry (tests.test_m3_reliable_publication.ReliablePublicationTests.test_http_200_capacity_failure_is_reported_without_reclassifying_retry) ... ok
+test_statistics_cluster_whole_conditions_and_use_original_gate (tests.test_m3_reliable_publication.ReliablePublicationTests.test_statistics_cluster_whole_conditions_and_use_original_gate) ... ok
+
+======================================================================
+ERROR: test_each_attempt_raw_evidence_and_unknown_cost_survive_export (tests.test_m3_reliable_publication.ReliablePublicationTests.test_each_attempt_raw_evidence_and_unknown_cost_survive_export)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/tests/test_m3_reliable_publication.py", line 37, in test_each_attempt_raw_evidence_and_unknown_cost_survive_export
+    cost=report.coding_cost(coding)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/lab-disks/disk2/users/xymo/rsi/scene_rsi_phase2/scripts/summarize_m3_reliable.py", line 45, in coding_cost
+    failures.append({'attempt':record['directory'],'backend_status':record['status'],'cli_errors':messages,
+                                                                    ~~~~~~^^^^^^^^^^
+KeyError: 'status'
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.006s
+
+FAILED (errors=1)

@@ -1,0 +1,236 @@
+{
+  "groups": {
+    "M2": {
+      "logical_tasks": 4,
+      "completed_coding": 3,
+      "evaluated": 3,
+      "selected": 0,
+      "complete_effective_improvements": 0,
+      "complete_effective_rate": 0.0,
+      "MetaImp@1_preference_m": 0.0,
+      "trajectory_sample_stdev_m": 0.0,
+      "MetaImp_condition_bootstrap_95_m": [
+        0.0,
+        0.0
+      ],
+      "compliant_gain_mean_m": 0.0,
+      "compliant_condition_bootstrap_95_m": [
+        0.0,
+        0.0
+      ],
+      "service_requests": 10,
+      "cli_attempts": 4,
+      "retry_wait_seconds": 0,
+      "unknown_usage_requests": 1,
+      "known_token_lower_bound": 151152,
+      "actual_total_tokens": null,
+      "charged_tokens_including_unknown_reservations": 229519,
+      "coding_wall_seconds": 198.95968839526176,
+      "evaluation_wall_seconds_sum": 903.6570079727098,
+      "tokens_per_effective_improvement": null,
+      "tokens_per_effective_improvement_known_lower_bound": null,
+      "coding_seconds_per_effective_improvement": null
+    },
+    "M3": {
+      "logical_tasks": 4,
+      "completed_coding": 3,
+      "evaluated": 3,
+      "selected": 1,
+      "complete_effective_improvements": 1,
+      "complete_effective_rate": 0.25,
+      "MetaImp@1_preference_m": 0.016361196117706353,
+      "trajectory_sample_stdev_m": 0.032722392235412706,
+      "MetaImp_condition_bootstrap_95_m": [
+        0.009231603597800285,
+        0.024663383759676704
+      ],
+      "compliant_gain_mean_m": 0.01636119611770635,
+      "compliant_condition_bootstrap_95_m": [
+        0.009231603597800285,
+        0.024663383759676704
+      ],
+      "service_requests": 10,
+      "cli_attempts": 4,
+      "retry_wait_seconds": 0,
+      "unknown_usage_requests": 1,
+      "known_token_lower_bound": 156160,
+      "actual_total_tokens": null,
+      "charged_tokens_including_unknown_reservations": 234527,
+      "coding_wall_seconds": 243.19685789383948,
+      "evaluation_wall_seconds_sum": 905.7176378918812,
+      "tokens_per_effective_improvement": null,
+      "tokens_per_effective_improvement_known_lower_bound": 156160.0,
+      "coding_seconds_per_effective_improvement": 243.19685789383948
+    }
+  },
+  "paired": [
+    {
+      "initial": "axis_target",
+      "repeat": 0,
+      "both_evaluated": true,
+      "M2_effective": false,
+      "M3_effective": false,
+      "M3_minus_M2_selected_gain_m": 0.0
+    },
+    {
+      "initial": "axis_target",
+      "repeat": 1,
+      "both_evaluated": false,
+      "M2_effective": false,
+      "M3_effective": false,
+      "M3_minus_M2_selected_gain_m": 0.0
+    },
+    {
+      "initial": "elite_centroid",
+      "repeat": 0,
+      "both_evaluated": false,
+      "M2_effective": false,
+      "M3_effective": false,
+      "M3_minus_M2_selected_gain_m": 0.0
+    },
+    {
+      "initial": "elite_centroid",
+      "repeat": 1,
+      "both_evaluated": true,
+      "M2_effective": false,
+      "M3_effective": true,
+      "M3_minus_M2_selected_gain_m": 0.06544478447082541
+    }
+  ],
+  "baselines": {
+    "axis_target": {
+      "dev": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 92,
+        "success_rate": 0.9583333333333334,
+        "preference_error_m": 0.16117856524081164,
+        "visibility_mean": 0.9742094408069927,
+        "diversity_position_rms_m": 0.43764108173035915,
+        "diversity_rotation_deg": 9.561725658980803,
+        "valid_pair_count": 132,
+        "valid_pair_diversity_m": 0.4251592089574521,
+        "failures": {
+          "mesh_passage": 4
+        },
+        "generation_wall_seconds_mean": 1.3673538872923625,
+        "controller_cpu_seconds_total": 90.48520187199996,
+        "runtime_cpu_seconds_total": 61.121983,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      },
+      "selection": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 94,
+        "success_rate": 0.9791666666666666,
+        "preference_error_m": 0.21453442429305866,
+        "visibility_mean": 0.9716662218859384,
+        "diversity_position_rms_m": 0.4458141181605905,
+        "diversity_rotation_deg": 10.212633576058582,
+        "valid_pair_count": 138,
+        "valid_pair_diversity_m": 0.43581370184458385,
+        "failures": {
+          "mesh_passage": 2
+        },
+        "generation_wall_seconds_mean": 1.37542855241918,
+        "controller_cpu_seconds_total": 91.20825609300005,
+        "runtime_cpu_seconds_total": 60.916584,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      },
+      "test": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 86,
+        "success_rate": 0.8958333333333334,
+        "preference_error_m": 0.19596684891662633,
+        "visibility_mean": 0.9722655920724728,
+        "diversity_position_rms_m": 0.4917352892674018,
+        "diversity_rotation_deg": 9.640330048922927,
+        "valid_pair_count": 119,
+        "valid_pair_diversity_m": 0.465098347531646,
+        "failures": {
+          "mesh_passage": 10
+        },
+        "generation_wall_seconds_mean": 1.3751301993906964,
+        "controller_cpu_seconds_total": 91.76344100200001,
+        "runtime_cpu_seconds_total": 61.408466,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      }
+    },
+    "elite_centroid": {
+      "dev": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 96,
+        "success_rate": 1,
+        "preference_error_m": 0.23497707708446086,
+        "visibility_mean": 0.9687354421611454,
+        "diversity_position_rms_m": 0.38924496766224703,
+        "diversity_rotation_deg": 9.561725658980802,
+        "valid_pair_count": 144,
+        "valid_pair_diversity_m": 0.38924496766224703,
+        "failures": {},
+        "generation_wall_seconds_mean": 1.3845679455310649,
+        "controller_cpu_seconds_total": 91.797026461,
+        "runtime_cpu_seconds_total": 61.671178,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      },
+      "selection": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 96,
+        "success_rate": 1,
+        "preference_error_m": 0.3651740226023782,
+        "visibility_mean": 0.9725277942779216,
+        "diversity_position_rms_m": 0.3926171097190501,
+        "diversity_rotation_deg": 10.212633576058582,
+        "valid_pair_count": 144,
+        "valid_pair_diversity_m": 0.3926171097190501,
+        "failures": {},
+        "generation_wall_seconds_mean": 1.3614427513627259,
+        "controller_cpu_seconds_total": 89.730734119,
+        "runtime_cpu_seconds_total": 61.805578,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      },
+      "test": {
+        "tasks": 24,
+        "runs": 96,
+        "successes": 94,
+        "success_rate": 0.9791666666666666,
+        "preference_error_m": 0.24924838129815582,
+        "visibility_mean": 0.9719306286870221,
+        "diversity_position_rms_m": 0.3821932350370603,
+        "diversity_rotation_deg": 9.640330048922927,
+        "valid_pair_count": 138,
+        "valid_pair_diversity_m": 0.3799446763104426,
+        "failures": {
+          "mesh_passage": 2
+        },
+        "generation_wall_seconds_mean": 1.3723243056059193,
+        "controller_cpu_seconds_total": 91.37181981200004,
+        "runtime_cpu_seconds_total": 60.998276000000004,
+        "runtime_errors": 0,
+        "queries_min": 24,
+        "queries_max": 24
+      }
+    }
+  },
+  "historical_M3_creation_tokens": 77723,
+  "historical_creation_included_in_downstream_cost": false,
+  "monetary_cost": null,
+  "K": 1,
+  "M4_generated": false,
+  "statistics_scope": "20000 paired condition-cluster draws with fixed model samples; no statistical significance claim across meta-agent samples",
+  "complete_effective_definition": "Validation selected AND unchanged private-test multiobjective guard passes",
+  "runtime_cost_scope": "Coding includes retries and waits; evaluation wall sums can overlap, excludes shared baseline preparation and historical creation"
+}
